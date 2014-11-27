@@ -55,7 +55,7 @@ local MarkersLayer
 local MoveParams = { transition = easing.inOutQuad }
 
 -- Sounds played during warping --
-local Sounds = audio.NewSoundGroup{ warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
+local Sounds = audio.NewSoundGroup{ _prefix = "s3_objects/dot/sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
 
 -- Network of warps --
 local WarpList

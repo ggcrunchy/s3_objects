@@ -43,7 +43,7 @@ local Switch = {}
 local Events = bind.BroadcastBuilder_Helper("loading_level")
 
 -- Sounds played by switch --
-local Sounds = audio.NewSoundGroup{ "Switch1.wav", "Switch2.mp3" }
+local Sounds = audio.NewSoundGroup{ _prefix = "s3_objects/dot/sfx", "Switch1.wav", "Switch2.mp3" }
 
 --- Dot method: switch acted on as dot of interest.
 function Switch:ActOn ()
