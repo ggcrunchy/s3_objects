@@ -33,6 +33,7 @@ local type = type
 local audio = require("corona_utils.audio")
 local bind = require("tektite_core.bind")
 local collision = require("corona_utils.collision")
+local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
 local fx = require("s3_utils.fx")
 local length = require("tektite_core.number.length")
@@ -55,7 +56,7 @@ local MarkersLayer
 local MoveParams = { transition = easing.inOutQuad }
 
 -- Sounds played during warping --
-local Sounds = audio.NewSoundGroup{ _prefix = "s3_objects/dot/sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
+local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
 
 -- Network of warps --
 local WarpList
@@ -204,6 +205,9 @@ end
 -- Physics body --
 local Body = { radius = 25 }
 
+-- Touch image --
+local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "WarpTouch.png"
+
 --- Dot method: get property.
 -- @string name Property name.
 -- @return Property value, or **nil** if absent.
@@ -211,7 +215,7 @@ function Warp:GetProperty (name)
 	if name == "body" then
 		return Body
 	elseif name == "touch_image" then
-		return "Dot_Assets/WarpTouch.png"
+		return TouchImage
 	end
 end
 
@@ -329,7 +333,7 @@ local function LinkWarp (warp, other, sub, other_sub)
 	end
 end
 
--- Handler for warp-specific editor events, cf. game.Dots.EditorEvent
+-- Handler for warp-specific editor events, cf. s3_utils.dots.EditorEvent
 local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- Build --
 	-- arg1: Level
@@ -431,13 +435,16 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
+-- Warp image --
+local WarpImage = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
+
 -- Export the warp factory.
 return function (group, info)
 	if group == "editor_event" then
 		return OnEditorEvent
 	end
 
-	local warp = display.newImage(group, "Dot_Assets/Warp.png")
+	local warp = display.newImage(group, WarpImage)
 
 	Scale(warp, 1)
 

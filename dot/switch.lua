@@ -30,6 +30,7 @@ local pairs = pairs
 local audio = require("corona_utils.audio")
 local bind = require("tektite_core.bind")
 local collision = require("corona_utils.collision")
+local file = require("corona_utils.file")
 local powers_of_2 = require("bitwise_ops.powers_of_2")
 
 -- Corona globals --
@@ -43,7 +44,7 @@ local Switch = {}
 local Events = bind.BroadcastBuilder_Helper("loading_level")
 
 -- Sounds played by switch --
-local Sounds = audio.NewSoundGroup{ _prefix = "s3_objects/dot/sfx", "Switch1.wav", "Switch2.mp3" }
+local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", "Switch1.wav", "Switch2.mp3" }
 
 --- Dot method: switch acted on as dot of interest.
 function Switch:ActOn ()
@@ -90,6 +91,9 @@ end
 -- Physics body --
 local Body = { radius = 25 }
 
+-- Touch image --
+local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "SwitchTouch.png"
+
 --- Dot method: get property.
 -- @string name Property name.
 -- @return Property value, or **nil** if absent.
@@ -97,7 +101,7 @@ function Switch:GetProperty (name)
 	if name == "body" then
 		return Body
 	elseif name == "touch_image" then
-		return "Dot_Assets/SwitchTouch.png"
+		return TouchImage
 	end
 end
 
@@ -172,7 +176,7 @@ local function LinkSwitch (switch, other, sub, other_sub)
 	end
 end
 
--- Handler for switch-specific editor events, cf. game.Dots.EditorEvent
+-- Handler for switch-specific editor events, cf. s3_utils.dots.EditorEvent
 local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- Build --
 	-- arg1: Level
@@ -218,6 +222,9 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
+-- GFX path --
+local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
+
 -- Export the switch factory.
 return function (group, info)
 	if group == "editor_event" then
@@ -228,8 +235,8 @@ return function (group, info)
 
 	group:insert(switch)
 
-	local image1 = display.newImage(switch, "Dot_Assets/Switch-1.png")
-	local image2 = display.newImage(switch, "Dot_Assets/Switch-2.png")
+	local image1 = display.newImage(switch, GFX .. "Switch-1.png")
+	local image2 = display.newImage(switch, GFX .. "Switch-2.png")
 
 	image2.isVisible = false
 

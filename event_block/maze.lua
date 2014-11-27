@@ -239,7 +239,7 @@ local function Wipe (block, open, wipe_flags)
 	end
 end
 
--- Handler for maze-specific editor events, cf. game.EventBlocks.EditorEvent
+-- Handler for maze-specific editor events, cf. s3_utils.event_blocks.EditorEvent
 local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- Build --
 	-- arg1: Level
