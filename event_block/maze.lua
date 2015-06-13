@@ -442,7 +442,7 @@ return function(info, block)
 
 		-- ...or hide.
 		else
-			if mgroup and mgroup.parent then
+			if mgroup and mgroup.removeSelf ~= nil then -- mgroup still valid? (TODO: Try to use display.remove()...)
 				mgroup:removeSelf()
 			end
 

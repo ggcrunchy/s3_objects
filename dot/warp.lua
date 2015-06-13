@@ -104,7 +104,7 @@ local function DoWarp (warp, func)
 
 			-- Warp-in onComplete handler, which concludes the warp and does cleanup
 			local function WarpIn_OC (object)
-				if object.parent then
+				if object.removeSelf ~= nil then -- object still valid?
 					func("move_done", warp, target, ttype)
 
 					object:setMask(nil)
@@ -120,7 +120,7 @@ local function DoWarp (warp, func)
 
 			-- Move onComplete handler, which segues into the warp-in stage of warping
 			local function MoveParams_OC (object)
-				if object.parent then
+				if object.removeSelf ~= nil then -- object still valid?
 					for i, item in ipairs(items) do
 						handles[i] = fx.WarpIn(item, i == 1 and WarpIn_OC)
 					end
@@ -136,7 +136,7 @@ local function DoWarp (warp, func)
 			local tx, ty = target.x, target.y
 
 			local function WarpOut_OC (object)
-				if object.parent then
+				if object.removeSelf ~= nil then -- object still valid?
 					local dx, dy = object.x - tx, object.y - ty
 
 					MoveParams.x = tx
