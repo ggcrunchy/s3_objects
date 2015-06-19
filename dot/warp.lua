@@ -259,6 +259,9 @@ end
 -- Warp-being-touched event --
 local TouchEvent = { name = "touching_dot" }
 
+-- Arrow fade transition --
+local ArrowFadeParams = { alpha = 0, transition = easing.outCirc, onComplete = display.remove }
+
 -- Add warp-OBJECT collision handler.
 collision.AddHandler("warp", function(phase, warp, other, other_type)
 	-- Player touched warp: signal it as the dot of interest.
@@ -276,7 +279,7 @@ collision.AddHandler("warp", function(phase, warp, other, other_type)
 			if phase == "began" then
 				warp.m_line = markers.PointFromTo(MarkersLayer, warp, target, 5, .5)
 			else
-				display.remove(warp.m_line)
+				transition.to(warp.m_line, ArrowFadeParams)
 
 				warp.m_line = nil
 			end

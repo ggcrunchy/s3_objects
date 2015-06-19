@@ -325,7 +325,7 @@ return function(info, block)
 			function sparams.onComplete (group)
 				StopShaking(group)
 
-				forming = params and group.parent and transition.to(group, params)
+				forming = params and group.removeSelf ~= nil and transition.to(group, params) -- group still valid?
 			end
 
 			return sparams
