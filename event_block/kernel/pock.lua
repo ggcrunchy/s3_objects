@@ -23,26 +23,54 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Kernel --
 local kernel = { category = "filter", group = "event_block_maze", name = "pock" }
 
 kernel.vertexData = {
 	{
+		name = "x",
+		default = 0, min = -65535, max = 65535,
+		index = 0
+	},
+	{
+		name = "y",
+		default = 0, min = -65535, max = 65535,
+		index = 1
+	},
+	{
 		name = "scale",
 		default = 1, min = 0, max = 1,
-		index = 0
+		index = 2
+	},
+	{
+		name = "seed",
+		default = 0, min = 0, max = 100,
+		index = 3
 	}
 }
 
-kernel.isTimeDependent = true
+kernel.vertex = [[
+	varying P_UV vec2 uv_rel;
+
+	P_POSITION vec2 VertexKernel (P_POSITION vec2 pos)
+	{
+		uv_rel = step(pos, CoronaVertexUserData.xy);
+
+		return pos;
+	}
+]]
 
 kernel.fragment = [[
+	varying P_UV vec2 uv_rel;
+
 	P_POSITION vec2 GetPosition (P_UV float epoch)
 	{
-		// Grab a value in [0, 1024), with a basic linear congruential generator
+		// Grab a value in [0, 1024), with a basic linear congruential generator.
 		P_DEFAULT float hash = mod(epoch * 377. + 723., 1024.);
+
+		// Resolve that to x- and y-coordinates, each in [0, 32).
 		P_DEFAULT vec2 pos;
 
-		// Resolve that to x- and y-coordinates, each in [0, 32)
 		pos.x = floor(hash / 32.);
 		pos.y = hash - pos.x * 32.;
 		
@@ -51,22 +79,19 @@ kernel.fragment = [[
 
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
-		P_POSITION bool bNear = false;
-		P_UV float up_to = CoronaVertexUserData.w, near_dist = 2.;
+		P_UV float epoch = CoronaVertexUserData.w, up_to = -1.;
 
-		for (P_POSITION int i = 0; i < 3; ++i)
+		for (P_POSITION int i = 0; i < 7; ++i)
 		{
-			P_POSITION vec2 pos = GetPosition(float(i));
-			P_UV float dist = length(uv - pos);
+			P_POSITION vec2 pos = GetPosition(epoch);
+			P_UV float dist = length(uv_rel - pos);
 
-			if (dist <= up_to)
-			{
-				up_to = dist;
-				bNear = true;
-			}
+			if (dist <= CoronaVertexUserData.z) up_to = max(up_to, dist);
+
+			++epoch;
 		}
 
-		if (!bNear) return vec4(0.);
+		if (up_to <= 0.) return vec4(0.);
 
 		return CoronaColorScale(texture2D(CoronaSampler0, uv));
 	}

@@ -23,46 +23,62 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local loader = require("corona_shader.loader")
+local unit_pair = require("corona_shader.encode.vars.unit_pair")
+
+-- Kernel --
 local kernel = { category = "filter", group = "event_block_maze", name = "unfurl" }
 
 kernel.vertexData = {
 	{
-		name = "left",
-		default = -.25, min = -1, max = 1,
+		name = "x",
+		default = 0, min = -65535, max = 65535,
 		index = 0
 	},
 	{
-		name = "top",
-		default = -.25, min = -1, max = 1,
+		name = "y",
+		default = 0, min = -65535, max = 65535,
 		index = 1
-	},
-	{
-		name = "right",
-		default = .25, min = -1, max = 1,
-		index = 2
-	},
-	{
-		name = "bottom",
-		default = .25, min = -1, max = 1,
-		index = 3
 	}
+
+	-- left_bottom (2), set below: [0, 1; def = 0] (both)
+	-- right_top (3), set below: [0, 1; def = 1] (both)
 }
+
+unit_pair.AddVertexProperty(kernel, 2, "left", "bottom", "left_bottom", 0, 0)
+unit_pair.AddVertexProperty(kernel, 3, "right", "top", "right_top", 1, 1)
 
 kernel.isTimeDependent = true
 
-kernel.fragment = [[
+kernel.vertex = [[
+	varying P_UV vec2 uv_rel;
+
+	P_POSITION vec2 VertexKernel (P_POSITION vec2 pos)
+	{
+		uv_rel = step(pos, CoronaVertexUserData.xy);
+
+		return pos;
+	}
+]]
+
+kernel.fragment = loader.FragmentShader[[
+	varying P_UV vec2 uv_rel;
+
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
 		// Build up some wave sums to displace the edges a bit.
-		P_UV vec4 s1 = sin(vec4(7.9, 3.2, 1.6, 1.7) * uv.yxyx + vec4(2.7, 3.9, 4.1, -3.7) * 3.7 * CoronaTotalTime);
-		P_UV vec4 s2 = sin(vec4(3.6, 6.1, 5.7, 8.1) * uv.yxyx + vec4(-3.9, 2.1, 8.2, 1.1) * 2.1 * CoronaTotalTime);
-		P_UV vec4 s3 = sin(vec4(1.7, 1.3, 3.1, 3.9) * uv.yxyx + vec4(2.3, -2.8, 1.1, 3.3) * 0.3 * CoronaTotalTime);
-		P_UV vec4 sum = CoronaVertexUserData + s1 * .043 + s2 * .033 + s3 * .013;
+		P_UV vec4 s1 = sin(vec4(7.9, 3.2, 3.1, 1.7) * uv_rel.yxyx + vec4(2.7, 3.9, 4.1, -3.7) * 3.7 * CoronaTotalTime);
+		P_UV vec4 s2 = sin(vec4(3.6, 6.1, 5.7, 8.1) * uv_rel.yxyx + vec4(-3.9, 2.1, 8.2, 1.1) * 2.1 * CoronaTotalTime);
+		P_UV vec4 s3 = sin(vec4(1.7, 1.3, 1.6, 3.9) * uv_rel.yxyx + vec4(2.3, -2.8, 1.1, 3.3) * 1.3 * CoronaTotalTime);
+		P_UV vec4 sum = s1 * .043 + s2 * .0368 + s3 * .022;
 
 		// Draw the pixel if it lies within all four (displaced) edges.
-		P_UV vec2 pos = uv - .5;
+		P_UV vec2 left_bottom = UnitPair(CoronaVertexUserData.z);
+		P_UV vec2 right_top = UnitPair(CoronaVertexUserData.w);
+		P_UV vec2 pos = .8 * uv + .1;
 
-		if (any(lessThan(pos, sum.xy)) || any(greaterThan(pos, sum.zw))) return vec4(0.);
+		if (any(lessThan(pos, left_bottom + sum.xy)) || any(greaterThan(pos, right_top + sum.zw))) return vec4(0.);
 
 		return CoronaColorScale(texture2D(CoronaSampler0, uv));
 	}

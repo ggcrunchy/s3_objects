@@ -41,6 +41,7 @@ local sqrt = math.sqrt
 
 -- Modules --
 local circle = require("s3_utils.fill.circle")
+local effect_props = require("corona_shader.effect_props")
 local match_slot_id = require("tektite_core.array.match_slot_id")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
@@ -147,26 +148,55 @@ local FadeOutParams = {
 	end
 }
 
-local OP2 = { scale = 0, time = 850, transition = easing.outExpo }
+-- Pock effect transition --
+local PockParams = { scale = 0, time = 850, transition = easing.outBounce }
 
 -- Kicks off a fade-out
 local function FadeOut (block)
-local W, H = tile_maps.GetSizes()
 	for index in block:IterSelf() do
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			FadeOutParams.delay = random(300)--900)
-OP2.delay = FadeOutParams.delay
-image.fill.effect = "filter.event_block_maze.pock"
-image.fill.effect.scale = 1
-transition.to(image.fill.effect, OP2)
+			image.fill.effect = "filter.event_block_maze.pock"
+
+			image.fill.effect.x = image.x
+			image.fill.effect.y = image.y
+			image.fill.effect.epoch = index + random(3);
 
 			transition.to(image, FadeOutParams)
+			transition.to(image.fill.effect, PockParams) -- TODO: Verify on reset_level with "already showing" maze
 		end
 	end
 end
+--[=[
+	Unfurl stuff:
+local effect_props = require("corona_shader.effect_props")
+-- Pock effect transition --
+local PockParams = {
+--scale = 0,
+left = .6, right = .4,
+time = 850, transition = easing.outBounce }
 
+-- Kicks off a fade-out
+local function FadeOut (block)
+	for index in block:IterSelf() do
+		local image = tile_maps.GetImage(index)
+
+		if image then
+--			image.fill.effect = "filter.event_block_maze.pock"
+
+			effect_props.AssignEffect(image, "filter.event_block_maze.unfurl")
+local effect = effect_props.Wrap(image)
+			--[[image.fill.]]effect.x = image.x
+			--[[image.fill.]]effect.y = image.y
+--			image.fill.effect.epoch = index + random(3);
+
+			transition.to(image, FadeOutParams)
+			transition.to(--[[image.fill.]]effect, PockParams) -- TODO: Verify on reset_level with "already showing" maze
+		end
+	end
+end
+]=]
 -- Tile deltas (indices into Deltas) available on current iteration, during maze building --
 local Choices = {}
 
