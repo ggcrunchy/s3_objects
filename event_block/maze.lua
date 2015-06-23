@@ -46,6 +46,13 @@ local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
 local timers = require("corona_utils.timers")
 
+-- Kernels --
+local kernel_pock = require("s3_objects.event_block.kernel.pock")
+local kernel_unfurl = require("s3_objects.event_block.kernel.unfurl")
+
+graphics.defineEffect(kernel_pock)
+graphics.defineEffect(kernel_unfurl)
+
 -- Corona globals --
 local display = display
 local Runtime = Runtime
@@ -133,20 +140,27 @@ end
 
 -- Fade-out transition --
 local FadeOutParams = {
-	alpha = .2, time = 250,
+	alpha = .2, time = 1250,
 
 	onComplete = function(object)
 		object.isVisible = false
 	end
 }
 
+local OP2 = { scale = 0, time = 850, transition = easing.outExpo }
+
 -- Kicks off a fade-out
 local function FadeOut (block)
+local W, H = tile_maps.GetSizes()
 	for index in block:IterSelf() do
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			FadeOutParams.delay = random(900)
+			FadeOutParams.delay = random(300)--900)
+OP2.delay = FadeOutParams.delay
+image.fill.effect = "filter.event_block_maze.pock"
+image.fill.effect.scale = 1
+transition.to(image.fill.effect, OP2)
 
 			transition.to(image, FadeOutParams)
 		end
