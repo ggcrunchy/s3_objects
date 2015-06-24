@@ -32,17 +32,15 @@
 --
 
 -- Standard library imports --
-local ceil = math.ceil
-local floor = math.floor
 local ipairs = ipairs
+local pairs = pairs
 local random = math.random
 local remove = table.remove
-local sqrt = math.sqrt
 
 -- Modules --
-local circle = require("s3_utils.fill.circle")
 local effect_props = require("corona_shader.effect_props")
 local match_slot_id = require("tektite_core.array.match_slot_id")
+local movement = require("s3_utils.movement")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
 local timers = require("corona_utils.timers")
@@ -78,20 +76,63 @@ for k, v in pairs{
 	Runtime:addEventListener(k, v)
 end
 
--- A random shake displacement
-local function ShakeBy ()
-	local amount = random(3, 16)
+-- --
+local List1, List2 = {}, {}
 
-	return amount <= 8 and amount or (amount - 11)
+-- --
+local UnfurlDelay, UnfurlTime = 150, 400
+
+-- --
+local UnfurlParams = { time = UnfurlTime, transition = easing.inOutSine }
+
+-- --
+local To = { top = 1, left = 0, bottom = 0, right = 1 }
+
+-- --
+local ParamsSetup = {
+	-- Up --
+	up = { from = { bottom = 0, left = .6, top = 0, right = .4 }, except = "bottom" },
+
+	-- Left --
+	left = { from = { bottom = .6, left = 1, top = .4, right = 1 }, except = "right" },
+
+	-- Down --
+	down = { from = { bottom = 1, left = .6, top = 1, right = .4 }, except = "top" },
+
+	-- Right --
+	right = { from = { bottom = .6, left = 0, top = .4, right = 0 }, except = "left" },
+
+	-- Start --
+	start = { from = { bottom = .6, left = .6, top = .4, right = .4 } }
+}
+
+--
+local function Unfurl (x, y, occupancy, which, delay)
+	local index = tile_maps.GetTileIndex(x, y)
+	local image, setup = tile_maps.GetImage(index), ParamsSetup[which]
+
+	if occupancy("mark", index) and image then
+		effect_props.AssignEffect(image, "filter.event_block_maze.unfurl")
+
+		local effect, except = effect_props.Wrap(image), setup.except
+
+		for k, v in pairs(setup.from) do
+			effect[k], UnfurlParams[k] = v, To[k ~= except and k]
+		end
+
+		effect.x, effect.y, UnfurlParams.delay, image.isVisible = image.x, image.y, delay, true
+
+		transition.to(effect, UnfurlParams)
+
+		return true
+	end
 end
 
--- Fade-in transition --
-local FadeInParams = { alpha = 1, time = 1100, transition = easing.inQuad }
-
 -- Kicks off a fade-in
-local function FadeIn (block)
-	-- Start all the maze off hidden. Usually this will be unnecessary, but if a fade-out
-	-- was in progress, this will account for any half-faded tiles.
+local function FadeIn (block, occupancy)
+	occupancy("begin_generation")
+
+	-- Start all the maze off hidden.
 	for index in block:IterSelf() do
 		local image = tile_maps.GetImage(index)
 
@@ -100,43 +141,39 @@ local function FadeIn (block)
 		end
 	end
 
-	-- Fade the maze tiles in, as an expanding circle.
+	-- Unfurl the tiles from some random starting point.
 	local col1, row1, col2, row2 = block:GetInitialRect()
-	local nx = col2 - col1 + 1
-	local ny = row2 - row1 + 1
-	local halfx = ceil(nx / 2)
-	local halfy = ceil(ny / 2)
-	local midx, midy, n = col1 + halfx - 1, row1 + halfy - 1, nx * ny
+	local from, to, count, delay = List1, List2, 2, UnfurlDelay
 
-	local spread = circle.SpreadOut(nx - halfx, ny - halfx, function(x, y)
-		x, y = x + midx, y + midy
+	from[1], from[2] = random(col1, col2), random(row1, row2)
 
-		if x >= col1 and x <= col2 and y >= row1 and y <= row2 then
-			local image = tile_maps.GetImage(tile_maps.GetTileIndex(x, y))
+	Unfurl(from[1], from[2], occupancy, "start")
 
-			if image then
-				image.alpha = .05
-				image.isVisible = true
+	repeat
+		local nadded = 0
 
-				transition.to(image, FadeInParams)
+		for i = 1, count, 2 do
+			local x, y = from[i], from[i + 1]
+
+			for dir in movement.Ways(tile_maps.GetTileIndex(x, y)) do
+				local tx, ty, bounded = x, y, true
+
+				if dir == "left" or dir == "right" then
+					tx = tx + (dir == "left" and -1 or 1)
+					bounded = tx >= col1 and tx <= col2
+				else
+					ty = ty + (dir == "up" and -1 or 1)
+					bounded = ty >= row1 and ty <= row2
+				end
+
+				if bounded and Unfurl(tx, ty, occupancy, dir, delay) then
+					to[nadded + 1], to[nadded + 2], nadded = tx, ty, nadded + 2
+				end
 			end
-
-			n = n - 1
 		end
-	end)
 
-	-- Spread out until all tiles in the block have been cued.
-	local radius, t0 = sqrt(nx^2 + ny^2) / 2000
-
-	timers.RepeatEx(function(event)
-		t0 = t0 or event.time
-
-		if n ~= 0 then
-			spread(floor((event.time - t0) * radius))
-		else
-			return "cancel"
-		end
-	end)
+		from, to, count, delay = to, from, nadded, delay + UnfurlDelay
+	until count == 0
 end
 
 -- Fade-out transition --
@@ -168,47 +205,18 @@ local function FadeOut (block)
 		end
 	end
 end
---[=[
-	Unfurl stuff:
-local effect_props = require("corona_shader.effect_props")
--- Pock effect transition --
-local PockParams = {
---scale = 0,
-left = .6, right = .4,
-time = 850, transition = easing.outBounce }
 
--- Kicks off a fade-out
-local function FadeOut (block)
-	for index in block:IterSelf() do
-		local image = tile_maps.GetImage(index)
-
-		if image then
---			image.fill.effect = "filter.event_block_maze.pock"
-
-			effect_props.AssignEffect(image, "filter.event_block_maze.unfurl")
-local effect = effect_props.Wrap(image)
-			--[[image.fill.]]effect.x = image.x
-			--[[image.fill.]]effect.y = image.y
---			image.fill.effect.epoch = index + random(3);
-
-			transition.to(image, FadeOutParams)
-			transition.to(--[[image.fill.]]effect, PockParams) -- TODO: Verify on reset_level with "already showing" maze
-		end
-	end
-end
-]=]
 -- Tile deltas (indices into Deltas) available on current iteration, during maze building --
 local Choices = {}
 
 -- Tile deltas in each cardinal direction --
 local Deltas = { false, -1, false, 1 }
 
--- List of flood-filled tiles that may still have exits available --
+-- List of flood-filled tiles that might still have exits available --
 local Maze = {}
 
 -- Populates the maze state used to build tile flags
 local function MakeMaze (block, open, occupancy)
-	-- Begin a fresh generation.
 	occupancy("begin_generation")
 
 	-- Compute the deltas between rows of the maze event block (using its width).
@@ -260,29 +268,6 @@ local function MakeMaze (block, open, occupancy)
 	until #Maze == 0
 end
 
--- Updates tiles from maze block flags
-local function UpdateTiles (block)
-	tile_maps.SetTilesFromFlags(block:GetImageGroup(), block:GetInitialRect())
-end
-
--- Wipes the maze state (and optionally its flags), marking borders
-local function Wipe (block, open, wipe_flags)
-	local i, col1, row1, col2, row2 = 0, block:GetInitialRect()
-
-	for _, col, row in block:IterSelf() do
-		open[i + 1] = row == row1
-		open[i + 2] = col == col1
-		open[i + 3] = row == row2
-		open[i + 4] = col == col2
-
-		i = i + 4
-	end
-
-	if wipe_flags then
-		tile_flags.WipeFlags(col1, row1, col2, row2)
-	end
-end
-
 -- Handler for maze-specific editor events, cf. s3_utils.event_blocks.EditorEvent
 local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- Build --
@@ -309,6 +294,36 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- arg3: Representative object
 	elseif what == "verify" then
 		-- STUFF
+	end
+end
+
+-- A random shake displacement
+local function ShakeBy ()
+	local amount = random(3, 16)
+
+	return amount <= 8 and amount or (amount - 11)
+end
+
+-- Updates tiles from maze block flags
+local function UpdateTiles (block)
+	tile_maps.SetTilesFromFlags(block:GetImageGroup(), block:GetInitialRect())
+end
+
+-- Wipes the maze state (and optionally its flags), marking borders
+local function Wipe (block, open, wipe_flags)
+	local i, col1, row1, col2, row2 = 0, block:GetInitialRect()
+
+	for _, col, row in block:IterSelf() do
+		open[i + 1] = row == row1
+		open[i + 2] = col == col1
+		open[i + 3] = row == row2
+		open[i + 4] = col == col2
+
+		i = i + 4
+	end
+
+	if wipe_flags then
+		tile_flags.WipeFlags(col1, row1, col2, row2)
 	end
 end
 
@@ -445,7 +460,7 @@ return function(info, block)
 
 		if added then
 			UpdateTiles(block)
-			FadeIn(block)
+			FadeIn(block, occupancy)
 		else
 			FadeOut(block)
 		end

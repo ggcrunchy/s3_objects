@@ -66,7 +66,7 @@ kernel.fragment = [[
 	P_POSITION vec2 GetPosition (P_UV float epoch)
 	{
 		// Grab a value in [0, 1024), with a basic linear congruential generator.
-		P_DEFAULT float hash = mod(epoch * 377. + 723., 1024.);
+		P_DEFAULT float hash = mod(epoch * 3.77 + 7.23, 10.24) * 100.;
 
 		// Resolve that to x- and y-coordinates, each in [0, 32).
 		P_DEFAULT vec2 pos;
