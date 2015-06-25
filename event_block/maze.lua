@@ -76,19 +76,19 @@ for k, v in pairs{
 	Runtime:addEventListener(k, v)
 end
 
--- --
+-- Ping-pong buffers for unfurling the maze --
 local List1, List2 = {}, {}
 
--- --
-local UnfurlDelay, UnfurlTime = 150, 400
+-- Unfurl timing values --
+local UnfurlDelay, UnfurlTime = 150, 850
 
--- --
-local UnfurlParams = { time = UnfurlTime, transition = easing.inOutSine }
+-- Unfurl transition --
+local UnfurlParams = { time = UnfurlTime, transition = easing.outQuint }
 
--- --
+-- Unfurl parameter destinations --
 local To = { top = 1, left = 0, bottom = 0, right = 1 }
 
--- --
+-- Unfurl parameter initial values, plus which parameter (if any) is already in place --
 local ParamsSetup = {
 	-- Up --
 	up = { from = { bottom = 0, left = .6, top = 0, right = .4 }, except = "bottom" },
@@ -106,7 +106,7 @@ local ParamsSetup = {
 	start = { from = { bottom = .6, left = .6, top = .4, right = .4 } }
 }
 
---
+-- Adds a tile to the unfurling maze
 local function Unfurl (x, y, occupancy, which, delay)
 	local index = tile_maps.GetTileIndex(x, y)
 	local image, setup = tile_maps.GetImage(index), ParamsSetup[which]
