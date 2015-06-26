@@ -379,7 +379,7 @@ return function(info, block)
 
 			-- Shake until the dust clears. If this is before the form itself, kick that
 			-- off. Otherwise, cancel the dummy transition to conclude the form event.
-			local sparams = { time = block:Dust(group, 3, 7) }
+			local sparams = { time = block:Dust(3, 7) }
 
 			function sparams.onComplete (group)
 				StopShaking(group)
