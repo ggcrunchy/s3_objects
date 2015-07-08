@@ -1,4 +1,4 @@
---- A shader used to unfurl a maze.
+--- A shader used to reduce an image as a series of points.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -24,7 +24,7 @@
 --
 
 -- Kernel --
-local kernel = { category = "filter", group = "event_block_maze", name = "pock" }
+local kernel = { category = "filter", group = "event_block_maze", name = "stipple" }
 
 kernel.vertexData = {
 	{
@@ -66,10 +66,10 @@ kernel.fragment = [[
 	P_POSITION vec2 GetPosition (P_UV float epoch)
 	{
 		// Grab a value in [0, 1024), with a basic linear congruential generator.
-		P_DEFAULT float hash = mod(epoch * 3.77 + 7.23, 10.24) * 100.;
+		P_POSITION float hash = mod(epoch * 3.77 + 7.23, 10.24) * 100.;
 
 		// Resolve that to x- and y-coordinates, each in [0, 32).
-		P_DEFAULT vec2 pos;
+		P_POSITION vec2 pos;
 
 		pos.x = floor(hash / 32.);
 		pos.y = hash - pos.x * 32.;

@@ -46,10 +46,10 @@ local tile_maps = require("s3_utils.tile_maps")
 local timers = require("corona_utils.timers")
 
 -- Kernels --
-local kernel_pock = require("s3_objects.event_block.kernel.pock")
+local kernel_stipple = require("s3_objects.event_block.kernel.stipple")
 local kernel_unfurl = require("s3_objects.event_block.kernel.unfurl")
 
-graphics.defineEffect(kernel_pock)
+graphics.defineEffect(kernel_stipple)
 graphics.defineEffect(kernel_unfurl)
 
 -- Corona globals --
@@ -185,8 +185,8 @@ local FadeOutParams = {
 	end
 }
 
--- Pock effect transition --
-local PockParams = { scale = 0, time = 850, transition = easing.outBounce }
+-- Stipple effect transition --
+local StippleParams = { scale = 0, time = 850, transition = easing.outBounce }
 
 -- Kicks off a fade-out
 local function FadeOut (block)
@@ -194,14 +194,14 @@ local function FadeOut (block)
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			image.fill.effect = "filter.event_block_maze.pock"
+			image.fill.effect = "filter.event_block_maze.stipple"
 
 			image.fill.effect.x = image.x
 			image.fill.effect.y = image.y
 			image.fill.effect.epoch = index + random(3);
 
 			transition.to(image, FadeOutParams)
-			transition.to(image.fill.effect, PockParams) -- TODO: Verify on reset_level with "already showing" maze
+			transition.to(image.fill.effect, StippleParams) -- TODO: Verify on reset_level with "already showing" maze
 		end
 	end
 end
