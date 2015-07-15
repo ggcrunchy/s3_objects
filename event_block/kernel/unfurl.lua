@@ -51,11 +51,15 @@ unit_pair.AddVertexProperty(kernel, 3, "right", "top", "right_top", 1, 1)
 
 kernel.isTimeDependent = true
 
-kernel.vertex = [[
+kernel.vertex = loader.VertexShader[[
 	varying P_UV vec2 uv_rel;
-
+	varying P_UV vec2 left_bottom;
+	varying P_UV vec2 right_top;
+		
 	P_POSITION vec2 VertexKernel (P_POSITION vec2 pos)
 	{
+		left_bottom = UnitPair(CoronaVertexUserData.z);
+		right_top = UnitPair(CoronaVertexUserData.w);
 		uv_rel = step(pos, CoronaVertexUserData.xy);
 
 		return pos;
@@ -64,6 +68,8 @@ kernel.vertex = [[
 
 kernel.fragment = loader.FragmentShader[[
 	varying P_UV vec2 uv_rel;
+	varying P_UV vec2 left_bottom;
+	varying P_UV vec2 right_top;
 
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
@@ -76,8 +82,6 @@ kernel.fragment = loader.FragmentShader[[
 		P_UV vec4 sum = s1 * .043 + s2 * .0368 + s3 * .022;
 
 		// Draw the pixel if it lies within all four (displaced) edges.
-		P_UV vec2 left_bottom = UnitPair(CoronaVertexUserData.z);
-		P_UV vec2 right_top = UnitPair(CoronaVertexUserData.w);
 		P_UV vec2 pos = .8 * uv + .1;
 
 		if (any(lessThan(pos, left_bottom + sum.xy)) || any(greaterThan(pos, right_top + sum.zw))) return vec4(0.);
