@@ -73,8 +73,8 @@ kernel.fragment = [[
 
 		pos.x = floor(hash / 32.);
 		pos.y = hash - pos.x * 32.;
-		
-		return (pos / 32.);
+
+		return pos / 32.;
 	}
 
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)

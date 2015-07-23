@@ -55,7 +55,7 @@ kernel.vertex = loader.VertexShader[[
 	varying P_UV vec2 uv_rel;
 	varying P_UV vec2 left_bottom;
 	varying P_UV vec2 right_top;
-		
+
 	P_POSITION vec2 VertexKernel (P_POSITION vec2 pos)
 	{
 		left_bottom = UnitPair(CoronaVertexUserData.z);
@@ -79,7 +79,7 @@ kernel.fragment = loader.FragmentShader[[
 		P_UV vec4 s1 = sin(vec4(7.9, 3.2, 3.1, 1.7) * uv_rel.yxyx + mod(vec4(2.7, 3.9, 4.1, -3.7) * 3.7, TWO_PI) * t);
 		P_UV vec4 s2 = sin(vec4(3.6, 6.1, 5.7, 8.1) * uv_rel.yxyx + mod(vec4(-3.9, 2.1, 8.2, 1.1) * 2.1, TWO_PI) * t);
 		P_UV vec4 s3 = sin(vec4(1.7, 1.3, 1.6, 3.9) * uv_rel.yxyx + mod(vec4(2.3, -2.8, 1.1, 3.3) * 1.3, TWO_PI) * t);
-		P_UV vec4 sum = s1 * .043 + s2 * .0368 + s3 * .022;
+		P_UV vec4 sum = s1 * .043 + s2 * .035 + s3 * .022;
 
 		// Draw the pixel if it lies within all four (displaced) edges.
 		P_UV vec2 pos = .8 * uv + .1;
