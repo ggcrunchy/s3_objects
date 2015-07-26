@@ -384,7 +384,7 @@ return function(info, block)
 			function sparams.onComplete (group)
 				StopShaking(group)
 
-				forming = params and group.removeSelf ~= nil and transition.to(group, params) -- group still valid?
+				forming = params and display.isValid(group) and transition.to(group, params)
 			end
 
 			return sparams
@@ -501,7 +501,7 @@ return function(info, block)
 
 		-- ...or hide.
 		else
-			if mgroup and mgroup.removeSelf ~= nil then -- mgroup still valid? (TODO: Try to use display.remove()...)
+			if display.isValid(mgroup) then -- TODO: Try to use display.remove()...
 				mgroup:removeSelf()
 			end
 
