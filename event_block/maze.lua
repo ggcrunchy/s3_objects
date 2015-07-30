@@ -219,12 +219,6 @@ local Maze = {}
 local function MakeMaze (block, open, occupancy)
 	occupancy("begin_generation")
 
-	-- Compute the deltas between rows of the maze event block (using its width).
-	local col1, col2 = block:GetColumns()
-
-	Deltas[1] = col1 - col2 - 1
-	Deltas[3] = col2 - col1 + 1
-
 	-- Choose a random maze tile and do a random flood-fill of the block.
 	Maze[#Maze + 1] = random(#open / 4)
 
@@ -313,11 +307,11 @@ end
 local function Wipe (block, open, wipe_flags)
 	local i, col1, row1, col2, row2 = 0, block:GetInitialRect()
 
-	for _, col, row in block:IterSelf() do
-		open[i + 1] = row == row1
-		open[i + 2] = col == col1
-		open[i + 3] = row == row2
-		open[i + 4] = col == col2
+	for index, col, row in block:IterSelf() do
+		open[i + 1] = row == row1 and index + Deltas[1]
+		open[i + 2] = col == col1 and index + Deltas[2]
+		open[i + 3] = row == row2 and index + Deltas[3]
+		open[i + 4] = col == col2 and index + Deltas[4]
 
 		i = i + 4
 	end
@@ -408,6 +402,12 @@ return function(info, block)
 		end
 	end
 
+	-- Compute the deltas between rows of the maze event block (using its width).
+	local col1, col2 = block:GetColumns()
+
+	Deltas[1] = col1 - col2 - 1
+	Deltas[3] = col2 - col1 + 1
+
 	-- Fires off the maze event
 	local occupancy = match_slot_id.Wrap(open)
 
@@ -429,19 +429,27 @@ return function(info, block)
 				local flags = 0
 
 				if open[i + 1] and row > 1 then
+				--	if open[i + 1] == true or tile_flags.IsFlagSet(open[i + 1], "down") then
 					flags = flags + tile_flags.GetFlagsByName("up")
+				--	end
 				end
 
 				if open[i + 2] and col > 1 then
+				--	if open[i + 2] == true or tile_flags.IsFlagSet(open[i + 2], "right") then
 					flags = flags + tile_flags.GetFlagsByName("left")
+				--	end
 				end
 
 				if open[i + 3] and row < nrows then
+				--	if open[i + 3] == true or tile_flags.IsFlagSet(open[i + 3], "up") then
 					flags = flags + tile_flags.GetFlagsByName("down")
+				--	end
 				end
 
 				if open[i + 4] and col < ncols then
+				--	if open[i + 4] == true or tile_flags.IsFlagSet(open[i + 4], "left") then
 					flags = flags + tile_flags.GetFlagsByName("right")
+				--	end
 				end
 
 				tile_flags.SetFlags(index, flags)
