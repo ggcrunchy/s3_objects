@@ -196,8 +196,7 @@ local function FadeOut (block)
 		if image then
 			image.fill.effect = "filter.event_block_maze.stipple"
 
-			image.fill.effect.x = image.x
-			image.fill.effect.y = image.y
+			image.fill.effect.x, image.fill.effect.y = image:localToContent(0, 0)
 			image.fill.effect.epoch = index + random(3);
 
 			transition.to(image, FadeOutParams)
@@ -428,30 +427,35 @@ return function(info, block)
 			for index, col, row in block:IterSelf() do
 				local flags = 0
 
-				if open[i + 1] and row > 1 then
-				--	if open[i + 1] == true or tile_flags.IsFlagSet(open[i + 1], "down") then
+				--
+				local uedge = open[i + 1]
+
+				if uedge and row > 1 and (uedge == true or tile_flags.IsFlagSet_Working(uedge, "down")) then
 					flags = flags + tile_flags.GetFlagsByName("up")
-				--	end
 				end
 
-				if open[i + 2] and col > 1 then
-				--	if open[i + 2] == true or tile_flags.IsFlagSet(open[i + 2], "right") then
+				--
+				local ledge = open[i + 2]
+
+				if ledge and col > 1 and (ledge == true or tile_flags.IsFlagSet_Working(ledge, "right")) then
 					flags = flags + tile_flags.GetFlagsByName("left")
-				--	end
 				end
 
-				if open[i + 3] and row < nrows then
-				--	if open[i + 3] == true or tile_flags.IsFlagSet(open[i + 3], "up") then
+				--
+				local bedge = open[i + 3]
+
+				if bedge and row < nrows and (bedge == true or tile_flags.IsFlagSet_Working(bedge, "up")) then
 					flags = flags + tile_flags.GetFlagsByName("down")
-				--	end
 				end
 
-				if open[i + 4] and col < ncols then
-				--	if open[i + 4] == true or tile_flags.IsFlagSet(open[i + 4], "left") then
+				--
+				local redge = open[i + 4]
+
+				if redge and col < ncols and (redge == true or tile_flags.IsFlagSet_Working(redge, "left")) then
 					flags = flags + tile_flags.GetFlagsByName("right")
-				--	end
 				end
 
+				--
 				tile_flags.SetFlags(index, flags)
 
 				i = i + 4
