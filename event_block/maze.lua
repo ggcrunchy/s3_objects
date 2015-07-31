@@ -250,7 +250,7 @@ local function MakeMaze (block, open, occupancy)
 			open[oi + i] = true
 
 			oi = oi + delta * 4
-			i = (i + 1) % 4 + 1
+			i = (i + 1) % 4 + 1 -- n.b. follows the order used by Deltas and open
 
 			open[oi + i] = true
 
@@ -306,11 +306,11 @@ end
 local function Wipe (block, open, wipe_flags)
 	local i, col1, row1, col2, row2 = 0, block:GetInitialRect()
 
-	for index, col, row in block:IterSelf() do
-		open[i + 1] = row == row1 and index + Deltas[1]
-		open[i + 2] = col == col1 and index + Deltas[2]
-		open[i + 3] = row == row2 and index + Deltas[3]
-		open[i + 4] = col == col2 and index + Deltas[4]
+	for _, col, row in block:IterSelf() do
+		open[i + 1] = row == row1 and "edge"
+		open[i + 2] = col == col1 and "edge"
+		open[i + 3] = row == row2 and "edge"
+		open[i + 4] = col == col2 and "edge"
 
 		i = i + 4
 	end
@@ -421,41 +421,42 @@ return function(info, block)
 
 			-- Convert maze state into flags. Border flags are left in place, allowing the
 			-- maze to coalesce with the rest of the level.
-			-- TODO: Are the edge checks even necessary?
 			local i, ncols, nrows = 0, tile_maps.GetCounts()
 
 			for index, col, row in block:IterSelf() do
 				local flags = 0
 
-				--
+				-- Is this cell open, going up? On the interior, just accept it; along the
+				-- fringe of the level, reject it. Otherwise, when on the fringe of the maze
+				-- alone, accept it if the next cell up has a "down" flag.
 				local uedge = open[i + 1]
 
-				if uedge and row > 1 and (uedge == true or tile_flags.IsFlagSet_Working(uedge, "down")) then
+				if uedge and row > 1 and (uedge ~= "edge" or tile_flags.IsFlagSet_Working(index - ncols, "down")) then
 					flags = flags + tile_flags.GetFlagsByName("up")
 				end
 
-				--
+				-- Likewise, going left...
 				local ledge = open[i + 2]
 
-				if ledge and col > 1 and (ledge == true or tile_flags.IsFlagSet_Working(ledge, "right")) then
+				if ledge and col > 1 and (ledge ~= "edge" or tile_flags.IsFlagSet_Working(index - 1, "right")) then
 					flags = flags + tile_flags.GetFlagsByName("left")
 				end
 
-				--
-				local bedge = open[i + 3]
+				-- ...going down...
+				local dedge = open[i + 3]
 
-				if bedge and row < nrows and (bedge == true or tile_flags.IsFlagSet_Working(bedge, "up")) then
+				if dedge and row < nrows and (dedge ~= "edge" or tile_flags.IsFlagSet_Working(index + ncols, "up")) then
 					flags = flags + tile_flags.GetFlagsByName("down")
 				end
 
-				--
+				-- ...and going right.
 				local redge = open[i + 4]
 
-				if redge and col < ncols and (redge == true or tile_flags.IsFlagSet_Working(redge, "left")) then
+				if redge and col < ncols and (redge ~= "edge" or tile_flags.IsFlagSet_Working(index + 1, "left")) then
 					flags = flags + tile_flags.GetFlagsByName("right")
 				end
 
-				--
+				-- Register the final flags.
 				tile_flags.SetFlags(index, flags)
 
 				i = i + 4
