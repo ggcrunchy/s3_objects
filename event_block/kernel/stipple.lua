@@ -91,9 +91,7 @@ kernel.fragment = [[
 			++epoch;
 		}
 
-		if (up_to <= 0.) return vec4(0.);
-
-		return CoronaColorScale(texture2D(CoronaSampler0, uv));
+		return CoronaColorScale(texture2D(CoronaSampler0, uv) * smoothstep(-.07, .15, up_to));
 	}
 ]]
 
