@@ -46,11 +46,8 @@ local tile_maps = require("s3_utils.tile_maps")
 local timers = require("corona_utils.timers")
 
 -- Kernels --
-local kernel_stipple = require("s3_objects.event_block.kernel.stipple")
-local kernel_unfurl = require("s3_objects.event_block.kernel.unfurl")
-
-graphics.defineEffect(kernel_stipple)
-graphics.defineEffect(kernel_unfurl)
+require("s3_objects.event_block.kernel.stipple")
+require("s3_objects.event_block.kernel.unfurl")
 
 -- Corona globals --
 local display = display

@@ -95,4 +95,4 @@ kernel.fragment = [[
 	}
 ]]
 
-return kernel
+graphics.defineEffect(kernel)

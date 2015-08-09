@@ -90,4 +90,4 @@ kernel.fragment = loader.FragmentShader[[
 	}
 ]]
 
-return kernel
+graphics.defineEffect(kernel)
