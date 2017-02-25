@@ -315,7 +315,7 @@ for k, v in pairs{
 
 		local canvas, w, h = fx.GetCanvas(), tile_maps.GetSizes()
 
-		WarpRadius = 1.3 * (w + h) / 2
+		WarpRadius = 1.15 * (w + h) / 2
 		WarpFill.paint2.filename = canvas.filename
 		WarpFill.paint2.baseDir = canvas.baseDir
 	end,
