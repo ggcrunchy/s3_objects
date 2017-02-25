@@ -39,6 +39,10 @@ local fx = require("s3_utils.fx")
 local length = require("tektite_core.number.length")
 local markers = require("s3_utils.effect.markers")
 local positions = require("s3_utils.positions")
+local tile_maps = require("s3_utils.tile_maps")
+
+-- Kernels --
+require("s3_objects.dot.kernel.warp")
 
 -- Corona globals --
 local display = display
@@ -291,6 +295,16 @@ collision.AddHandler("warp", function(phase, warp, other, other_type)
 	end
 end)
 
+-- Warp graphics and effect --
+local WarpFill = {
+	type = "composite",
+	paint1 = { type = "image" },
+	paint2 = { type = "image" }
+}
+
+-- Radius of warp object --
+local WarpRadius
+
 -- Listen to events.
 for k, v in pairs{
 	-- Enter Level --
@@ -298,6 +312,12 @@ for k, v in pairs{
 		MarkersLayer = level.markers_layer
 		HandleGroups = {}
 		WarpList = {}
+
+		local canvas, w, h = fx.GetCanvas(), tile_maps.GetSizes()
+
+		WarpRadius = 1.3 * (w + h) / 2
+		WarpFill.paint2.filename = canvas.filename
+		WarpFill.paint2.baseDir = canvas.baseDir
 	end,
 
 	-- Leave Level --
@@ -439,7 +459,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 end
 
 -- Warp image --
-local WarpImage = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
+WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
 
 -- Export the warp factory.
 return function (group, info)
@@ -447,7 +467,12 @@ return function (group, info)
 		return OnEditorEvent
 	end
 
-	local warp = display.newImage(group, WarpImage)
+	local warp = display.newCircle(group, 0, 0, WarpRadius)
+
+	warp.fill = WarpFill
+	warp.fill.effect = "composite.dot.warp"
+	warp.fill.effect.xdiv = 1 / display.contentWidth
+	warp.fill.effect.ydiv = 1 / display.contentHeight
 
 	Scale(warp, 1)
 
