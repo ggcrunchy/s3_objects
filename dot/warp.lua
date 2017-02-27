@@ -323,6 +323,7 @@ for k, v in pairs{
 	-- Leave Level --
 	leave_level = function()
 		HandleGroups, MarkersLayer, WarpList = nil
+		WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
 	end,
 
 	-- Pre-Reset --
