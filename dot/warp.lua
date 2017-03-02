@@ -313,11 +313,9 @@ for k, v in pairs{
 		HandleGroups = {}
 		WarpList = {}
 
-		local canvas, w, h = fx.GetCanvas(), tile_maps.GetSizes()
+		local w, h = tile_maps.GetSizes()
 
-		WarpRadius = 1.15 * (w + h) / 2
-		WarpFill.paint2.filename = canvas.filename
-		WarpFill.paint2.baseDir = canvas.baseDir
+		CanvasAlpha, WarpRadius = 1, 1.15 * (w + h) / 2
 	end,
 
 	-- Leave Level --
@@ -340,6 +338,23 @@ for k, v in pairs{
 
 				HandleGroups[i] = false
 			end
+		end
+	end,
+
+	-- Set Canvas --
+	set_canvas = function(event)
+		if event.canvas then
+			WarpFill.paint2.filename = event.canvas.filename
+			WarpFill.paint2.baseDir = event.canvas.baseDir
+		end
+	end,
+
+	-- Set Canvas Alpha --
+	set_canvas_alpha = function(event)
+		local alpha = event.alpha
+
+		for _, warp in pairs(WarpList) do
+			warp.fill.effect.alpha = alpha
 		end
 	end
 } do

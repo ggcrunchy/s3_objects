@@ -32,7 +32,7 @@ local kernel = { language = "glsl", category = "composite", group = "dot", name 
 kernel.vertexData = {
 	{ index = 0, name = "xdiv" },
 	{ index = 1, name = "ydiv" },
-	{ index = 2, name = "alpha" }
+	{ index = 2, name = "alpha", default = 1, min = 0, max = 1 }
 }
 
 kernel.vertex = [[
@@ -58,7 +58,7 @@ kernel.fragment = loader.FragmentShader{
 			P_UV float o2 = IQ(uv * 14.1) * .25;
 			P_UV vec2 uv2 = (v_Pos + vec2(o1, o2) * influence) * CoronaVertexUserData.xy;
 			P_COLOR vec4 foreground = texture2D(CoronaSampler0, (uvn * .95) * .5 + .5);
-			P_COLOR vec3 background = texture2D(CoronaSampler1, uv2).rgb;
+			P_COLOR vec3 background = texture2D(CoronaSampler1, uv2).rgb * CoronaVertexUserData.z;
 
 			return CoronaColorScale(mix(vec4(background, 1.), foreground, .375));
 		}
