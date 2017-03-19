@@ -194,7 +194,7 @@ local function FadeOut (block)
 			image.fill.effect = "filter.event_block_maze.stipple"
 
 			image.fill.effect.x, image.fill.effect.y = image:localToContent(0, 0)
-			image.fill.effect.epoch = index + random(3);
+			image.fill.effect.seed = index + random(3);
 
 			transition.to(image, FadeOutParams)
 			transition.to(image.fill.effect, StippleParams) -- TODO: Verify on reset_level with "already showing" maze

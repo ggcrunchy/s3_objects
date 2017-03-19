@@ -73,7 +73,7 @@ kernel.fragment = loader.FragmentShader[[
 
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
-		P_UV float t = mod(CoronaTotalTime, TWO_PI);
+		P_UV float t = CoronaTotalTime;
 
 		// Build up some wave sums to displace the edges a bit.
 		P_UV vec4 s1 = sin(vec4(7.9, 3.2, 3.1, 1.7) * uv_rel.yxyx + mod(vec4(2.7, 3.9, 4.1, -3.7) * 3.7, TWO_PI) * t);
@@ -83,10 +83,9 @@ kernel.fragment = loader.FragmentShader[[
 
 		// Draw the pixel if it lies within all four (displaced) edges.
 		P_UV vec2 pos = .8 * uv + .1;
+		P_UV vec4 edges = vec4(step(left_bottom + sum.xy, pos), step(pos, right_top + sum.zw));
 
-		if (any(lessThan(pos, left_bottom + sum.xy)) || any(greaterThan(pos, right_top + sum.zw))) return vec4(0.);
-
-		return CoronaColorScale(texture2D(CoronaSampler0, uv));
+		return CoronaColorScale(texture2D(CoronaSampler0, uv)) * step(4., dot(edges, vec4(1.))); 
 	}
 ]]
 

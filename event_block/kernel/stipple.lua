@@ -77,19 +77,26 @@ kernel.fragment = [[
 		return pos / 32.;
 	}
 
+	void UpdateRange (P_UV float epoch, inout P_UV float up_to)
+	{
+		P_POSITION vec2 pos = GetPosition(epoch);
+		P_UV float dist = length(uv_rel - pos);
+
+		up_to = mix(up_to, max(up_to, dist), step(dist, CoronaVertexUserData.z));
+	}
+
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
 		P_UV float epoch = CoronaVertexUserData.w, up_to = -1.;
 
-		for (P_POSITION int i = 0; i < 7; ++i)
-		{
-			P_POSITION vec2 pos = GetPosition(epoch);
-			P_UV float dist = length(uv_rel - pos);
-
-			if (dist <= CoronaVertexUserData.z) up_to = max(up_to, dist);
-
-			++epoch;
-		}
+    	UpdateRange(epoch, up_to);
+     	UpdateRange(epoch + 1., up_to);
+     	UpdateRange(epoch + 2., up_to);
+    	UpdateRange(epoch + 3., up_to);
+    	UpdateRange(epoch + 4., up_to);
+     	UpdateRange(epoch + 5., up_to);
+    	UpdateRange(epoch + 6., up_to);
+    	UpdateRange(epoch + 7., up_to);
 
 		return CoronaColorScale(texture2D(CoronaSampler0, uv) * smoothstep(-.07, .15, up_to));
 	}
