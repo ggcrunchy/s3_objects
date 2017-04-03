@@ -315,7 +315,7 @@ for k, v in pairs{
 
 		local w, h = tile_maps.GetSizes()
 
-		CanvasAlpha, WarpRadius = 1, 1.15 * (w + h) / 2
+		WarpRadius = 1.15 * (w + h) / 2
 	end,
 
 	-- Leave Level --
