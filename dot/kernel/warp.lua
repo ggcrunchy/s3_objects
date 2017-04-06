@@ -25,6 +25,7 @@
 
 -- Modules --
 local loader = require("corona_shader.loader")
+local screen_fx = require("corona_shader.screen_fx")
 
 -- Kernel --
 local kernel = { language = "glsl", category = "composite", group = "dot", name = "warp" }
@@ -35,34 +36,22 @@ kernel.vertexData = {
 	{ index = 2, name = "alpha", default = 1, min = 0, max = 1 }
 }
 
-kernel.vertex = [[
-	varying P_POSITION vec2 v_Pos;
+kernel.vertex = screen_fx.GetPassThroughVertexKernelSource()
 
-	P_POSITION vec2 VertexKernel (P_POSITION vec2 pos)
+kernel.fragment = loader.FragmentShader[[
+	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
-		v_Pos = pos;
+		P_UV vec2 uvn = 2. * uv - 1.;
+		P_UV float influence = (1. - smoothstep(.75, 1., dot(uvn, uvn))) * 15.;
+		P_UV float o1 = IQ(uv * 12.3) * .5;
+		P_UV float o2 = IQ(uv * 14.1) * .25;
+		P_COLOR vec4 foreground = texture2D(CoronaSampler0, (uvn * .95) * .5 + .5);
+		P_COLOR vec3 background = GetDistortedRGB(CoronaSampler1, vec2(o1, o2) * influence, CoronaVertexUserData);
 
-		return pos;
+		return CoronaColorScale(mix(vec4(background, 1.), foreground, .375));
 	}
 ]]
-
-kernel.fragment = loader.FragmentShader{
-	main = [[
-		varying P_POSITION vec2 v_Pos;
-
-		P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
-		{
-			P_UV vec2 uvn = 2. * uv - 1.;
-			P_UV float influence = (1. - smoothstep(.75, 1., dot(uvn, uvn))) * 15.;
-			P_UV float o1 = IQ(uv * 12.3) * .5;
-			P_UV float o2 = IQ(uv * 14.1) * .25;
-			P_UV vec2 uv2 = (v_Pos + vec2(o1, o2) * influence) * CoronaVertexUserData.xy;
-			P_COLOR vec4 foreground = texture2D(CoronaSampler0, (uvn * .95) * .5 + .5);
-			P_COLOR vec3 background = texture2D(CoronaSampler1, uv2).rgb * CoronaVertexUserData.z;
-
-			return CoronaColorScale(mix(vec4(background, 1.), foreground, .375));
-		}
-	]]
-}
-
+print("!!!!")
+print(kernel.fragment)
+print("!!!!")
 graphics.defineEffect(kernel)
