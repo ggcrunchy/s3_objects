@@ -342,12 +342,7 @@ for k, v in pairs{
 	end,
 
 	-- Set Canvas --
-	set_canvas = function(event)
-		if event.canvas then
-			WarpFill.paint2.filename = event.canvas.filename
-			WarpFill.paint2.baseDir = event.canvas.baseDir
-		end
-	end,
+	set_canvas = fx.DistortionCanvasToPaintAttacher(WarpFill.paint2),
 
 	-- Set Canvas Alpha --
 	set_canvas_alpha = function(event)
@@ -485,10 +480,7 @@ return function (group, info)
 
 	local warp = display.newCircle(group, 0, 0, WarpRadius)
 
-	warp.fill = WarpFill
-	warp.fill.effect = "composite.dot.warp"
-	warp.fill.effect.xdiv = 1 / display.contentWidth
-	warp.fill.effect.ydiv = 1 / display.contentHeight
+	fx.DistortionBindCanvasEffect(warp, WarpFill, "composite.dot.warp")
 
 	Scale(warp, 1)
 
