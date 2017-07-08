@@ -38,12 +38,11 @@ kernel.vertex = screen_fx.GetPassThroughVertexKernelSource()
 kernel.fragment = loader.FragmentShader[[
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
-		P_UV vec2 uvn = 2. * uv - 1.;
-		P_UV vec2 offset = IQ_Octaves(uv * 12.3, uv * 14.1) * GetDistortInfluence(uvn, .75, 15.);
-		P_COLOR vec4 foreground = texture2D(CoronaSampler0, (uvn * .95) * .5 + .5);
+		P_UV vec2 offset = IQ_Octaves(uv * 12.3, uv * 14.1) * GetDistortInfluence(2. * uv - 1., .75, 15.);
+		P_COLOR vec4 foreground = texture2D(CoronaSampler0, uv);
 		P_COLOR vec3 background = GetDistortedRGB(CoronaSampler1, offset, CoronaVertexUserData);
 
-		return CoronaColorScale(mix(vec4(background, 1.), foreground, .375));
+		return CoronaColorScale(mix(vec4(background, 1.), foreground, .675)) * foreground.a;
 	}
 ]]
 

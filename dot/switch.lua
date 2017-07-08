@@ -24,18 +24,25 @@
 --
 
 -- Standard library imports --
+local ipairs = ipairs
 local pairs = pairs
 
 -- Modules --
+local args = require("iterator_ops.args")
 local audio = require("corona_utils.audio")
 local bind = require("tektite_core.bind")
 local collision = require("corona_utils.collision")
 local file = require("corona_utils.file")
-local powers_of_2 = require("bitwise_ops.powers_of_2")
+
+-- Plugins --
+local bit = require("plugin.bit")
 
 -- Corona globals --
 local display = display
 local Runtime = Runtime
+
+-- Imports --
+local band = bit.band
 
 -- Dot methods --
 local Switch = {}
@@ -46,9 +53,29 @@ local Events = bind.BroadcastBuilder_Helper("loading_level")
 -- Sounds played by switch --
 local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", "Switch1.wav", "Switch2.mp3" }
 
+--
+local Targets = {}
+
+--
+local function TargetsLoop (...)
+	local n = 0
+
+	for _, targets in args.Args(...) do
+		if targets then
+			Targets[n + 1], n = targets, n + 1
+		end
+	end
+
+	for i = #Targets, n + 1, -1 do
+		Targets[i] = nil
+	end
+
+	return ipairs(Targets)
+end
+
 --- Dot method: switch acted on as dot of interest.
 function Switch:ActOn ()
-	local flag, forward, waiting = 1, self.m_forward, self.m_waiting
+	local forward, any_successes, no_failures = self.m_forward, false, true
 
 	-- If there is state around to restore the initial "forward" state of the switch,
 	-- we do what it anticipated: reverse the switch's forward-ness.
@@ -56,30 +83,34 @@ function Switch:ActOn ()
 		self.m_forward = not forward
 	end
 
-	--
 	-- Fire the event and stop showing its hint, and wait for it to finish.
-	for _, event in Events.Iter(self) do
-		if not powers_of_2.IsSet(waiting, flag) then
-			event("fire", forward)
+	for _, targets in TargetsLoop(self, self[forward]) do
+		local flag, waiting = 1, targets.m_waiting
 
-			waiting = waiting + flag
+		for _, event in Events.Iter(targets) do
+			if band(waiting, flag) == 0 then
+				if event("fire", forward) ~= "failed" then
+					any_successes, waiting = true, waiting + flag
+				else
+					no_failures = false
+				end
 
-			event("show", self, false)
+				event("show", self, false)
+			end
+
+			flag = 2 * flag
 		end
 
-		flag = 2 * flag
+		targets.m_waiting = waiting
 	end
 
 	--
-	if waiting ~= self.m_waiting then
+	if no_failures or any_successes then
 		Sounds:RandomSound()
 
 		-- Change the switch image.
 		self[1].isVisible = not self[1].isVisible
 		self[2].isVisible = not self[2].isVisible
-
-		--
-		self.m_waiting = waiting
 
 	--
 	else
@@ -111,7 +142,12 @@ function Switch:Reset ()
 	self[2].isVisible = false
 
 	self.m_touched = false
-	self.m_waiting = 0
+
+	for _, targets in args.Args(self, self[true], self[false]) do
+		if targets then
+			targets.m_waiting = 0
+		end
+	end
 
 	if self.m_forward_saved ~= nil then
 		self.m_forward = self.m_forward_saved
@@ -120,21 +156,25 @@ end
 
 --- Dot method: update switch state.
 function Switch:Update ()
-	local flag, touched, waiting = 1, self.m_touched, self.m_waiting
+	local touched = self.m_touched
 
-	for _, event in Events.Iter(self) do
-		if powers_of_2.IsSet(waiting, flag) and event("is_done") then
-			waiting = waiting - flag
+	for _, targets in TargetsLoop(self, self[true], self[false]) do
+		local flag, waiting = 1, targets.m_waiting
 
-			if touched then
-				event("show", self, true)
+		for _, event in Events.Iter(targets) do
+			if band(waiting, flag) ~= 0 and event("is_done") then
+				waiting = waiting - flag
+
+				if touched then
+					event("show", self, true)
+				end
 			end
+
+			flag = 2 * flag
 		end
 
-		flag = 2 * flag
+		targets.m_waiting = waiting
 	end
-
-	self.m_waiting = waiting
 end
 
 -- Switch-being-touched event --
@@ -153,14 +193,16 @@ collision.AddHandler("switch", function(phase, switch, other, other_type)
 		TouchEvent.dot = nil
 
 		--
-		local flag, waiting = 1, switch.m_waiting
+		for _, targets in TargetsLoop(switch, switch[true], switch[false]) do
+			local flag, waiting = 1, targets.m_waiting
 
-		for _, event in Events.Iter(switch) do
-			if not powers_of_2.IsSet(waiting, flag) then
-				event("show", switch, is_touched)
+			for _, event in Events.Iter(targets) do
+				if band(waiting, flag) == 0 then
+					event("show", switch, is_touched)
+				end
+
+				flag = 2 * flag
 			end
-
-			flag = 2 * flag
 		end
 
 	-- Switch-flipper touched switch: try to flip it.
@@ -171,8 +213,16 @@ end)
 
 --
 local function LinkSwitch (switch, other, sub, other_sub)
+	local tkey
+
 	if sub == "trip" then
-		bind.AddId(switch, "target", other.uid, other_sub)
+		tkey = "target"
+	elseif sub == "ftrip" or sub == "rtrip" then
+		tkey = sub == "ftrip" and "ftarget" or "rtarget"
+	end
+
+	if tkey then
+		bind.AddId(switch, tkey, other.uid, other_sub)
 	end
 end
 
@@ -196,6 +246,8 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Representative object
 	elseif what == "enum_props" then
 		arg1:AddLink{ text = "Link to event target", rep = arg2, sub = "trip", interfaces = "event_target" }
+		arg1:AddLink{ text = "Forward-only link", rep = arg2, sub = "ftrip", interfaces = "event_target" }
+		arg1:AddLink{ text = "Reverse-only link", rep = arg2, sub = "rtrip", interfaces = "event_target" }
 		arg1:AddCheckbox{ text = "Starts forward?", value_name = "forward" }
 		arg1:AddCheckbox{ text = "Reverse on trip?", value_name = "reverses" }
 
@@ -205,7 +257,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "sources_and_targets", "trip", nil
+		return "sources_and_targets", { "trip", "ftrip", "rtrip" }, nil
 
 	-- Prep Link --
 	elseif what == "prep_link" then
@@ -216,7 +268,15 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Switch values
 	-- arg3: Representative object
 	elseif what == "verify" then
-		if not arg1.links:HasLinks(arg3, "trip") then
+		local has_any
+
+		for _, tkey in args.Args("trip", "ftrip", "rtrip") do
+			if arg1.links:HasLinks(arg3, tkey) then
+				has_any = true
+			end
+		end
+
+		if not has_any then
 			arg1[#arg1 + 1] = "Switch `" .. arg2.name .. "` has no event targets"
 		end
 	end
@@ -224,6 +284,17 @@ end
 
 -- GFX path --
 local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
+
+--
+local function ExclusiveTarget (id)
+	if id then
+		local into = { m_waiting = 0 }
+
+		Events.Subscribe(into, id)
+
+		return into
+	end
+end
 
 -- Export the switch factory.
 return function (group, info)
@@ -249,6 +320,9 @@ return function (group, info)
 	Sounds:Load()
 
 	Events.Subscribe(switch, info.target)
+
+	switch[true] = ExclusiveTarget(info.ftarget)
+	switch[false] = ExclusiveTarget(info.rtarget)
 
 	switch.m_forward = not not info.forward
 	switch.m_waiting = 0

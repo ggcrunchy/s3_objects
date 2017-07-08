@@ -408,6 +408,11 @@ return function(info, block)
 	local occupancy = match_slot_id.Wrap(open)
 
 	local function Fire (forward)
+		if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
+							-- _forward_ is also probably meaningless / failure
+			return "failed"
+		end
+			
 		-- If the previous operation was adding the maze, then wipe it.
 		if added then
 			Wipe(block, open, true)
@@ -498,7 +503,9 @@ return function(info, block)
 	end
 
 	-- Shows or hides hints about the maze event
-	-- TODO: What's a good way to show this?
+	-- TODO: What's a good way to show this? (maybe just reuse generator with line segments, perhaps
+	-- with a little graphics fluff like in the Hilbert sample... seems like we could ALSO use this
+	-- to sequence the unfurl)
 	local mgroup
 
 	local function Show (_, show)
@@ -523,14 +530,9 @@ return function(info, block)
 	block:Reset()
 
 	return function(what, arg1, arg2)
-		-- Can Fire? --
-		-- arg1: forward boolean
-		if what == "can_fire" then
-			return #open > 0 -- ??? (more?)
-
 		-- Fire --
 		-- arg1: forward boolean
-		elseif what == "fire" then
+		if what == "fire" then
 			Fire(arg1)
 
 		-- Is Done? --
