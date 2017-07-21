@@ -32,13 +32,13 @@ local kernel = { category = "filter", group = "event_block_maze", name = "unfurl
 
 kernel.vertexData = {
 	{
-		name = "x",
-		default = 0, min = -65535, max = 65535,
+		name = "u",
+		default = 0, min = 0, max = 1,
 		index = 0
 	},
 	{
-		name = "y",
-		default = 0, min = -65535, max = 65535,
+		name = "v",
+		default = 0, min = 0, max = 1,
 		index = 1
 	}
 
@@ -60,7 +60,7 @@ kernel.vertex = loader.VertexShader[[
 	{
 		left_bottom = UnitPair(CoronaVertexUserData.z);
 		right_top = UnitPair(CoronaVertexUserData.w);
-		uv_rel = step(pos, CoronaVertexUserData.xy);
+		uv_rel = step(CoronaTexCoord.xy, CoronaVertexUserData.xy);
 
 		return pos;
 	}

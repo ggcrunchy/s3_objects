@@ -43,6 +43,7 @@ local match_slot_id = require("tektite_core.array.match_slot_id")
 local movement = require("s3_utils.movement")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
+local tilesets = require("s3_utils.tilesets")
 local timers = require("corona_utils.timers")
 
 -- Kernels --
@@ -51,12 +52,41 @@ require("s3_objects.event_block.kernel.unfurl")
 
 -- Corona globals --
 local display = display
+local graphics = graphics
 local Runtime = Runtime
 local timer = timer
 local transition = transition
 
 -- Layer used to draw hints --
 local MarkersLayer
+
+-- --
+local Effects = {}
+
+-- --
+local Names = {}
+
+-- --
+local IsMultiPass
+
+--
+local function NewKernel (name, tile_shader)
+	local kname = ("%s_%s"):format(name, tile_shader:gsub("%.", "__"))
+	local kernel = { category = "filter", group = "event_block_maze", name = kname }
+
+	kernel.graph = {
+		nodes = {
+			tile = { effect = tile_shader, input1 = "paint1" },
+			[name] =  { effect = "filter.event_block_maze." .. name, input1 = "tile" },
+		},
+		output = name
+	}
+
+	graphics.defineEffect(kernel)
+	effect_props.AddMultiPassEffect(kernel)
+
+	return "filter.event_block_maze." .. kname
+end
 
 -- Listen to events.
 for k, v in pairs{
@@ -68,6 +98,32 @@ for k, v in pairs{
 	-- Leave Level --
 	leave_level = function()
 		MarkersLayer = nil
+	end,
+
+	-- Things Loaded --
+	things_loaded = function()
+		--
+		local tile_shader = tilesets.GetShader()
+
+		IsMultiPass = tile_shader ~= nil
+
+		if IsMultiPass then
+			local effect = Effects[tile_shader]
+
+			if not effect then
+				effect = {
+					stipple = NewKernel("stipple", tile_shader),
+					unfurl = NewKernel("unfurl", tile_shader)
+				}
+
+				Effects[tile_shader] = effect
+			end
+
+			Names.stipple, Names.unfurl = effect.stipple, effect.unfurl
+
+		else
+			Names.stipple, Names.unfurl = "filter.event_block_maze.stipple", "filter.event_block_maze.unfurl"
+		end
 	end
 } do
 	Runtime:addEventListener(k, v)
@@ -103,21 +159,55 @@ local ParamsSetup = {
 	start = { from = { bottom = .6, left = .6, top = .4, right = .4 } }
 }
 
+-- --
+local Identity = { __index = function(_, k) return k end }
+
+setmetatable(Identity, Identity)
+
+-- --
+local Reroute = { u = "unfurl.u", v = "unfurl.v" }
+
+for k in pairs(ParamsSetup.up.from) do
+	Reroute[k] = "unfurl." .. k
+end
+
+--
+local function AttachEffect (tile, what, proxy)
+	local fill = tile.fill
+
+	if proxy then
+		effect_props.AssignEffect(tile, Names[what])
+	else
+		fill.effect = Names[what]
+	end
+
+	if IsMultiPass then
+		return fill.effect[what]
+	else
+		return fill.effect
+	end
+end
+
 -- Adds a tile to the unfurling maze
 local function Unfurl (x, y, occupancy, which, delay)
 	local index = tile_maps.GetTileIndex(x, y)
 	local image, setup = tile_maps.GetImage(index), ParamsSetup[which]
 
 	if occupancy("mark", index) and image then
-		effect_props.AssignEffect(image, "filter.event_block_maze.unfurl")
+		AttachEffect(image, "unfurl", true)
 
-		local effect, except = effect_props.Wrap(image), setup.except
+		local effect, except, lut = effect_props.Wrap(image), setup.except, IsMultiPass and Reroute or Identity
 
 		for k, v in pairs(setup.from) do
-			effect[k], UnfurlParams[k] = v, To[k ~= except and k]
+			local uk = lut[k]
+
+			effect[uk], UnfurlParams[uk] = v, To[k ~= except and k]
 		end
 
-		effect.x, effect.y, UnfurlParams.delay, image.isVisible = image.x, image.y, delay, true
+		local name = tile_flags.GetNameByFlags(tile_flags.GetResolvedFlags(index))
+		local u, v = tilesets.GetFrameCenter(name)
+
+		effect[lut.u], effect[lut.v], UnfurlParams.delay, image.isVisible = --[[image.x, image.y]]u, v, delay, true
 
 		transition.to(effect, UnfurlParams)
 
@@ -191,13 +281,14 @@ local function FadeOut (block)
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			image.fill.effect = "filter.event_block_maze.stipple"
+			local effect = AttachEffect(image, "stipple")
+			local name = tile_flags.GetNameByFlags(tile_flags.GetResolvedFlags(index))
 
-			image.fill.effect.x, image.fill.effect.y = image:localToContent(0, 0)
-			image.fill.effect.seed = index + random(3);
+			effect.u, effect.v = tilesets.GetFrameCenter(name)
+			effect.seed = index + random(3)
 
 			transition.to(image, FadeOutParams)
-			transition.to(image.fill.effect, StippleParams) -- TODO: Verify on reset_level with "already showing" maze
+			transition.to(effect, StippleParams) -- TODO: Verify on reset_level with "already showing" maze
 		end
 	end
 end
@@ -415,6 +506,7 @@ return function(info, block)
 			
 		-- If the previous operation was adding the maze, then wipe it.
 		if added then
+			FadeOut(block)
 			Wipe(block, open, true)
 
 		-- Otherwise, make a new one and add it.
@@ -468,7 +560,9 @@ return function(info, block)
 		-- Alert listeners about tile changes and fade tiles in or out. When fading in,
 		-- we must first update the tiles to reflect the new flags; on fadeout, we need
 		-- to keep the images around until the fade is done, and at that point we can
-		-- just leave them as is since they're ipso facto invisible.
+		-- just leave them as is since they're ipso facto invisible. (The fadeout is
+		-- now done further up, as the flags are used to gather some of the texture
+		-- information for stippling.)
 		added = not added
 
 		Runtime:dispatchEvent(TilesChangedEvent)
@@ -476,8 +570,6 @@ return function(info, block)
 		if added then
 			UpdateTiles(block)
 			FadeIn(block, occupancy)
-		else
-			FadeOut(block)
 		end
 
 		-- Once the actual form part of the transition is done, send out an alert, e.g. to
