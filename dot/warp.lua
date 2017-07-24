@@ -43,7 +43,7 @@ local positions = require("s3_utils.positions")
 local tile_maps = require("s3_utils.tile_maps")
 
 -- Plugins --
-local animation = require("plugin.animation")
+local animation = ANIMATION
 
 -- Kernels --
 require("s3_objects.dot.kernel.warp")
