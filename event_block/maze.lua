@@ -207,7 +207,7 @@ local function Unfurl (x, y, occupancy, which, delay)
 		local name = tile_flags.GetNameByFlags(tile_flags.GetResolvedFlags(index))
 		local u, v = tilesets.GetFrameCenter(name)
 
-		effect[lut.u], effect[lut.v], UnfurlParams.delay, image.isVisible = --[[image.x, image.y]]u, v, delay, true
+		effect[lut.u], effect[lut.v], UnfurlParams.delay, image.isVisible = u, v, delay, true
 
 		transition.to(effect, UnfurlParams)
 
