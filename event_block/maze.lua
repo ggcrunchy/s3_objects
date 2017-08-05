@@ -50,12 +50,13 @@ local timers = require("corona_utils.timers")
 local memoryBitmap = require("plugin.memoryBitmap")
 
 -- Kernels --
-require("s3_objects.event_block.kernel.fizzle")
+require("s3_objects.event_block.kernel.preview")
 require("s3_objects.event_block.kernel.stipple")
 require("s3_objects.event_block.kernel.unfurl")
 
 -- Corona globals --
 local display = display
+local easing = easing
 local graphics = graphics
 local Runtime = Runtime
 local timer = timer
@@ -106,7 +107,7 @@ for k, v in pairs{
 	leave_level = function()
 		if Time then
 			for _, tt in pairs(Time) do
-				tt:releaseSelf()
+				tt.tex:releaseSelf()
 			end
 		end
 
@@ -328,6 +329,18 @@ end
 -- Tile deltas (indices into Deltas) available on current iteration, during maze building --
 local Choices = {}
 
+--
+local function FindChoice (_, what)
+	for i = 1, #Choices do
+		if Choices[i] == what then
+			return Choices[i + 1]
+		end
+	end
+end
+
+-- --
+local IndexToDir = { "up", "left", "down", "right" }
+
 -- Tile deltas in each cardinal direction --
 local Deltas = { false, -1, false, 1 }
 
@@ -421,6 +434,12 @@ end
 local function UpdateTiles (block)
 	tile_maps.SetTilesFromFlags(block:GetImageGroup(), block:GetInitialRect())
 end
+
+--
+local FadeParams = { onComplete = display.remove }
+
+--
+local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCubic }
 
 -- Wipes the maze state (and optionally its flags), marking borders
 local function Wipe (block, open, wipe_flags)
@@ -630,7 +649,7 @@ return function(info, block)
 	-- TODO: What's a good way to show this? (maybe just reuse generator with line segments, perhaps
 	-- with a little graphics fluff like in the Hilbert sample... seems like we could ALSO use this
 	-- to sequence the unfurl)
-	local mgroup
+	local mgroup, i1, i2, maxt
 
 	local function Show (_, show)
 		-- Show...
@@ -638,79 +657,84 @@ return function(info, block)
 			--
 			Time = Time or {}
 
-			if not Time[block] then
+			if not maxt then
 				local col1, row1, col2, row2 = block:GetInitialRect()
-				local w, h, times, maxt = col2 - col1 + 1, row2 - row1 + 1, {}, 0
+				local w, h, times = col2 - col1 + 1, row2 - row1 + 1, {}
 				local tex = memoryBitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
 
+				--
+				i1 = tile_maps.GetTileIndex(col1, row1)
+				i2 = tile_maps.GetTileIndex(col2, row2)
+				maxt = 0
+
+				-- Make a random maze in the block and make a low-res texture to represent it.
 				MakeMaze(open, occupancy)
 				Visit(block, occupancy, function(x, y, _, dir)
 					local index = tile_maps.GetTileIndex(x, y)
 
 					if occupancy("mark", index) then
+						local ix, iy = (x - col1) * 2 + 1, (y - row1) * 2 + 1
+
 						if dir == "start" then
 							times[index] = 0
 
-							tex:setPixel(x, y, 0, 0, 0)
+							tex:setPixel(ix, iy, 0, 1, 0)
 						else
-							local dx, dy, di = 0, 0
+							local dx, dy = 0, 0
 
-							if dir == "up" then
-								dy, di = -1, Deltas[1]
-							elseif dir == "left" then
-								dx, di = -1, -1
-							elseif dir == "right" then
-								dx, di = 1, 1
+							if dir == "up" or dir == "down" then
+								dy = dir == "up" and -1 or 1
 							else
-								dy, di = 1, Deltas[3]
+								dx = dir == "left" and -1 or 1
 							end
 
-							local from, fx, fy = index - di, x - dx, y - dy
-							local t = times[from]
+							local from = tile_maps.GetTileIndex(x - dx, y - dy)
+							local t = times[from] + 1 / 32
 
-							for _ = 1, 2 do
-								t = t + 1 / 256
+							tex:setPixel(ix - dx, iy - dy, t - 1 / 64, 1, 0)
+							tex:setPixel(ix, iy, t, 1, 0)
 
-								tex:setPixel(fx, fy, t, 0, 0)
-
-								times[from], from, fx, fy = t, from + di, fx + dx, fy + dy
-							end
+							times[index] = t
 
 							if t > maxt then
 								maxt = t
 							end
+
+							return true
 						end
 					end
 				end, function(x, y)
 					local index = tile_maps.GetTileIndex(x, y)
-					local oi, n = (index - 1) * 4, 0
+					local oi, n = (index - 1) * 4, 1
+
+					Choices[1] = false
 
 					for i, delta in ipairs(Deltas) do
 						if not (open[oi + i] or occupancy("check", index + delta)) then
-							n = n + 1
-
-							if i == 1 then
-								Choices[n] = "up"
-							elseif i == 2 then
-								Choices[n] = "left"
-							elseif i == 3 then
-								Choices[n] = "down"
-							else
-								Choices[n] = "right"
-							end
+							Choices[n + 1], n = IndexToDir[i], n + 1
 						end
 					end
 
-					for i = n + 1, 4 do
+					for _ = 1, n - 2 do
+						local j = random(2, n)
+
+						Choices[j], Choices[n] = Choices[n], Choices[j]
+					end
+
+					for i = #Choices, n + 1, -1 do
 						Choices[i] = nil
 					end
 
-					return ipairs(Choices)
+					return FindChoice, nil, false
 				end)
 
 				tex:invalidate()
 
-				Time[block] = { type = "image", filename = tex.filename, baseDir = tex.baseDir }
+				--
+				Time[block] = {
+					fill = { type = "image", filename = tex.filename, baseDir = tex.baseDir, format = "rgb" },
+					tex = tex
+				}
 			end
 
 			--
@@ -718,10 +742,38 @@ return function(info, block)
 
 			MarkersLayer:insert(mgroup)
 
+			--
+			local x1, y1 = tile_maps.GetTilePos(i1)
+			local x2, y2 = tile_maps.GetTilePos(i2)
+			local tilew, tileh = tile_maps.GetSizes()
+			local cx, cy, mw, mh = (x1 + x2) / 2, (y1 + y2) / 2, x2 - x1 + tilew, y2 - y1 + tileh
+			local mhint, hold = display.newRect(mgroup, cx, cy, mw, mh), .05
+			local border = display.newRect(mgroup, cx, cy, mw, mh)
+			local total = 2 * maxt + hold -- rise, hold, fall
+
+			mhint.fill = Time[block].fill
+			mhint.fill.effect = "filter.event_block_maze.preview"
+			mhint.fill.effect.rise = maxt
+			mhint.fill.effect.hold = hold
+			mhint.fill.effect.total = total
+
+			border:setFillColor(0, 0)
+			border:setStrokeColor(0, 0, 1)
+			mhint:setFillColor(0, 1, 0, .35)
+
+			border.strokeWidth = 2
+
+			--
+			PreviewParams.t = total
+
+			transition.to(mhint.fill.effect, PreviewParams)
+
 		-- ...or hide.
 		else
-			if display.isValid(mgroup) then -- TODO: Try to use display.remove()...
-				mgroup:removeSelf()
+			if display.isValid(mgroup) then
+				FadeParams.alpha = .2
+
+				transition.to(mgroup, FadeParams)
 			end
 
 			mgroup = nil
