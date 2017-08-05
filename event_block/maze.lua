@@ -46,7 +46,11 @@ local tile_maps = require("s3_utils.tile_maps")
 local tilesets = require("s3_utils.tilesets")
 local timers = require("corona_utils.timers")
 
+-- Plugins --
+local memoryBitmap = require("plugin.memoryBitmap")
+
 -- Kernels --
+require("s3_objects.event_block.kernel.fizzle")
 require("s3_objects.event_block.kernel.stipple")
 require("s3_objects.event_block.kernel.unfurl")
 
@@ -88,6 +92,9 @@ local function NewKernel (name, tile_shader)
 	return "filter.event_block_maze." .. kname
 end
 
+-- --
+local Time
+
 -- Listen to events.
 for k, v in pairs{
 	-- Enter Level --
@@ -97,7 +104,13 @@ for k, v in pairs{
 
 	-- Leave Level --
 	leave_level = function()
-		MarkersLayer = nil
+		if Time then
+			for _, tt in pairs(Time) do
+				tt:releaseSelf()
+			end
+		end
+
+		MarkersLayer, Time = nil
 	end,
 
 	-- Things Loaded --
@@ -215,26 +228,25 @@ local function Unfurl (x, y, occupancy, which, delay)
 	end
 end
 
--- Kicks off a fade-in
-local function FadeIn (block, occupancy)
+--
+local function UnfurlDirs (x, y)
+	return movement.Ways(tile_maps.GetTileIndex(x, y))
+end
+
+--
+local function ArgId (arg) return arg end
+
+--
+local function Visit (block, occupancy, func, dirs, arg, xform)
 	occupancy("begin_generation")
-
-	-- Start all the maze off hidden.
-	for index in block:IterSelf() do
-		local image = tile_maps.GetImage(index)
-
-		if image then
-			image.isVisible = false
-		end
-	end
 
 	-- Unfurl the tiles from some random starting point.
 	local col1, row1, col2, row2 = block:GetInitialRect()
-	local from, to, count, delay = List1, List2, 2, UnfurlDelay
+	local from, to, count = List1, List2, 2
 
-	from[1], from[2] = random(col1, col2), random(row1, row2)
+	from[1], from[2], xform = random(col1, col2), random(row1, row2), xform or ArgId
 
-	Unfurl(from[1], from[2], occupancy, "start")
+	func(from[1], from[2], occupancy, "start")
 
 	repeat
 		local nadded = 0
@@ -242,7 +254,7 @@ local function FadeIn (block, occupancy)
 		for i = 1, count, 2 do
 			local x, y = from[i], from[i + 1]
 
-			for dir in movement.Ways(tile_maps.GetTileIndex(x, y)) do
+			for dir in dirs(x, y, arg) do
 				local tx, ty, bounded = x, y, true
 
 				if dir == "left" or dir == "right" then
@@ -253,14 +265,34 @@ local function FadeIn (block, occupancy)
 					bounded = ty >= row1 and ty <= row2
 				end
 
-				if bounded and Unfurl(tx, ty, occupancy, dir, delay) then
+				if bounded and func(tx, ty, occupancy, dir, arg) then
 					to[nadded + 1], to[nadded + 2], nadded = tx, ty, nadded + 2
 				end
 			end
 		end
 
-		from, to, count, delay = to, from, nadded, delay + UnfurlDelay
+		from, to, count, arg = to, from, nadded, xform(arg)
 	until count == 0
+end
+
+--
+local function IncDelay (delay)
+	return delay + UnfurlDelay
+end
+
+-- Kicks off a fade-in
+local function FadeIn (block, occupancy)
+	-- Start all the maze off hidden.
+	for index in block:IterSelf() do
+		local image = tile_maps.GetImage(index)
+
+		if image then
+			image.isVisible = false
+		end
+	end
+
+	-- Unfurl the tiles from some random starting point.
+	Visit(block, occupancy, Unfurl, UnfurlDirs, UnfurlDelay, IncDelay)
 end
 
 -- Fade-out transition --
@@ -303,7 +335,7 @@ local Deltas = { false, -1, false, 1 }
 local Maze = {}
 
 -- Populates the maze state used to build tile flags
-local function MakeMaze (block, open, occupancy)
+local function MakeMaze (open, occupancy)
 	occupancy("begin_generation")
 
 	-- Choose a random maze tile and do a random flood-fill of the block.
@@ -511,7 +543,7 @@ return function(info, block)
 
 		-- Otherwise, make a new one and add it.
 		else
-			MakeMaze(block, open, occupancy)
+			MakeMaze(open, occupancy)
 
 			-- Convert maze state into flags. Border flags are left in place, allowing the
 			-- maze to coalesce with the rest of the level.
@@ -603,6 +635,84 @@ return function(info, block)
 	local function Show (_, show)
 		-- Show...
 		if show then
+			--
+			Time = Time or {}
+
+			if not Time[block] then
+				local col1, row1, col2, row2 = block:GetInitialRect()
+				local w, h, times, maxt = col2 - col1 + 1, row2 - row1 + 1, {}, 0
+				local tex = memoryBitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
+
+				MakeMaze(open, occupancy)
+				Visit(block, occupancy, function(x, y, _, dir)
+					local index = tile_maps.GetTileIndex(x, y)
+
+					if occupancy("mark", index) then
+						if dir == "start" then
+							times[index] = 0
+
+							tex:setPixel(x, y, 0, 0, 0)
+						else
+							local dx, dy, di = 0, 0
+
+							if dir == "up" then
+								dy, di = -1, Deltas[1]
+							elseif dir == "left" then
+								dx, di = -1, -1
+							elseif dir == "right" then
+								dx, di = 1, 1
+							else
+								dy, di = 1, Deltas[3]
+							end
+
+							local from, fx, fy = index - di, x - dx, y - dy
+							local t = times[from]
+
+							for _ = 1, 2 do
+								t = t + 1 / 256
+
+								tex:setPixel(fx, fy, t, 0, 0)
+
+								times[from], from, fx, fy = t, from + di, fx + dx, fy + dy
+							end
+
+							if t > maxt then
+								maxt = t
+							end
+						end
+					end
+				end, function(x, y)
+					local index = tile_maps.GetTileIndex(x, y)
+					local oi, n = (index - 1) * 4, 0
+
+					for i, delta in ipairs(Deltas) do
+						if not (open[oi + i] or occupancy("check", index + delta)) then
+							n = n + 1
+
+							if i == 1 then
+								Choices[n] = "up"
+							elseif i == 2 then
+								Choices[n] = "left"
+							elseif i == 3 then
+								Choices[n] = "down"
+							else
+								Choices[n] = "right"
+							end
+						end
+					end
+
+					for i = n + 1, 4 do
+						Choices[i] = nil
+					end
+
+					return ipairs(Choices)
+				end)
+
+				tex:invalidate()
+
+				Time[block] = { type = "image", filename = tex.filename, baseDir = tex.baseDir }
+			end
+
 			--
 			mgroup = display.newGroup()
 
