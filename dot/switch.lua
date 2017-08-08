@@ -243,11 +243,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 
 	-- Enumerate Properties --
 	-- arg1: Dialog
-	-- arg2: Representative object
 	elseif what == "enum_props" then
-		arg1:AddLink{ text = "Link to event target", rep = arg2, sub = "trip", interfaces = "event_target" }
-		arg1:AddLink{ text = "Forward-only link", rep = arg2, sub = "ftrip", interfaces = "event_target" }
-		arg1:AddLink{ text = "Reverse-only link", rep = arg2, sub = "rtrip", interfaces = "event_target" }
 		arg1:AddCheckbox{ text = "Starts forward?", value_name = "forward" }
 		arg1:AddCheckbox{ text = "Reverse on trip?", value_name = "reverses" }
 
@@ -258,6 +254,14 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- New Tag --
 	elseif what == "new_tag" then
 		return "sources_and_targets", { "trip", "ftrip", "rtrip" }, nil
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	-- arg2: Representative object
+	elseif what == "get_link_info" then
+		arg1.trip = "Link to event target"
+		arg1.ftrip = "Forward-only link"
+		arg1.rtrip = "Reverse-only link"
 
 	-- Prep Link --
 	elseif what == "prep_link" then

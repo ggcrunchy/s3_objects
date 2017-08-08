@@ -609,10 +609,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 
 	-- Enumerate Properties --
 	-- arg1: Dialog
-	-- arg2: Representative object
 	elseif what == "enum_props" then
-		arg1:AddLink{ text = "Link from source warp", rep = arg2, sub = "from", tags = "warp" }
-		arg1:AddLink{ text = "Link to target (warp or position)", rep = arg2, sub = "to", tags = { "warp", "position" } }
 		arg1:AddCheckbox{ text = "Two-way link, if one is blank?", value_name = "reciprocal_link" }
 		-- Polarity? Can be rotated?
 
@@ -666,6 +663,13 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 				end
 			}
 		}
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	-- arg2: Representative object
+	elseif what == "get_link_info" then
+		arg1.from = { text = "Link from source warp", is_source = true }
+		arg1.to = "Link to target (warp or position)"
 
 	-- Prep Link --
 	elseif what == "prep_link" then
