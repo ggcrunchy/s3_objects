@@ -247,6 +247,13 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 		arg1:AddCheckbox{ text = "Starts forward?", value_name = "forward" }
 		arg1:AddCheckbox{ text = "Reverse on trip?", value_name = "reverses" }
 
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.trip = "Link to event target"
+		arg1.ftrip = "Forward-only link"
+		arg1.rtrip = "Reverse-only link"
+
 	-- Get Tag --
 	elseif what == "get_tag" then
 		return "switch"
@@ -254,14 +261,6 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- New Tag --
 	elseif what == "new_tag" then
 		return "sources_and_targets", { "trip", "ftrip", "rtrip" }, nil
-
-	-- Get Link Info --
-	-- arg1: Info to populate
-	-- arg2: Representative object
-	elseif what == "get_link_info" then
-		arg1.trip = "Link to event target"
-		arg1.ftrip = "Forward-only link"
-		arg1.rtrip = "Reverse-only link"
 
 	-- Prep Link --
 	elseif what == "prep_link" then

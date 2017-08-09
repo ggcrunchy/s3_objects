@@ -613,6 +613,12 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 		arg1:AddCheckbox{ text = "Two-way link, if one is blank?", value_name = "reciprocal_link" }
 		-- Polarity? Can be rotated?
 
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.from = { text = "Link from source warp", is_source = true }
+		arg1.to = "Link to target (warp or position)"
+
 	-- Get Tag --
 	elseif what == "get_tag" then
 		return "warp"
@@ -663,13 +669,6 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 				end
 			}
 		}
-
-	-- Get Link Info --
-	-- arg1: Info to populate
-	-- arg2: Representative object
-	elseif what == "get_link_info" then
-		arg1.from = { text = "Link from source warp", is_source = true }
-		arg1.to = "Link to target (warp or position)"
 
 	-- Prep Link --
 	elseif what == "prep_link" then
