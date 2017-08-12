@@ -94,6 +94,9 @@ local function NewKernel (name, tile_shader)
 end
 
 -- --
+local Holding
+
+-- --
 local Time
 
 -- Listen to events.
@@ -111,7 +114,7 @@ for k, v in pairs{
 			end
 		end
 
-		MarkersLayer, Time = nil
+		Holding, MarkersLayer, Time = nil
 	end,
 
 	-- Things Loaded --
@@ -122,6 +125,7 @@ for k, v in pairs{
 		IsMultiPass = tile_shader ~= nil
 
 		if IsMultiPass then
+			--
 			local effect = Effects[tile_shader]
 
 			if not effect then
@@ -135,6 +139,16 @@ for k, v in pairs{
 
 			Names.stipple, Names.unfurl = effect.stipple, effect.unfurl
 
+			--
+			Holding = { tilesets.GetVertexDataNames() }
+
+			for i = 1, 4 do
+				if Holding[i] then
+					Holding[Holding[i]] = 0
+				end
+
+				Holding[i] = nil
+			end
 		else
 			Names.stipple, Names.unfurl = "filter.event_block_maze.stipple", "filter.event_block_maze.unfurl"
 		end
@@ -186,8 +200,24 @@ for k in pairs(ParamsSetup.up.from) do
 end
 
 --
+local function HoldValues (tile)
+	if Holding then
+		local basic, fill = not tile.m_augmented, tile.fill
+		local effect = basic and fill.effect or fill.effect.tile
+
+		for k in pairs(Holding) do
+			Holding[k] = effect[k]
+		end
+
+		tile.m_augmented = true
+	end
+end
+
+--
 local function AttachEffect (tile, what, proxy)
 	local fill = tile.fill
+
+	HoldValues(tile)
 
 	if proxy then
 		effect_props.AssignEffect(tile, Names[what])
@@ -196,6 +226,12 @@ local function AttachEffect (tile, what, proxy)
 	end
 
 	if IsMultiPass then
+		local tile = fill.effect.tile
+
+		for k, v in pairs(Holding) do
+			tile[k] = v
+		end
+
 		return fill.effect[what]
 	else
 		return fill.effect
