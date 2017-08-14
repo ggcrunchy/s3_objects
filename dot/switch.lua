@@ -260,7 +260,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "sources_and_targets", { "trip", "ftrip", "rtrip" }, nil
+		return "sources_and_targets", { trip = true, ftrip = true, rtrip = true }, nil
 
 	-- Prep Link --
 	elseif what == "prep_link" then
