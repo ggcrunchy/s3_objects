@@ -1,4 +1,4 @@
---- Composite number values.
+--- Compound number values.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -24,7 +24,7 @@
 --
 
 -- Modules --
-local composite = require("s3_utils.state.composite")
+local compound = require("s3_utils.state.compound")
 
 -- Exports --
 local M = {}
@@ -33,14 +33,14 @@ local M = {}
 local Grammar -- TODO!
 
 --- DOCME
-M.AddValue = composite.MakeAdder("nums", Grammar)
+M.AddValue = compound.MakeAdder("nums", Grammar)
 
 --- DOCME
-M.EditorEvent = composite.MakeEditorEvent("number", "nums", function(what, arg1, arg2, arg3)
+M.EditorEvent = compound.MakeEditorEvent("number", "nums", function(what, arg1, arg2, arg3)
 	if what == "enum_defs" then
 		--
 	end
-end, Grammar, "composite_number")
+end, Grammar, "compound_number")
 
 -- Export the module.
 return M

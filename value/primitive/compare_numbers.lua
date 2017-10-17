@@ -1,4 +1,4 @@
---- Composite boolean values.
+--- Fetch the result of comparing two numbers.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,24 +23,19 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Modules --
-local composite = require("s3_utils.state.composite")
+return function(info)
+	if info == "editor_event" then
+		-- TODO!
+		-- <, >, ==, ~=, <=, >=, approximately equal
+		-- tolerance, for last of those...
+	elseif info == "value_type" then
+		return "boolean"
+	else
+		local family1, name1 -- TODO
+		local family2, name2
 
--- Exports --
-local M = {}
-
--- --
-local Grammar -- TODO! (stuff in expression.lua)
-
---- DOCME
-M.AddValue = composite.MakeAdder("bools", Grammar)
-
---- DOCME
-M.EditorEvent = composite.MakeEditorEvent("boolean", "bools", function(what, arg1, arg2, arg3)
-	if what == "enum_defs" then
-		--
+		return function()
+			return -- TODO!
+		end
 	end
-end, Grammar, "composite_boolean")
-
--- Export the module.
-return M
+end
