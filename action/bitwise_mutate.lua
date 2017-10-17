@@ -1,4 +1,4 @@
---- Bitwise-or a number in the store by another.
+--- Mutate a number in the store via a bitwise operation.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -26,6 +26,8 @@
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
+		-- and, or, xor
+		-- not?
 	else
 		local family, name -- TODO (or constant?)
 

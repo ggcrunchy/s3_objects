@@ -1,4 +1,4 @@
---- Assign a boolean in the store.
+--- Assign to a boolean in the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -26,6 +26,7 @@
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
+		-- unary transform?
 	else
 		local family, name -- TODO (or constant?)
 

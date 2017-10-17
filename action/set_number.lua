@@ -1,4 +1,4 @@
---- Multiply a number in the store by another.
+--- Assign to a number in the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -26,6 +26,7 @@
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
+		-- unary transform?
 	else
 		local family, name -- TODO (or constant?)
 

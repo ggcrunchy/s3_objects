@@ -1,4 +1,4 @@
---- Divde a number in the store by another.
+--- Add a number to another in the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -26,10 +26,11 @@
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
-	else
-		local family, name -- TODO (or constant?)
+		-- add, div, mod, mul, sub
 		-- allow remainder to be stashed somewhere?
 		-- respond to NaN?
+	else
+		local family, name -- TODO (or constant?)
 
 		return function()
 			return -- TODO!
