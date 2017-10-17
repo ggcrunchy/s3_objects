@@ -1,4 +1,4 @@
---- Compound number values.
+--- Fetch a boolean from the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,24 +23,19 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Modules --
-local compound = require("s3_utils.state.compound")
+return function(info)
+	if info == "editor_event" then
+		-- TODO!
+		-- Allow negation?
+		-- Allow constant
+		-- Allow "set and forget"
+	elseif info == "value_type" then
+		return "boolean"
+	else
+		local family, name -- TODO (or make call?)
 
--- Exports --
-local M = {}
-
--- --
-local Grammar -- TODO!
-
---- DOCME
-M.AddValue = compound.MakeAdder("nums", Grammar)
-
---- DOCME
-M.EditorEvent = compound.MakeEditorEvent("number", "nums", function(what, arg1, arg2, arg3)
-	if what == "enum_defs" then
-		--
+		return function()
+			return -- TODO!
+		end
 	end
-end, Grammar, "compound_number")
-
--- Export the module.
-return M
+end

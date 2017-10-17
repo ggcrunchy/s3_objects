@@ -1,4 +1,4 @@
---- Binary boolean values.
+--- Fetch results of math operations and certain functions.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -22,7 +22,8 @@
 --
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
-
+--[=[
+	Binary
 -- Modules --
 local binary = require("s3_utils.state.binary")
 
@@ -30,28 +31,40 @@ local binary = require("s3_utils.state.binary")
 local M = {}
 
 -- --
-local Connectives = {
-	And = function(a, b) return a and b end,
-	Or = function(a, b) return a or b end,
-	NAnd = function(a, b) return not a or not b end,
-	NOr = function(a, b) return not a and not b end,
-	Xor = function(a, b) return not a ~= not b end,
-	Iff = function(a, b) return not a == not b end,
-	Implies = function(a, b) return not a or b end,
-	NImplies = function(a, b) return a and not b end,
-	ConverseImplies = function(a, b) return a or not b end,
-	NConverseImplies = function(a, b) return not a and b end
+local Ops = {
+	Add = function(a, b) return a + b end,
+	Div = function(a, b) return a / b end,
+	Mod = function(a, b) return a % b end,
+	Mul = function(a, b) return a * b end,
+	Sub = function(a, b) return a - b end
+	-- TODO: bitwise ops too?
 }
 
 --- DOCME
-M.AddValue = binary.MakeAdder(Connectives, "connective")
+M.AddValue = binary.MakeAdder(Ops, "op")
 
 --- DOCME
-M.EditorEvent = binary.MakeEditorEvent("boolean", function(what, arg1, arg2, arg3)
+M.EditorEvent = binary.MakeEditorEvent("number", function(what, arg1, arg2, arg3)
 	if what == "enum_defs" then
-		arg1.connective = "And"
+		arg1.op = "Add"
 	end
-end, "binary_boolean")
+end, "binary_number")
 
 -- Export the module.
 return M
+]=]
+return function(info)
+	if info == "editor_event" then
+		-- TODO!
+		-- Unary, binary, fold
+		-- Function, calls
+	elseif info == "value_type" then
+		return "number"
+	else
+		local family, name -- TODO (or make call?)
+
+		return function()
+			return -- TODO!
+		end
+	end
+end
