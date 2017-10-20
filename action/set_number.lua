@@ -23,9 +23,26 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+local function EditorEvent (what, arg1)
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	if what == "enum_props" then
+		-- Family, name
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.set = { friendly_name = "NUM: set value" }
+
+	-- New Tag --
+	elseif what == "new_tag" then
+		return "extend", nil, nil, nil, { number = "set" }
+	end
+end
+
 return function(info)
 	if info == "editor_event" then
-		-- TODO!
+		return EditorEvent
 		-- unary transform?
 	else
 		local family, name -- TODO (or constant?)

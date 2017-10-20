@@ -23,11 +23,25 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
+local function EditorEvent (what, arg1)
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	if what == "enum_props" then
 		-- Allow constant
 		-- Allow "set and forget"
+		-- Family, name
+		-- Is call?
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.get = { friendly_name = "NUM: get value", is_source = true }
+	end
+end
+
+return function(info)
+	if info == "editor_event" then
+		return EditorEvent
 	elseif info == "value_type" then
 		return "number"
 	else
