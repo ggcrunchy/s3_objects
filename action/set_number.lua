@@ -36,7 +36,7 @@ local function EditorEvent (what, arg1)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", nil, nil, nil, { number = "set" }
+		return "extend", nil, nil, nil, { number = { set = true, ["mirble*"] = true } }--{ number = "set" }
 	end
 end
 
