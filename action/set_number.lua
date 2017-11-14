@@ -33,10 +33,15 @@ local function EditorEvent (what, arg1)
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.set = { friendly_name = "NUM: set value" }
+		arg1["mirble*"] = { friendly_name = "BLRGH", is_set = true, is_source = true }
+
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "set_number" -- TODO: derives from action?
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", nil, nil, nil, { number = { set = true, ["mirble*"] = true } }--{ number = "set" }
+		return "extend", nil, nil, { number = { ["mirble*"] = true } }, { number = "set" }
 	end
 end
 
