@@ -33,7 +33,7 @@ local function EditorEvent (what, arg1)
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.set = { friendly_name = "NUM: set value" }
-		arg1["mirble*"] = { friendly_name = "BLRGH", is_set = true, is_source = true }
+		arg1["mirble*"] = { friendly_name = "BLRGH"--[[, is_set = true]], is_source = true }
 
 	-- Get Tag --
 	elseif what == "get_tag" then
