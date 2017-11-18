@@ -1,4 +1,4 @@
---- Add a number to another in the store.
+--- Transform one number into another.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -26,14 +26,14 @@
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
-		-- add, div, mod, mul, sub
-		-- allow remainder to be stashed somewhere?
-		-- respond to NaN?
+		-- just get bool
+	elseif info == "value_type" then
+		return "number"
 	else
-		local family, name -- TODO (or constant?)
+		-- TODO
 
 		return function()
-			return -- TODO!
+			return -- TODO
 		end
 	end
 end

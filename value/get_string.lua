@@ -1,4 +1,4 @@
---- Fetch a number from the store.
+--- Fetch a string from the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,4 +23,4 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.get_value").Make("number", "NUM", 0)
+return require("s3_objects.state_templates.get_value").Make("string", "STR", "")

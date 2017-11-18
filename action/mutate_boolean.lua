@@ -1,4 +1,4 @@
---- Fetch a number from the store.
+--- Mutate a boolean in the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,4 +23,15 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.get_value").Make("number", "NUM", 0)
+return function(info)
+	if info == "editor_event" then
+		-- TODO!
+		-- and, or, xor, not
+	else
+		local family, name -- TODO (or constant?)
+
+		return function()
+			return -- TODO!
+		end
+	end
+end

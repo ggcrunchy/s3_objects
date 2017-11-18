@@ -1,4 +1,4 @@
---- Mutate a number in the store via a bitwise operation.
+--- Common logic used to fetch a value, typically from the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,16 +23,44 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- and, or, xor
-		-- not?
-	else
-		local family, name -- TODO (or constant?)
+-- Exports --
+local M = {}
 
-		return function()
-			return -- TODO!
+--
+--
+--
+
+function M.Make (vtype, abbreviation, def)
+	local function EditorEvent (what, arg1)
+		-- Enumerate Properties --
+		-- arg1: Dialog
+		if what == "enum_props" then
+			-- Allow constant
+			-- Allow "set and forget"
+			-- Family, name
+			-- Is call?
+
+		-- Get Link Info --
+		-- arg1: Info to populate
+		elseif what == "get_link_info" then
+			arg1.get = { friendly_name = abbreviation .. ": get value", is_source = true }
+		end
+	end
+
+	return function(info)
+		if info == "editor_event" then
+			return EditorEvent
+		elseif info == "value_type" then
+			return vtype
+		else
+			local family, name -- TODO (or make call?)
+
+			return function()
+				return def -- TODO!
+			end
 		end
 	end
 end
+
+-- Export the module.
+return M

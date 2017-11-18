@@ -1,4 +1,4 @@
---- Fetch a number from the store.
+--- Common logic used to assign a value in the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,4 +23,50 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.get_value").Make("number", "NUM", 0)
+-- Exports --
+local M = {}
+
+--
+--
+--
+
+--- DOCME
+function M.Make (vtype, abbreviation, def)
+	local function EditorEvent (what, arg1)
+		-- Enumerate Properties --
+		-- arg1: Dialog
+		if what == "enum_props" then
+			-- Family, name
+
+		-- Get Link Info --
+		-- arg1: Info to populate
+		elseif what == "get_link_info" then
+			arg1.set = { friendly_name = abbreviation .. ": set value" }
+			arg1["mirble*"] = { friendly_name = "BLRGH"--[[, is_set = true]], is_source = true }
+
+		-- Get Tag --
+		elseif what == "get_tag" then
+			return "set_" .. vtype -- TODO: derives from action?
+
+		-- New Tag --
+		elseif what == "new_tag" then
+			return "extend", nil, nil, { number = { ["mirble*"] = true } }, { [vtype] = "set" }
+		end
+	end
+
+	return function(info)
+		if info == "editor_event" then
+			return EditorEvent
+			-- unary transform?
+		else
+			local family, name -- TODO (or constant?)
+
+			return function()
+				return -- TODO!
+			end
+		end
+	end
+end
+
+-- Export the module.
+return M

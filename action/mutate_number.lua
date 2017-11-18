@@ -1,4 +1,4 @@
---- Fetch the result of comparing two numbers.
+--- Mutate a number in the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -26,13 +26,13 @@
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
-		-- <, >, ==, ~=, <=, >=, approximately equal
-		-- tolerance, for last of those...
-	elseif info == "value_type" then
-		return "boolean"
+		-- add, div, mod, mul, sub
+		-- and, or, xor
+		-- negate, not, sign?
+		-- allow remainder to be stashed somewhere?
+		-- respond to inf, NaN?
 	else
-		local family1, name1 -- TODO
-		local family2, name2
+		local family, name -- TODO (or constant?)
 
 		return function()
 			return -- TODO!

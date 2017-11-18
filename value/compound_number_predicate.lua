@@ -1,4 +1,4 @@
---- Fetch a number from the store.
+--- Given multiple numbers, reduce them to a boolean result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,4 +23,17 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.get_value").Make("number", "NUM", 0)
+return function(info)
+	if info == "editor_event" then
+		-- TODO!
+		-- just get bool
+	elseif info == "value_type" then
+		return "boolean"
+	else
+		-- TODO
+
+		return function()
+			return -- TODO
+		end
+	end
+end

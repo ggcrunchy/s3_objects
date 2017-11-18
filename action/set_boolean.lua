@@ -23,15 +23,4 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- unary transform?
-	else
-		local family, name -- TODO (or constant?)
-
-		return function()
-			return -- TODO!
-		end
-	end
-end
+return require("s3_objects.state_templates.set_value").Make("boolean", "BOOL", false)

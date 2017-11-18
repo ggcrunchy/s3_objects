@@ -1,4 +1,4 @@
---- Fetch a number from the store.
+--- Supply one of the available families.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,4 +23,16 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.get_value").Make("number", "NUM", 0)
+return function(info)
+	if info == "editor_event" then
+		-- TODO!
+		-- just returns one of the families, given a list
+		-- tag would be "family", probably
+	else
+		local family -- TODO
+
+		return function()
+			return -- TODO!
+		end
+	end
+end
