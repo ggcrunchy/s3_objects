@@ -23,16 +23,35 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local state_vars = require("config.StateVariables")
+
+--
+--
+--
+
+local FamilyFuncs = {}
+
+for _, name in ipairs(state_vars.families) do
+	FamilyFuncs[name] = function()
+		return name
+	end
+end
+
+local function EditorEvent (what, arg1)
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	if what == "enum_props" then
+		arg1:AddFamilyList{ value_name = "family", default = state_vars.families[#state_vars.families] }
+	end
+end
+
 return function(info)
 	if info == "editor_event" then
-		-- TODO!
-		-- just returns one of the families, given a list
-		-- tag would be "family", probably
+		return EditorEvent
+	elseif info == "value_type" then
+		return "family"
 	else
-		local family -- TODO
-
-		return function()
-			return -- TODO!
-		end
+		return FamilyFuncs[info.family]
 	end
 end

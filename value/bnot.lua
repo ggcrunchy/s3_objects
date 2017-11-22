@@ -23,17 +23,61 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
+-- Standard library imports --
+local rawequal = rawequal
+
+-- Modules --
+local bind = require("tektite_core.bind")
+
+--
+--
+--
+
+local function LinkOriginal (getter, other, sub, other_sub)
+	if sub == "original" then
+		bind.AddId(getter, "original", other.uid, other_sub)
+	end
+end
+
+local function EditorEvent (what, arg1)
+	-- Get Link Info --
+	-- arg1: Info to populate
+	if what == "get_link_info" then
+		arg1.get = { friendly_name = "BOOL: get result", is_source = true }
+		arg1.original = "BOOL: original value"
+
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "bnot" -- TODO: derives from value?
+
+	-- New Tag --
+	elseif what == "new_tag" then
+		return "extend", nil, nil, { boolean = "get" }, { boolean = "original" }
+
+	-- Prep Link --
+	elseif what == "prep_link" then
+		return LinkOriginal
+	end
+end
+
+return function(info, wlist)
 	if info == "editor_event" then
-		-- TODO!
-		-- just get bool
+		return EditorEvent
 	elseif info == "value_type" then
 		return "boolean"
 	else
-		-- TODO
+		local nonce, original = {}
 
-		return function()
-			return -- TODO
+		local function getter (what, arg)
+			if not rawequal(arg, nonce) then
+				return not original()
+			else
+				original = what
+			end
 		end
+
+		bind.Subscribe(wlist, info.original, getter, nonce) -- TODO: verify original exists or allow variable lookup
+
+		return getter, nonce
 	end
 end

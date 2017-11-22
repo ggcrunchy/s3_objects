@@ -46,7 +46,7 @@ function M.Make (vtype, abbreviation, def)
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			return "set_" .. vtype -- TODO: derives from action?
+			return "set_" .. vtype -- TODO: derives from value?
 
 		-- New Tag --
 		elseif what == "new_tag" then
