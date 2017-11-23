@@ -1,4 +1,4 @@
---- Given multiple booleans, reduce them to one.
+--- Common logic used to combine two values of a given type.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -22,24 +22,6 @@
 --
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
-
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-	elseif info == "value_type" then
-		return "boolean"
-	else
-		-- TODO: generic link
-		-- any, all, none
-
-		return function()
-			return -- TODO!
-		end
-	end
-end
-
---[=[
-	Binary
 
 -- Modules --
 local bind = require("tektite_core.bind")
@@ -119,27 +101,6 @@ function M.MakeEditorEvent (type, event, tag)
 		event(what, arg1, arg2, arg3)
 	end
 end
-]=]
 
---[=[
-	Compound
-
--- Modules --
-local compound = require("s3_objects.state_templates.compound")
-
--- Exports --
-local M = {}
-
--- --
-local Grammar -- TODO! (stuff in expression.lua)
-
---- DOCME
-M.AddValue = compound.MakeAdder("bools", Grammar)
-
---- DOCME
-M.EditorEvent = compound.MakeEditorEvent("boolean", "bools", function(what, arg1, arg2, arg3)
-	if what == "enum_defs" then
-		--
-	end
-end, Grammar, "compound_boolean")
-]=]
+-- Export the module.
+return M

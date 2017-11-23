@@ -125,7 +125,7 @@ end
 	Compound
 
 -- Modules --
-local compound = require("s3_utils.state.compound")
+local compound = require("s3_objects.state_templates.compound")
 
 -- Exports --
 local M = {}

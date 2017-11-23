@@ -1,4 +1,4 @@
---- Given multiple booleans, reduce them to one.
+--- Commong logic used to combine arbitrarily many values of one or more types.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,49 +23,35 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-	elseif info == "value_type" then
-		return "boolean"
-	else
-		-- TODO: generic link
-		-- any, all, none
-
-		return function()
-			return -- TODO!
-		end
-	end
-end
-
---[=[
-	Binary
+-- Standard library imports --
+local rawequal = rawequal
 
 -- Modules --
 local bind = require("tektite_core.bind")
+local expression = require("s3_utils.state.expression")
 
 -- Exports --
 local M = {}
 
---- DOCME
-function M.MakeAdder (combiners, ckey)
-	return function(info, wname)
-		local wlist, getter = wname or "loading_level"
-		local combine, value1, value2 = combiners[info[ckey]]
+-- --
+local AddComponent = {}
 
-		function getter (comp)
-			if value2 then
-				return combine(value1(), value2())
-			elseif value1 then -- TODO: check order guarantees
-				value2 = comp
+--- DOCME
+function M.MakeAdder (ckey, grammar)
+	return function(info, wname)
+		local wlist = wname or "loading_level"
+		local logic = expression.Parse(info.expression, grammar)
+
+		local function getter (comp, arg)
+			if rawequal(arg, AddComponent) then
+				logic(comp) -- TODO: check order guarantees...
 			else
-				value1 = comp
+				return logic()
 			end
 		end
 
 		--
-		bind.Subscribe(wlist, info.value1, getter)
-		bind.Subscribe(wlist, info.value2, getter)
+		bind.Subscribe(wlist, info[ckey], getter, AddComponent)
 
 		--
 		bind.Publish(wlist, getter, info.uid, "get")
@@ -75,21 +61,26 @@ function M.MakeAdder (combiners, ckey)
 end
 
 --- DOCME
-function M.MakeEditorEvent (type, event, tag)
+function M.MakeEditorEvent (type, ckey, event, grammar, tag)
 	return function(what, arg1, arg2, arg3)
+		-- Enumerate Defaults --
+		-- arg1: Defaults
+		if what == "enum_defs" then
+			-- TODO: reduction ops as alternative to expression... (would suggest a section, then)
+			arg1.expression = ""
+
 		-- Enumerate Properties --
 		-- arg1: Dialog
-		if what == "enum_props" then
+		elseif what == "enum_props" then
 			arg1:StockElements()
 			arg1:AddSeparator()
-			-- TODO: some way to look up connective (radio? picker wheel?)
+			-- TODO: need something, e.g. a list + button -> text field, to associate names
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
 			arg1.get = "Query final value"
-			arg1.value1 = "First source value"
-			arg1.value2 = "Second source value"
+			arg1[ckey] = "Source values"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
@@ -100,46 +91,27 @@ function M.MakeEditorEvent (type, event, tag)
 			return "properties", {
 				[type] = "get"
 			}, {
-				[type] = { value1 = true, value2 = true }
+				-- preds/Multi
 			}
 
 		-- Prep Link --
 		elseif what == "prep_link" then
-			return function(bvalue, other, sub)
-				if sub == "value1" or sub == "value2" then
-					bvalue[sub] = other.uid
+			return function(cvalue, other, sub, other_sub)
+				if sub == ckey then
+					bind.AddId(cvalue, ckey, other.uid, other_sub)
 				end
 			end
 		
 		-- Verify --
 		elseif what == "verify" then
-			-- Has both set?
+			-- Legal expression?
+			-- All names registered?
+			-- Use grammar
 		end
 
 		event(what, arg1, arg2, arg3)
 	end
 end
-]=]
 
---[=[
-	Compound
-
--- Modules --
-local compound = require("s3_objects.state_templates.compound")
-
--- Exports --
-local M = {}
-
--- --
-local Grammar -- TODO! (stuff in expression.lua)
-
---- DOCME
-M.AddValue = compound.MakeAdder("bools", Grammar)
-
---- DOCME
-M.EditorEvent = compound.MakeEditorEvent("boolean", "bools", function(what, arg1, arg2, arg3)
-	if what == "enum_defs" then
-		--
-	end
-end, Grammar, "compound_boolean")
-]=]
+-- Export the module.
+return M

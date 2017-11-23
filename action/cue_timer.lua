@@ -1,4 +1,4 @@
---- Fetch results of math operations and certain functions.
+--- Cue a Corona timer.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -22,47 +22,16 @@
 --
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
---[=[
-	Binary
--- Modules --
-local binary = require("s3_objects.state_templates.binary")
 
--- Exports --
-local M = {}
-
--- --
-local Ops = {
-	Add = function(a, b) return a + b end,
-	Div = function(a, b) return a / b end,
-	Mod = function(a, b) return a % b end,
-	Mul = function(a, b) return a * b end,
-	Sub = function(a, b) return a - b end
-	-- TODO: bitwise ops too?
-}
-
---- DOCME
-M.AddValue = binary.MakeAdder(Ops, "op")
-
---- DOCME
-M.EditorEvent = binary.MakeEditorEvent("number", function(what, arg1, arg2, arg3)
-	if what == "enum_defs" then
-		arg1.op = "Add"
-	end
-end, "binary_number")
-
--- Export the module.
-return M
-]=]
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
-		-- Unary, binary, fold
-		-- Function, calls
-	elseif info == "value_type" then
-		return "number"
+		-- delay
+		-- number of repetitions
+		-- non-standard id (else some known default, subject to a hard limit)
+		-- Action to do
+		-- Action if too may timers...
 	else
-		local family, name -- TODO (or make call?)
-
 		return function()
 			return -- TODO!
 		end
