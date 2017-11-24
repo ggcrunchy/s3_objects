@@ -30,6 +30,7 @@ local pairs = pairs
 local bind = require("tektite_core.bind")
 local core = require("s3_utils.state.core")
 local frames = require("corona_utils.frames")
+local state_vars = require("config.StateVariables")
 local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
@@ -61,7 +62,11 @@ local function LinkFamily (getter, other, sub, other_sub)
 	end
 end
 
-local UpdatePolicy = { var_name = "update_policy", "cached", "uncached", "bake", default = "cached" }
+local UpdatePolicy = { value_name = "update_policy", "cached", "uncached", "bake", default = "cached" }
+
+local function WillBake (policy)
+	return policy == "bake"
+end
 
 function M.Make (vtype, abbreviation, def)
 	local function EditorEvent (what, arg1, arg2, arg3)
@@ -108,13 +113,20 @@ function M.Make (vtype, abbreviation, def)
 			arg1:AddString{ text = "Update policy", is_static = true }
 			arg1:AddListbox(UpdatePolicy)
 
+			local fresh_section = arg1:BeginSection()
+
+			arg1:AddCheckbox{ text = "Can baked value be reset?", value_name = "can_go_stale" }
+
+			arg1:EndSection()
+
 			-- TODO: is call?
 
 			arg1:EndSection()
 
 			--
-			arg1:SetStateFromValue_Watch(constant_section, "variable", true)
+			arg1:SetStateFromValue_Watch(constant_section, "variable", "use_false")
 			arg1:SetStateFromValue_Watch(variable_section, "variable")
+			arg1:SetStateFromValue_Watch(fresh_section, "update_policy", WillBake)
 
 		-- Get Link Info --
 		-- arg1: Info to populate
@@ -164,9 +176,17 @@ function M.Make (vtype, abbreviation, def)
 						return value
 					end
 				elseif info.update_policy == "bake" then
-					local value
+					local can_go_stale, session_id, value = info.stale_on_reset
 
 					function getter ()
+						if can_go_stale then
+							local id = state_vars.GetSessionID()
+
+							if id ~= session_id then
+								session_id, value = id
+							end
+						end
+
 						if value == nil then
 							value = GetValue(vtype, name, def, getter)
 						end

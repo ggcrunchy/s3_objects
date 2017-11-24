@@ -44,4 +44,5 @@ return require("s3_objects.state_templates.unary").Make("boolean", "BOOL", "numb
 	"is_zero", function(a) return a == 0 end,
 	"is_non_zero", function(a) return a ~= 0 end,
 --	"approximately_zero", function(a, b) return a or not b
+--	are bits set / clear
 }, "is_positive")

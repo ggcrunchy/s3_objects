@@ -32,6 +32,6 @@ return require("s3_objects.state_templates.binary").Make("boolean", "BOOL", "boo
 	"iff", function(a, b) return a == b end,
 	"implies", function(a, b) return not a or b end,
 	"nimplies", function(a, b) return a and not b end,
-	"converse_implies", function(a, b) return a or not b,
-	"nconverse_implies", function(a, b) return not a and b
+	"converse_implies", function(a, b) return a or not b end,
+	"nconverse_implies", function(a, b) return not a and b end
 }, "and")

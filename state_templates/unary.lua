@@ -41,7 +41,7 @@ end
 
 --- DOCME
 function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
-	local list_opts, ops = { var_name = "choice", default = def_choice }, {}
+	local list_opts, ops = { value_name = "choice", default = def_choice }, {}
 
 	for i = 1, #choice_pairs, 2 do
 		local name = choice_pairs[i]

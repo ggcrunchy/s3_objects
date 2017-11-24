@@ -57,7 +57,6 @@ function M.Make (vtype, abbreviation, def)
 	return function(info)
 		if info == "editor_event" then
 			return EditorEvent
-			-- unary transform?
 		else
 			local family, name -- TODO (or constant?)
 

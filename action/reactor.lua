@@ -23,6 +23,14 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local bind = require("tektite_core.bind")
+local state_vars = require("config.StateVariables")
+
+--
+--
+--
+
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
@@ -32,6 +40,8 @@ return function(info)
 		-- Delay between polling the condition
 		-- condition to watch
 	else
+		-- check if session id is stale
+
 		return function()
 			return -- TODO!
 		end

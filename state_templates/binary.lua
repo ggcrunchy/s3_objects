@@ -41,7 +41,7 @@ end
 
 --- DOCME
 function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
-	local list_opts, ops = { var_name = "choice", default = def_choice }, {}
+	local list_opts, ops = { value_name = "choice", default = def_choice }, {}
 
 	for i = 1, #choice_pairs, 2 do
 		local name = choice_pairs[i]
@@ -93,9 +93,9 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 		-- arg2: Values
 		-- arg3: Key
 		elseif what == "verify" then
-			-- Has both set?
-			-- arg1.links:HasLinks(arg2[arg3], "value1") and
-			-- arg1.links:HasLinks(arg2[arg3], "value2")?
+			if not and (arg1.links:HasLinks(arg3, "value1") or arg1.links:HasLinks(arg3, "value2") then
+				arg1[#arg1 + 1] = "Binary value `" .. arg2.name .. "` must link to two values"
+			end
 		end
 	end
 

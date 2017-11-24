@@ -23,6 +23,13 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local state_vars = require("config.StateVariables")
+
+--
+--
+--
+
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
@@ -35,6 +42,7 @@ return function(info)
 		return "boolean"
 	else
 		-- TODO
+		-- is session stale?
 
 		return function()
 			return -- TODO

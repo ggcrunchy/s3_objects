@@ -30,6 +30,6 @@ return require("s3_objects.state_templates.binary").Make("number", "NUM", "numbe
 	"/", function(a, b) return a / b end,
 	"%", function(a, b) return a % b end,
 	"^", function(a, b) return a ^ b end,
-	"atan2", math.atan2
+	"atan2", math.atan2,
 	"fmod", math.fmod
 }, "+")

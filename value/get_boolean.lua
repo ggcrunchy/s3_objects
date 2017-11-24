@@ -23,6 +23,4 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-
-
 return require("s3_objects.state_templates.get_value").Make("boolean", "BOOL", false)

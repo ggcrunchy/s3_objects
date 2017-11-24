@@ -1,4 +1,4 @@
---- Given an array of booleans, pick one.
+--- Get a reasonably unique name.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
