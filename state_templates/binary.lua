@@ -29,76 +29,124 @@ local bind = require("tektite_core.bind")
 -- Exports --
 local M = {}
 
---- DOCME
-function M.MakeAdder (combiners, ckey)
-	return function(info, wname)
-		local wlist, getter = wname or "loading_level"
-		local combine, value1, value2 = combiners[info[ckey]]
+--
+--
+--
 
-		function getter (comp)
-			if value2 then
-				return combine(value1(), value2())
-			elseif value1 then -- TODO: check order guarantees
-				value2 = comp
-			else
-				value1 = comp
-			end
-		end
-
-		--
-		bind.Subscribe(wlist, info.value1, getter)
-		bind.Subscribe(wlist, info.value2, getter)
-
-		--
-		bind.Publish(wlist, getter, info.uid, "get")
-
-		return getter
+local function LinkValue (bvalue, other, sub)
+	if sub == "value1" or sub == "value2" then
+		bvalue[sub] = other.uid
 	end
 end
 
 --- DOCME
-function M.MakeEditorEvent (type, event, tag)
-	return function(what, arg1, arg2, arg3)
+function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
+	local list_opts, ops = { var_name = "choice", default = def_choice }, {}
+
+	for i = 1, #choice_pairs, 2 do
+		local name = choice_pairs[i]
+
+		list_opts[#list_opts + 1] = name
+		ops[name] = choice_pairs[i + 1]
+	end
+
+	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		if what == "enum_props" then
 			arg1:StockElements()
 			arg1:AddSeparator()
-			-- TODO: some way to look up connective (radio? picker wheel?)
+			arg1:AddString{ text = "Choices", is_static = true }
+			arg1:AddListbox(list_opts)
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
 			arg1.get = "Query final value"
+			arg1.pick_first = "Pick the first value?"
 			arg1.value1 = "First source value"
 			arg1.value2 = "Second source value"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			return tag
+			return "binary_" .. suffix
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "properties", {
-				[type] = "get"
-			}, {
-				[type] = { value1 = true, value2 = true }
+			local targets = {
+				[vtype] = { value1 = true, value2 = true }
 			}
+
+			targets.boolean = targets.boolean or {}
+			targets.boolean.pick_first = true
+
+			return "properties", {
+				[vtype] = "get"
+			}, targets
 
 		-- Prep Link --
 		elseif what == "prep_link" then
-			return function(bvalue, other, sub)
-				if sub == "value1" or sub == "value2" then
-					bvalue[sub] = other.uid
-				end
-			end
+			return LinkValue
 		
 		-- Verify --
+		-- arg1: Verify block
+		-- arg2: Values
+		-- arg3: Key
 		elseif what == "verify" then
 			-- Has both set?
+			-- arg1.links:HasLinks(arg2[arg3], "value1") and
+			-- arg1.links:HasLinks(arg2[arg3], "value2")?
 		end
+	end
 
-		event(what, arg1, arg2, arg3)
+	return function(info, wname)
+		if info == "editor_event" then
+			return EditorEvent
+		elseif info == "value_type" then
+			return vtype
+		else
+			local wlist, getter, value1, value2 = wname or "loading_level"
+
+			if info.pick_first then
+				local pick_first
+
+				function getter (comp)
+					if pick_first then
+						if pick_first() then
+							return value1()
+						else
+							return value2()
+						end
+					elseif value1 then
+						value2 = comp
+					elseif pick_first then
+						value1 = comp
+					else
+						pick_first = comp
+					end
+				end
+
+				bind.Subscribe(wlist, info.pick_first, getter)
+			else
+				local op, arg = ops[info.choice], info.arg
+
+				function getter (comp)
+					if value2 then
+						return op(value1(), value2(), arg)
+					elseif value1 then -- TODO: check order guarantees
+						value2 = comp
+					else
+						value1 = comp
+					end
+				end
+			end
+
+			--
+			bind.Subscribe(wlist, info.value1, getter)
+			bind.Subscribe(wlist, info.value2, getter)
+
+			return getter
+		end
 	end
 end
 

@@ -1,4 +1,4 @@
---- Given a pair of numbers, reduce them to one.
+--- Converts a number to an integer.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,13 +23,18 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.binary").Make("number", "NUM", "number_op", {
-	"+", function(a, b) return a + b end,
-	"-", function(a, b) return a - b end,
-	"*", function(a, b) return a * b end,
-	"/", function(a, b) return a / b end,
-	"%", function(a, b) return a % b end,
-	"^", function(a, b) return a ^ b end,
-	"atan2", math.atan2
-	"fmod", math.fmod
-}, "+")
+return function(info)
+	if info == "editor_event" then
+		-- TODO!
+		-- choice: ceiling, floor, round, trunc
+		-- number source
+	elseif info == "value_type" then
+		return "integer"
+	else
+		-- TODO
+
+		return function()
+			return -- TODO
+		end
+	end
+end

@@ -1,4 +1,4 @@
---- Given a pair of numbers, reduce them to one.
+--- Given a pair of booleans, reduce them to one.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,13 +23,15 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.binary").Make("number", "NUM", "number_op", {
-	"+", function(a, b) return a + b end,
-	"-", function(a, b) return a - b end,
-	"*", function(a, b) return a * b end,
-	"/", function(a, b) return a / b end,
-	"%", function(a, b) return a % b end,
-	"^", function(a, b) return a ^ b end,
-	"atan2", math.atan2
-	"fmod", math.fmod
-}, "+")
+return require("s3_objects.state_templates.binary").Make("boolean", "BOOL", "boolean_op", {
+	"and", function(a, b) return a and b end,
+	"or", function(a, b) return a or b end,
+	"nand", function(a, b) return not (a and b) end,
+	"nor", function(a, b) return not (a or b) end,
+	"xor", function(a, b) return a ~= b end,
+	"iff", function(a, b) return a == b end,
+	"implies", function(a, b) return not a or b end,
+	"nimplies", function(a, b) return a and not b end,
+	"converse_implies", function(a, b) return a or not b,
+	"nconverse_implies", function(a, b) return not a and b
+}, "and")

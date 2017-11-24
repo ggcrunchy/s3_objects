@@ -1,4 +1,4 @@
---- Fetch results of math operations and certain functions.
+--- Given a number, find a boolean result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -22,49 +22,26 @@
 --
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
---[=[
-	Binary
--- Modules --
-local binary = require("s3_objects.state_templates.binary")
 
--- Exports --
-local M = {}
+-- Standard library imports --
+local abs = math.abs
 
--- --
-local Ops = {
-	Add = function(a, b) return a + b end,
-	Div = function(a, b) return a / b end,
-	Mod = function(a, b) return a % b end,
-	Mul = function(a, b) return a * b end,
-	Sub = function(a, b) return a - b end
-	-- TODO: bitwise ops too?
-}
+--
+--
+--
 
---- DOCME
-M.AddValue = binary.MakeAdder(Ops, "op")
-
---- DOCME
-M.EditorEvent = binary.MakeEditorEvent("number", function(what, arg1, arg2, arg3)
-	if what == "enum_defs" then
-		arg1.op = "Add"
-	end
-end, "binary_number")
-
--- Export the module.
-return M
-]=]
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- Unary, binary, fold
-		-- Function, calls
-	elseif info == "value_type" then
-		return "number"
-	else
-		local family, name -- TODO (or make call?)
-
-		return function()
-			return -- TODO!
-		end
-	end
-end
+return require("s3_objects.state_templates.unary").Make("boolean", "BOOL", "number_predicate", {
+	"is_nan", function(a) return a ~= a end,
+	"is_negative", function(a) return a < 0 end,
+	"is_non_negative", function(a) return a >= 0 end,
+	"is_non_positive", function(a) return a <= 0 end,
+	"is_number", function(a) return a == a end,
+	"is_positive", function(a) return a > 0 end,
+	"is_finite", function(a) return a / 0 ~= 0 end, -- TODO: wild guess!
+	"is_infinite", function(a) return a / 0 == 0 end,
+	"is_integer", function(a) return a % 1 == 0 end,
+	"is_non_integer", function(a) return a % 1 ~= 0 end,
+	"is_zero", function(a) return a == 0 end,
+	"is_non_zero", function(a) return a ~= 0 end,
+--	"approximately_zero", function(a, b) return a or not b
+}, "is_positive")

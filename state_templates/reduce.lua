@@ -1,4 +1,4 @@
---- Commong logic used to combine arbitrarily many values of one or more types.
+--- Common logic used to reduce an array of values to a result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,94 +23,63 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local rawequal = rawequal
-
 -- Modules --
 local bind = require("tektite_core.bind")
-local expression = require("s3_utils.state.expression")
 
 -- Exports --
 local M = {}
 
--- --
-local AddComponent = {}
+--
+--
+--
 
---- DOCME
-function M.MakeAdder (ckey, grammar)
-	local gdef = expression.DefineGrammar(grammar)
-
-	return function(info, wname)
-		local wlist = wname or "loading_level"
-		local logic = expression.Process(gdef, info.expression)
-
-		local function getter (comp, arg)
-			if rawequal(arg, AddComponent) then
-				logic(comp) -- TODO: check order guarantees...
-			else
-				return logic()
-			end
-		end
-
-		--
-		bind.Subscribe(wlist, info[ckey], getter, AddComponent)
-
-		return getter
-	end
+local function LinkValue (bvalue, other, sub)
+	--
 end
 
 --- DOCME
-function M.MakeEditorEvent (type, ckey, event, grammar, tag)
-	return function(what, arg1, arg2, arg3)
-		-- Enumerate Defaults --
-		-- arg1: Defaults
-		if what == "enum_defs" then
-			arg1.expression = ""
+function M.Make (vtype, abbreviation)
 
+	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Enumerate Properties --
 		-- arg1: Dialog
-		elseif what == "enum_props" then
-			arg1:StockElements()
-			arg1:AddSeparator()
-			-- TODO: need something, e.g. a list + button -> text field, to associate names
+		if what == "enum_props" then
+			--
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = "Query final value"
-			arg1[ckey] = "Source values"
+			--
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			return tag
+			--
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "properties", {
-				[type] = "get"
-			}, {
-				-- preds/Multi
-			}
+			--
 
 		-- Prep Link --
 		elseif what == "prep_link" then
-			return function(cvalue, other, sub, other_sub)
-				if sub == ckey then
-					bind.AddId(cvalue, ckey, other.uid, other_sub)
-				end
-			end
+			return LinkValue
 		
 		-- Verify --
 		-- arg1: Verify block
 		-- arg2: Values
 		-- arg3: Key
 		elseif what == "verify" then
-			-- Legal expression?
-			-- All names registered?
-			-- Use grammar
+			-- 
 		end
+	end
 
-		event(what, arg1, arg2, arg3)
+	return function(info, wname)
+		if info == "editor_event" then
+			return EditorEvent
+		elseif info == "value_type" then
+			return vtype
+		else
+			--
+		end
 	end
 end
 

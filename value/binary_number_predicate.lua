@@ -23,19 +23,47 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- <, >, ==, ~=, <=, >=, approximately equal
-		-- tolerance, for last of those...
-	elseif info == "value_type" then
-		return "boolean"
-	else
-		local family1, name1 -- TODO
-		local family2, name2
+-- Standard library imports --
+local abs = math.abs
 
-		return function()
-			return -- TODO!
+--
+--
+--
+
+local maker = require("s3_objects.state_templates.binary").Make("number", "NUM", "number_predicate", {
+	"<", function(a, b) return a < b end,
+	">", function(a, b) return a > b end,
+	"==", function(a, b) return a == b end,
+	"~=", function(a, b) return a ~= b end,
+	"<=", function(a, b) return a <= b end,
+	">=", function(a, b) return a >= b end,
+
+	"approximately", function(a, b, tolerance)
+		return abs(a - b) <= tolerance
+	end
+}, "+")
+
+local editor_event = maker("editor_event")
+
+return function()
+	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Enumerate Properties --
+		-- arg1: Dialog
+		if what == "enum_props" then
+			editor_event("enum_props", what, arg1)
+
+			-- arg = tolerance
+		-- Stock --
+		else
+			return editor_event(what, arg1, arg2, arg3)
+		end
+	end
+
+	return function(info)
+		if info == "editor_event" then
+			return EditorEvent
+		else
+			return maker(info)
 		end
 	end
 end

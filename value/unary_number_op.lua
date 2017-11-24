@@ -23,17 +23,43 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- just get bool
-	elseif info == "value_type" then
-		return "number"
-	else
-		-- TODO
+-- Plugins --
+local bit = require("plugin.bit")
 
-		return function()
-			return -- TODO
+--
+--
+--
+
+return require("s3_objects.state_templates.unary").Make("number", "NUM", "number_op", {
+	"bnot", bit.bnot,
+	"abs", math.abs,
+	"acos", math.acos,
+	"asin", math.asin,
+	"atan", math.atan,
+	"ceil", math.ceil,
+	"cos", math.cos,
+	"cosh", math.cosh,
+	"deg", math.deg,
+	"exp", math.exp,
+	"floor", math.floor,
+	"log", math.log,
+	"log10", math.log10,
+	"modf", math.modf,
+	"rad", math.rad,
+
+	"sign", function(a)
+		if a < 0 then
+			return -1
+		elseif a > 0 then
+			return 1
+		else
+			return 0
 		end
-	end
-end
+	end,
+
+	"sin", math.sin,
+	"sinh", math.sinh,
+	"sqrt", math.sqrt,
+	"tan", math.tan,
+	"tanh", math.tanh
+}, "bnot")

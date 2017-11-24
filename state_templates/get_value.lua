@@ -30,6 +30,7 @@ local pairs = pairs
 local bind = require("tektite_core.bind")
 local core = require("s3_utils.state.core")
 local frames = require("corona_utils.frames")
+local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
 local M = {}
@@ -38,7 +39,7 @@ local M = {}
 --
 --
 
-local Families = setmetatable({}, { __mode = "k" })
+local Families = table_funcs.Weak("k")
 
 local function BindFamily (get_family, getter)
 	Families[getter] = get_family()

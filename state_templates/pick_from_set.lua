@@ -1,4 +1,4 @@
---- Get the not'd result of a boolean.
+--- Common logic used to pick from a set of values.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,61 +23,65 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local rawequal = rawequal
-
 -- Modules --
 local bind = require("tektite_core.bind")
 
+-- Exports --
+local M = {}
+
 --
 --
 --
 
-local function LinkOriginal (getter, other, sub, other_sub)
-	if sub == "original" then
-		bind.AddId(getter, "original", other.uid, other_sub)
-	end
+local function LinkValue (bvalue, other, sub)
+	--
 end
 
-local function EditorEvent (what, arg1)
-	-- Get Link Info --
-	-- arg1: Info to populate
-	if what == "get_link_info" then
-		arg1.get = { friendly_name = "BOOL: get result", is_source = true }
-		arg1.original = "BOOL: original value"
+--- DOCME
+function M.Make (vtype, abbreviation)
 
-	-- Get Tag --
-	elseif what == "get_tag" then
-		return "bnot" -- TODO: derives from value?
+	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Enumerate Properties --
+		-- arg1: Dialog
+		if what == "enum_props" then
+			--
 
-	-- New Tag --
-	elseif what == "new_tag" then
-		return "extend", nil, nil, { boolean = "get" }, { boolean = "original" }
+		-- Get Link Info --
+		-- arg1: Info to populate
+		elseif what == "get_link_info" then
+			--
 
-	-- Prep Link --
-	elseif what == "prep_link" then
-		return LinkOriginal
-	end
-end
+		-- Get Tag --
+		elseif what == "get_tag" then
+			--
 
-return function(info, wlist)
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "boolean"
-	else
-		local nonce, original = {}
+		-- New Tag --
+		elseif what == "new_tag" then
+			--
 
-		local function getter (what, arg)
-			if not rawequal(arg, nonce) then
-				return not original()
-			else
-				original = what
-			end
+		-- Prep Link --
+		elseif what == "prep_link" then
+			return LinkValue
+		
+		-- Verify --
+		-- arg1: Verify block
+		-- arg2: Values
+		-- arg3: Key
+		elseif what == "verify" then
+			-- 
 		end
+	end
 
-		bind.Subscribe(wlist, info.original, getter, nonce) -- TODO: verify original exists or allow variable lookup
-
-		return getter, nonce
+	return function(info, wname)
+		if info == "editor_event" then
+			return EditorEvent
+		elseif info == "value_type" then
+			return vtype
+		else
+			--
+		end
 	end
 end
+
+-- Export the module.
+return M
