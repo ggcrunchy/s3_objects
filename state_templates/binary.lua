@@ -93,7 +93,7 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 		-- arg2: Values
 		-- arg3: Key
 		elseif what == "verify" then
-			if not and (arg1.links:HasLinks(arg3, "value1") or arg1.links:HasLinks(arg3, "value2") then
+			if not (arg1.links:HasLinks(arg3, "value1") and arg1.links:HasLinks(arg3, "value2")) then
 				arg1[#arg1 + 1] = "Binary value `" .. arg2.name .. "` must link to two values"
 			end
 		end

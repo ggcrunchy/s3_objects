@@ -25,7 +25,7 @@
 
 -- Modules --
 local bind = require("tektite_core.bind")
-local mwc_rng = require("number_sequence.mwc_rng")
+local mwc_rng = require("number_sequences.mwc_rng")
 local state_vars = require("config.StateVariables")
 
 --
@@ -75,7 +75,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	elseif what == "verify" then
 		local has_ints = arg1.links:HasLinks(arg3, "int_bound1") or arg1.links:HasLinks(arg3, "int_bound2")
 
-		if has_ints and (arg1.links:HasLinks(arg3, "num_bound1") or arg1.links:HasLinks(arg3, "num_bound2") then
+		if has_ints and (arg1.links:HasLinks(arg3, "num_bound1") or arg1.links:HasLinks(arg3, "num_bound2")) then
 			arg1[#arg1 + 1] = "RNG `" .. arg2.name .. "` links to both integer and number bounds"
 		end
 	end
