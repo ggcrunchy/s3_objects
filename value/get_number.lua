@@ -23,4 +23,6 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.get_value").Make("number", "NUM", 0)
+return require("s3_objects.state_templates.get_value").Make("number", 0, function(dialog)
+	dialog:AddString{ value_name = "constant_value", text = "Value:" }
+end)

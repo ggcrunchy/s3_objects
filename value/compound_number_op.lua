@@ -23,17 +23,11 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- just get bool
-	elseif info == "value_type" then
-		return "number"
-	else
-		-- TODO
+-- Modules --
+local number = require("s3_objects.grammars.number")
 
-		return function()
-			return -- TODO
-		end
-	end
-end
+--
+--
+--
+
+return require("s3_objects.state_templates.compound").Make("number", number.gdef, "number_op")

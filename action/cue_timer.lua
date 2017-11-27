@@ -69,7 +69,7 @@ end
 
 local TimerCapacity = 100
 
-local function MakeAdder (list_group, delay, iterations, actions)
+local function MakeAdder (list_group, delay, continue, actions)
 	list_group = list_group or {}
 
 	local list_id, list = #list_group + 1, { id = 0 }
@@ -80,9 +80,15 @@ local function MakeAdder (list_group, delay, iterations, actions)
 		if N < TimerCapacity then
 			local id = list.id
 			local handle = timer.performWithDelay(delay, function(event)
-				if iterations <= 0 or event.count <= iterations then
+				local how = continue(event)
+
+				if true then
 					actions("fire")
 				else
+					if how == "quit" then
+						-- follow-up, if any
+					end
+
 					timer.cancel(event.source)
 
 					N, list[id] = N - 1
@@ -96,13 +102,16 @@ local function MakeAdder (list_group, delay, iterations, actions)
 	end, list_group, list
 end
 
+local function DefContinue () return true end
+
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
 		-- delay
 		-- number of repetitions
-		-- non-standard id (else some known default, subject to a hard limit)
-			-- optionally emit id in this case... in which case need cancel-type integer setter (no-op once missing)
+		-- Wants to quit?
+		-- On(cancel), On(quit)
+		-- emit id on fire, for use by cancel-type integer setter (no-op once missing)
 		-- Action to do
 		-- Action if too may timers...
 	else
@@ -129,14 +138,40 @@ return function(info)
 			end
 		end
 
-		if info.persist_across_reset then
-			cue, PersistentTimers, list = MakeAdder(PersistentTimers, delay, iterations, actions)
+		local continue
+
+		if info.wants_to_quit then
+			local wants_to_quit -- TODO!
+
+			if iterations > 0 then
+				function continue (event)
+					if wants_to_quit() then
+						return "quit"
+					else
+						return event.count <= iterations
+					end
+				end
+			else
+				function continue ()
+					return wants_to_quit() and "quit"
+				end
+			end
+		elseif iterations > 0 then
+			function continue (event)
+				return event.count <= iterations
+			end
 		else
-			cue, NormalTimers, list = MakeAdder(NormalTimers, delay, iterations, actions)
+			continue = DefContinue
 		end
 
-		-- verify has fire
-		-- check for cancel and too_many
+		if info.persist_across_reset then
+			cue, PersistentTimers, list = MakeAdder(PersistentTimers, delay, continue, actions)
+		else
+			cue, NormalTimers, list = MakeAdder(NormalTimers, delay, continue, actions)
+		end
+
+		-- verify has event (actually, COULD just use to watch flags and respond)
+		-- check for cancel, too_many, wants_to_quit, On(cancel), On(quit)...
 		-- bind
 
 		return function()

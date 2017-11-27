@@ -30,7 +30,9 @@ local abs = math.abs
 --
 --
 
-return require("s3_objects.state_templates.unary").Make("boolean", "BOOL", "number_predicate", {
+-- TODO: allow expressions with x bound
+
+return require("s3_objects.state_templates.unary").Make("boolean", nil, "number_predicate", {
 	"is_nan", function(a) return a ~= a end,
 	"is_negative", function(a) return a < 0 end,
 	"is_non_negative", function(a) return a >= 0 end,

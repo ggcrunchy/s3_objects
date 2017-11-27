@@ -1,4 +1,4 @@
---- Common logic used to combine two values of a given type.
+--- Common logic used to reduce a pair of values of a given type to a result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -25,6 +25,8 @@
 
 -- Modules --
 local bind = require("tektite_core.bind")
+local expression = require("s3_utils.state.expression")
+local state_vars = require("config.StateVariables")
 
 -- Exports --
 local M = {}
@@ -33,15 +35,23 @@ local M = {}
 --
 --
 
-local function LinkValue (bvalue, other, sub)
-	if sub == "value1" or sub == "value2" then
+local LinkSuper
+
+local function LinkValue (bvalue, other, sub, other_sub, links)
+	if sub == "pick_first" or sub == "value1" or sub == "value2" then
 		bvalue[sub] = other.uid
+	else
+		LinkSuper(bvalue, other, sub, other_sub, links)
 	end
 end
 
+local Args = { x = false, y = false }
+
 --- DOCME
-function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
-	local list_opts, ops = { value_name = "choice", default = def_choice }, {}
+function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
+	rtype = rtype or vtype
+
+	local list_opts, ops = { value_name = "choice" }, {}
 
 	for i = 1, #choice_pairs, 2 do
 		local name = choice_pairs[i]
@@ -51,21 +61,63 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 	end
 
 	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Build --
+		-- arg1: Level
+		-- arg2: Original entry
+		-- arg3: Item to build
+		if what == "build" then
+			if arg2.use_expression then
+				arg3.pick_first = nil
+			else
+				arg3.expression = nil
+			end
+
+			if arg2.pick_first or arg2.use_expression then
+				arg3.choice, arg3.arg = nil
+			end
+
+			arg3.use_expression = nil
+
+		-- Enumerate Defaults --
+		-- arg1: Defaults
+		elseif what == "enum_defs" then
+			arg1.choice = def_choice
+			arg1.expression = ""
+			arg1.use_expression = false
+		
 		-- Enumerate Properties --
 		-- arg1: Dialog
-		if what == "enum_props" then
+		elseif what == "enum_props" then
 			arg1:StockElements()
 			arg1:AddSeparator()
-			arg1:AddString{ text = "Choices", is_static = true }
-			arg1:AddListbox(list_opts)
+
+			arg1:AddCheckbox{ text = "Use expression?", value_name = "use_expression" }
+
+			local expression_section = arg1:BeginSection()
+
+				arg1:AddString{ before = "Expression:", value_name = "expression" }
+
+			arg1:EndSection()
+
+			local ops_section = arg1:BeginSection()
+
+				arg1:AddString{ text = "Choices", is_static = true }
+				arg1:AddListbox(list_opts)
+				-- TODO: on-demand way to extend with arg
+
+			arg1:EndSection()
+
+			--
+			arg1:SetStateFromValue_Watch(expression_section, "use_expression")
+			arg1:SetStateFromValue_Watch(ops_section, "use_expression", "use_false")
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = "Query final value"
-			arg1.pick_first = "Pick the first value?"
-			arg1.value1 = "First source value"
-			arg1.value2 = "Second source value"
+			arg1.get = { friendly_name = state_vars.abbreviations[rtype] .. ": result", is_source = true }
+			arg1.pick_first = "BOOL: Pick the first value?"
+			arg1.value1 = state_vars.abbreviations[vtype] .. ": Source value #1"
+			arg1.value2 = state_vars.abbreviations[vtype] .. ": Source value #2"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
@@ -80,12 +132,13 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 			targets.boolean = targets.boolean or {}
 			targets.boolean.pick_first = true
 
-			return "properties", {
-				[vtype] = "get"
-			}, targets
+			return "extend_properties", nil, targets
 
-		-- Prep Link --
-		elseif what == "prep_link" then
+		-- Prep Value Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:value" then
+			LinkSuper = LinkSuper or arg1
+
 			return LinkValue
 		
 		-- Verify --
@@ -95,6 +148,16 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 		elseif what == "verify" then
 			if not (arg1.links:HasLinks(arg3, "value1") and arg1.links:HasLinks(arg3, "value2")) then
 				arg1[#arg1 + 1] = "Binary value `" .. arg2.name .. "` must link to two values"
+			end
+
+			if arg2.use_expression then
+				local expr_object, err = expression.Process(gdef, arg2.expression)
+
+				if not expr_object then
+					arg1[#arg1 + 1] = err
+				elseif expr_object(Args, "check_no_unbound_vars") then
+					arg1[#arg1 + 1] = "Expression contains unbound variables; only `x` and `y` allowed"
+				end
 			end
 		end
 	end
@@ -107,7 +170,21 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 		else
 			local wlist, getter, value1, value2 = wname or "loading_level"
 
-			if info.pick_first then
+			if info.expression then
+				local expr_object = expression.Process(gdef, info.expression)
+
+				function getter (comp)
+					if value2 then
+						Args.x, Args.y = value1, value2
+
+						return expr_object(Args)
+					elseif value1 then
+						value2 = comp
+					else
+						value1 = comp
+					end
+				end
+			elseif info.pick_first then
 				local pick_first
 
 				function getter (comp)

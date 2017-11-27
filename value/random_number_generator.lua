@@ -32,29 +32,40 @@ local state_vars = require("config.StateVariables")
 --
 --
 
-local function LinkRNG (rng, other, sub, other_sub)
-	if sub == "int_bound1" or "int_bound2" then
-		rng.is_integer = true
-	end
+local LinkSuper
 
-	bind.AddId(rng, sub, other.uid, other_sub)
+local function LinkRNG (rng, other, sub, other_sub)
+	if sub == "ibound1" or sub == "ibound2" or sub == "nbound1" or sub == "nbound2" or sub == "seed1" or sub == "seed2" then
+		bind.AddId(rng, sub, other.uid, other_sub)
+	else
+		LinkSuper(rng, other, sub, other_sub)
+	end
+end
+
+local function IntBound ()
+	return 1
 end
 
 local function EditorEvent (what, arg1, arg2, arg3)
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	if what == "enum_defs" then
+		arg1.persist_across_reset = false
+
 	-- Enumerate Properties --
 	-- arg1: Dialog
-	if what == "enum_props" then
-		-- persist across reset?
+	elseif what == "enum_props" then
+		arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.int_bound1 = "Integer bound #1"
-		arg1.int_bound2 = "Integer bound #2"
-		arg1.num_bound1 = "Number bound #1"
-		arg1.num_bound2 = "Number bound #2"
-		arg1.seed1 = "Custom seed #1"
-		arg1.seed2 = "Custom seed #2"
+		arg1.ibound1 = "INT: Bound #1"
+		arg1.ibound2 = "INT: Bound #2"
+		arg1.nbound1 = "NUM: Bound #1"
+		arg1.nbound2 = "NUM: Bound #2"
+		arg1.seed1 = "INT: Custom seed #1"
+		arg1.seed2 = "INT: Custom seed #2"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
@@ -62,10 +73,16 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-	--	return "sources_and_targets", nil, { seed1 = true, seed2 = true, num_bound1 = true, num_bound2 = true, int_bound1 = true, int_bound2 = true }
+		return "extend_properties", nil, {
+			integer = { ibound1 = true, ibound2 = true, seed1 = true, seed2 = true },
+			number = { nbound1 = true, nbound2 = true }
+		}
 
-	-- Prep Link --
-	elseif what == "prep_link" then
+	-- Prep Value Link --
+	-- arg1: Parent handler
+	elseif what == "prep_link:value" then
+		LinkSuper = LinkSuper or arg1
+
 		return LinkRNG
 
 	-- Verify --
@@ -73,9 +90,9 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Values
 	-- arg3: Representative object
 	elseif what == "verify" then
-		local has_ints = arg1.links:HasLinks(arg3, "int_bound1") or arg1.links:HasLinks(arg3, "int_bound2")
+		local has_ints = arg1.links:HasLinks(arg3, "ibound1") or arg1.links:HasLinks(arg3, "ibound2")
 
-		if has_ints and (arg1.links:HasLinks(arg3, "num_bound1") or arg1.links:HasLinks(arg3, "num_bound2")) then
+		if has_ints and (arg1.links:HasLinks(arg3, "nbound1") or arg1.links:HasLinks(arg3, "nbound2")) then
 			arg1[#arg1 + 1] = "RNG `" .. arg2.name .. "` links to both integer and number bounds"
 		end
 	end
@@ -87,7 +104,19 @@ return function(info)
 	elseif info == "value_type" then
 		return "number"
 	else
-		-- TODO
+		local rng, session_id
+
+		if info.ibound1 or info.ibound2 then
+			--
+		else
+			--
+		end
+
+		if info.persist_across_reset then
+			--
+		else
+			--
+		end
 
 		return function()
 			return -- TODO

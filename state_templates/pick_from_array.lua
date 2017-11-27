@@ -33,12 +33,14 @@ local M = {}
 --
 --
 
+local LinkSuper
+
 local function LinkValue (bvalue, other, sub)
 	--
 end
 
 --- DOCME
-function M.Make (vtype, abbreviation)
+function M.Make (vtype)
 
 	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Enumerate Properties --
@@ -59,8 +61,11 @@ function M.Make (vtype, abbreviation)
 		elseif what == "new_tag" then
 			--
 
-		-- Prep Link --
-		elseif what == "prep_link" then
+		-- Prep Value Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:value" then
+			LinkSuper = LinkSuper or arg1
+
 			return LinkValue
 		
 		-- Verify --

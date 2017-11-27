@@ -25,6 +25,8 @@
 
 -- Modules --
 local bind = require("tektite_core.bind")
+local expression = require("s3_utils.state.expression")
+local state_vars = require("config.StateVariables")
 
 -- Exports --
 local M = {}
@@ -33,15 +35,23 @@ local M = {}
 --
 --
 
-local function LinkValue (bvalue, other, sub)
+local LinkSuper
+
+local function LinkValue (bvalue, other, sub, other_sub, links)
 	if sub == "value" then
 		bvalue.value = other.uid
+	else
+		LinkSuper(bvalue, other, sub, other_sub, links)
 	end
 end
 
+local Args = { x = false }
+
 --- DOCME
-function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
-	local list_opts, ops = { value_name = "choice", default = def_choice }, {}
+function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
+	rtype = rtype or vtype
+
+	local list_opts, ops = { value_name = "choice" }, {}
 
 	for i = 1, #choice_pairs, 2 do
 		local name = choice_pairs[i]
@@ -51,19 +61,57 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 	end
 
 	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Build --
+		-- arg1: Level
+		-- arg2: Original entry
+		-- arg3: Item to build
+		if what == "build" then
+			if arg2.use_expression then
+				arg3.arg, arg3.choice = nil
+			else
+				arg3.expression = nil
+			end
+
+			arg3.use_expression = nil
+
+		-- Enumerate Defaults --
+		-- arg1: Defaults
+		elseif what == "enum_defs" then
+			arg1.choice = def_choice
+			arg1.expression = ""
+			arg1.use_expression = false
+
 		-- Enumerate Properties --
 		-- arg1: Dialog
-		if what == "enum_props" then
+		elseif what == "enum_props" then
 			arg1:StockElements()
 			arg1:AddSeparator()
-			arg1:AddString{ text = "Choices", is_static = true }
-			arg1:AddListbox(list_opts)
+
+			arg1:AddCheckbox{ text = "Use expression?", value_name = "use_expression" }
+
+			local expression_section = arg1:BeginSection()
+
+				arg1:AddString{ before = "Expression:", value_name = "expression" }
+
+			arg1:EndSection()
+
+			local ops_section = arg1:BeginSection()
+
+				arg1:AddString{ text = "Choices", is_static = true }
+				arg1:AddListbox(list_opts)
+				-- TODO: on-demand way to extend with arg
+
+			arg1:EndSection()
+
+			--
+			arg1:SetStateFromValue_Watch(expression_section, "use_expression")
+			arg1:SetStateFromValue_Watch(ops_section, "use_expression", "use_false")
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = "Query final value"
-			arg1.value = "Source value"
+			arg1.get = { friendly_name = state_vars.abbreviations[rtype] .. ": result", is_source = true }
+			arg1.value = state_vars.abbreviations[vtype] .. ": source value"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
@@ -71,22 +119,33 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "properties", {
-				[vtype] = "get"
-			}, {
-				[vtype] = "value"
-			}
+			return "extend_properties", nil, { [vtype] = "value" }
 
-		-- Prep Link --
-		elseif what == "prep_link" then
+		-- Prep Value Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:value" then
+			LinkSuper = LinkSuper or arg1
+
 			return LinkValue
 		
 		-- Verify --
 		-- arg1: Verify block
 		-- arg2: Values
-		-- arg3: Key
+		-- arg3: Representative object
 		elseif what == "verify" then
-			-- arg1.links:HasLinks(arg2[arg3], "value")
+			if not arg1.links:HasLinks(arg3, "value") then
+				arg1[#arg1 + 1] = "`" .. arg1.links:GetTag(arg3) .. "` action has no `value` link"
+			end
+
+			if arg2.use_expression then
+				local expr_object, err = expression.Process(gdef, arg2.expression)
+
+				if not expr_object then
+					arg1[#arg1 + 1] = err
+				elseif expr_object(Args, "check_no_unbound_vars") then
+					arg1[#arg1 + 1] = "Expression contains unbound variables; only `x` allowed"
+				end
+			end
 		end
 	end
 
@@ -94,15 +153,31 @@ function M.Make (vtype, abbreviation, suffix, choice_pairs, def_choice)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
-			return vtype
+			return rtype
 		else
-			local wlist, op, arg, value = wname or "loading_level", ops[info.choice], info.arg
+			local wlist, getter, value = wname or "loading_level"
 
-			local function getter (comp)
-				if value then
-					return op(value(), arg)
-				else
-					value = comp
+			if info.expression then
+				local expr_object = expression.Process(gdef, info.expression)
+
+				function getter (comp)
+					if value then
+						Args.x = value
+
+						return expr_object(Args)
+					else
+						value = comp
+					end
+				end
+			else
+				local op, arg = ops[info.choice], info.arg
+
+				function getter (comp)
+					if value then
+						return op(value(), arg)
+					else
+						value = comp
+					end
 				end
 			end
 

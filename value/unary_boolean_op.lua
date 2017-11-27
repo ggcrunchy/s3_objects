@@ -1,4 +1,4 @@
---- Assign to a number in the store.
+--- Transform one boolean into another.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,6 +23,13 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.set_value").Make("number", 0, function(dialog)
-	dialog:AddString{ value_name = "constant_value", text = "Value:" }
-end)
+-- Modules --
+local boolean = require("s3_objects.grammars.boolean")
+
+--
+--
+--
+
+return require("s3_objects.state_templates.unary").Make("boolean", boolean.gdef, "boolean_op", {
+	"not", function(a) return not a end
+}, "not")

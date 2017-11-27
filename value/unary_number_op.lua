@@ -23,6 +23,9 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local number = require("s3_objects.grammars.number")
+
 -- Plugins --
 local bit = require("plugin.bit")
 
@@ -30,11 +33,13 @@ local bit = require("plugin.bit")
 --
 --
 
-return require("s3_objects.state_templates.unary").Make("number", "NUM", "number_op", {
-	"bnot", bit.bnot,
+return require("s3_objects.state_templates.unary").Make("number", number.gdef, "number_op", {
+	"-", function(a) return -a end,
 	"abs", math.abs,
 	"acos", math.acos,
 	"asin", math.asin,
+	"bnot", bit.bnot,
+	"bswap", bit.bswap,
 	"atan", math.atan,
 	"ceil", math.ceil,
 	"cos", math.cos,
@@ -46,20 +51,10 @@ return require("s3_objects.state_templates.unary").Make("number", "NUM", "number
 	"log10", math.log10,
 	"modf", math.modf,
 	"rad", math.rad,
-
-	"sign", function(a)
-		if a < 0 then
-			return -1
-		elseif a > 0 then
-			return 1
-		else
-			return 0
-		end
-	end,
-
+	"round", math.round,
 	"sin", math.sin,
 	"sinh", math.sinh,
 	"sqrt", math.sqrt,
 	"tan", math.tan,
 	"tanh", math.tanh
-}, "bnot")
+}, "-")

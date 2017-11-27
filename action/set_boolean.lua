@@ -23,4 +23,6 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.set_value").Make("boolean", "BOOL", false)
+return require("s3_objects.state_templates.set_value").Make("boolean", false, function(dialog)
+	dialog:AddCheckbox{ value_name = "constant_value", text = "True?" }
+end)

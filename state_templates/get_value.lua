@@ -28,9 +28,9 @@ local pairs = pairs
 
 -- Modules --
 local bind = require("tektite_core.bind")
-local core = require("s3_utils.state.core")
 local frames = require("corona_utils.frames")
 local state_vars = require("config.StateVariables")
+local store = require("s3_utils.state.store")
 local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
@@ -47,7 +47,7 @@ local function BindFamily (get_family, getter)
 end
 
 local function GetValue (vtype, name, def, getter)
-	local value = core.GetVariable(Families[getter], vtype, name)
+	local value = store.GetVariable(Families[getter], vtype, name)
 
 	if value == nil then
 		return def
@@ -56,19 +56,23 @@ local function GetValue (vtype, name, def, getter)
 	end
 end
 
-local function LinkFamily (getter, other, sub, other_sub)
+local LinkSuper
+
+local function LinkGetter (getter, other, sub, other_sub, links)
 	if sub == "family" then
 		bind.AddId(getter, "get_family", other.uid, other_sub)
+	else
+		LinkSuper(getter, other, sub, other_sub, links)
 	end
 end
 
-local UpdatePolicy = { value_name = "update_policy", "cached", "uncached", "bake", default = "cached" }
+local UpdatePolicy = { value_name = "update_policy", "cached", "uncached", "bake" }
 
 local function WillBake (policy)
 	return policy == "bake"
 end
 
-function M.Make (vtype, abbreviation, def)
+function M.Make (vtype, def, add_constant)
 	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Build --
 		-- arg1: Level
@@ -93,6 +97,7 @@ function M.Make (vtype, abbreviation, def)
 		-- arg1: Defaults
 		elseif what == "enum_defs" then
 			arg1.constant_value = def
+			arg1.update_policy = "cached"
 			arg1.variable = true
 	
 		-- Enumerate Properties --
@@ -102,25 +107,23 @@ function M.Make (vtype, abbreviation, def)
 
 			local constant_section = arg1:BeginSection()
 
-			arg1:AddString{ before = "Constant value", value_name = "constant_value" } -- TODO: stringify def...
+				add_constant(arg1)
+
 			arg1:EndSection()
 
 			local variable_section = arg1:BeginSection()
 
-			arg1:AddString{ text = "Family", is_static = true }
-			arg1:AddFamilyList{ value_name = "family" }
-			arg1:AddString{ before = "Variable name", value_name = "var_name" }
-			arg1:AddString{ text = "Update policy", is_static = true }
-			arg1:AddListbox(UpdatePolicy)
+				arg1:AddString{ text = "Family", is_static = true }
+				arg1:AddFamilyList{ value_name = "family" }
+				arg1:AddString{ before = "Variable name", value_name = "var_name" }
+				arg1:AddString{ text = "Update policy", is_static = true }
+				arg1:AddListbox(UpdatePolicy)
 
-			local fresh_section = arg1:BeginSection()
+				local fresh_section = arg1:BeginSection()
 
-			arg1:AddCheckbox{ text = "Can baked value be reset?", value_name = "can_go_stale" }
+					arg1:AddCheckbox{ text = "Can baked value be reset?", value_name = "can_go_stale" }
 
-			arg1:EndSection()
-
-			-- TODO: is call?
-
+				arg1:EndSection()
 			arg1:EndSection()
 
 			--
@@ -131,8 +134,8 @@ function M.Make (vtype, abbreviation, def)
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.family = "Variable family"
-			arg1.get = { friendly_name = abbreviation .. ": get value", is_source = true }
+			arg1.family = "FAM: Variable family"
+			arg1.get = { friendly_name = state_vars.abbreviations[vtype] .. ": Get value", is_source = true }
 
 		-- Get Tag --
 		elseif what == "get_tag" then
@@ -140,11 +143,14 @@ function M.Make (vtype, abbreviation, def)
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "extend", nil, nil, nil, { family = "family" }
+			return "extend_properties", nil, { family = "family" }
 
-		-- Prep Link --
-		elseif what == "prep_link" then
-			return LinkFamily
+		-- Prep Value Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:value" then
+			LinkSuper = LinkSuper or arg1
+
+			return LinkGetter
 		end
 	end
 
@@ -161,7 +167,7 @@ function M.Make (vtype, abbreviation, def)
 					return k
 				end
 			else
-				local getter, name = info.var_name
+				local name, getter = info.var_name
 
 				if info.update_policy == "cached" then
 					local id, value

@@ -23,7 +23,14 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.binary").Make("boolean", "BOOL", "boolean_op", {
+-- Modules --
+local boolean = require("s3_objects.grammars.boolean")
+
+--
+--
+--
+
+return require("s3_objects.state_templates.binary").Make("boolean", boolean.gdef, "boolean_op", {
 	"and", function(a, b) return a and b end,
 	"or", function(a, b) return a or b end,
 	"nand", function(a, b) return not (a and b) end,

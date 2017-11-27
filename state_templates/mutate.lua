@@ -1,4 +1,4 @@
---- Assign to a number in the store.
+--- Common logic used to mutate a variable in the store.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,6 +23,70 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.set_value").Make("number", 0, function(dialog)
-	dialog:AddString{ value_name = "constant_value", text = "Value:" }
-end)
+-- Modules --
+local bind = require("tektite_core.bind")
+
+-- Exports --
+local M = {}
+
+--
+--
+--
+
+local LinkSuper
+
+local function LinkValue (bvalue, other, sub)
+	--
+end
+
+--- DOCME
+function M.Make (vtype)
+
+	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Enumerate Properties --
+		-- arg1: Dialog
+		if what == "enum_props" then
+			--
+
+		-- Get Link Info --
+		-- arg1: Info to populate
+		elseif what == "get_link_info" then
+			--
+
+		-- Get Tag --
+		elseif what == "get_tag" then
+			--
+
+		-- New Tag --
+		elseif what == "new_tag" then
+			--
+
+		-- Prep Value Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:value" then
+			LinkSuper = LinkSuper or arg1
+
+			return LinkValue
+		
+		-- Verify --
+		-- arg1: Verify block
+		-- arg2: Values
+		-- arg3: Key
+		elseif what == "verify" then
+			-- 
+		end
+	end
+
+	return function(info, wname)
+		if info == "editor_event" then
+			return EditorEvent
+		elseif info == "value_type" then
+			return vtype
+		else
+			--
+		end
+	end
+end
+
+-- Export the module.
+return M

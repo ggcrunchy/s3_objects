@@ -1,4 +1,4 @@
---- Commong logic used to combine arbitrarily many values of one or more types.
+--- Common logic used to reduce arbitrarily many named values of a given type to a result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -24,47 +24,75 @@
 --
 
 -- Standard library imports --
-local rawequal = rawequal
+local pairs = pairs
 
 -- Modules --
 local bind = require("tektite_core.bind")
 local expression = require("s3_utils.state.expression")
+local state_vars = require("config.StateVariables")
 
 -- Exports --
 local M = {}
 
--- --
-local AddComponent = {}
+--
+--
+--
 
---- DOCME
-function M.MakeAdder (ckey, grammar)
-	local gdef = expression.DefineGrammar(grammar)
+local LinkSuper
 
-	return function(info, wname)
-		local wlist = wname or "loading_level"
-		local logic = expression.Process(gdef, info.expression)
+local function LinkCompound (cvalue, other, sub, other_sub)
+	local instance_to_label = cvalue.labeled_instances
+	local label = instance_to_label and instance_to_label[sub]
 
-		local function getter (comp, arg)
-			if rawequal(arg, AddComponent) then
-				logic(comp) -- TODO: check order guarantees...
-			else
-				return logic()
-			end
-		end
+	if label then
+		local list = cvalue.values or {}
 
-		--
-		bind.Subscribe(wlist, info[ckey], getter, AddComponent)
+		bind.AddId(list, label, other.uid, other_sub)
 
-		return getter
+		cvalue.values = list
+	else
+		LinkSuper(cvalue, other, sub, other_sub)
 	end
 end
 
+local BindingPolicy = { value_name = "binding_policy", "none", "check_match", "check_no_extra_args", "check_no_unbound_vars" }
+
+--[[
+	LabelParams = LabelParams or {
+		params = {
+			func = function(how, button, text)
+				if how == "get" then
+					text.text = common.GetLabel(button.m_instance)
+				elseif how == "set" then
+					SetLabelText(button, text.text)
+				elseif how == "where" then
+					return button:localToContent(0, 0)
+				end
+			end
+		}
+	}
+
+	LabelParams.params.arg = button
+
+	composer.showOverlay("s3_editor.overlay.GetText", LabelParams)
+]]
+
 --- DOCME
-function M.MakeEditorEvent (type, ckey, event, grammar, tag)
-	return function(what, arg1, arg2, arg3)
+function M.Make (vtype, gdef, suffix, rtype)
+	rtype = rtype or vtype
+
+	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Build --
+		-- arg1: Level
+		-- arg2: Entry
+		-- arg3: Built
+		if what == "build" then
+			arg3.binding_policy = nil
+
 		-- Enumerate Defaults --
 		-- arg1: Defaults
-		if what == "enum_defs" then
+		elseif what == "enum_defs" then
+			arg1.binding_policy = "none"
 			arg1.expression = ""
 
 		-- Enumerate Properties --
@@ -72,45 +100,95 @@ function M.MakeEditorEvent (type, ckey, event, grammar, tag)
 		elseif what == "enum_props" then
 			arg1:StockElements()
 			arg1:AddSeparator()
-			-- TODO: need something, e.g. a list + button -> text field, to associate names
+			arg1:AddString{ before = "Expression:", value_name = "expression" }
+			-- ^^ TODO: okay, but could make these use GetText overlay... not an expression problem, however
+			arg1:AddString{ text = "Binding policy", is_static = true }
+			arg1:AddListbox(BindingPolicy)
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = "Query final value"
-			arg1[ckey] = "Source values"
+			arg1.get = { friendly_name = state_vars.abbreviations[rtype] .. " Result", is_source = true }
+			arg1["values*"] = state_vars.abbreviations[vtype] .. "S: Source values"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			return tag
+			return "compound_" .. suffix 
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "properties", {
-				[type] = "get"
-			}, {
-				-- preds/Multi
-			}
+			return "extend_properties", nil, { [vtype] = "values*" }
+			-- TODO: allow booleans and indices down the road?
+			-- ^^^ If either is already the vtype, simplify
 
-		-- Prep Link --
-		elseif what == "prep_link" then
-			return function(cvalue, other, sub, other_sub)
-				if sub == ckey then
-					bind.AddId(cvalue, ckey, other.uid, other_sub)
-				end
-			end
-		
+		-- Prep Value Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:value" then
+			LinkSuper = LinkSuper or arg1
+
+			return LinkCompound
+
 		-- Verify --
 		-- arg1: Verify block
 		-- arg2: Values
-		-- arg3: Key
+		-- arg3: Representative object
 		elseif what == "verify" then
-			-- Legal expression?
-			-- All names registered?
-			-- Use grammar
-		end
+			local tag_db, names = arg1.links:GetTagDatabase()
 
-		event(what, arg1, arg2, arg3)
+			for instance in tag_db:Sublinks(arg1.links:GetTag(arg3), "values*") do
+				names = names or {}
+
+				local label = arg1.get_label(instance)
+
+				if names[label] then
+					arg1[#arg1] = "Name `" .. label .. "`has shown up more than once"
+				else
+					names[label] = true
+				end
+			end
+
+			local expr_object, err = expression.Process(gdef, arg2.expression)
+
+			if not expr_object then
+				arg1[#arg1 + 1] = err
+			elseif arg2.binding_policy ~= "none" then
+				local names = nil
+
+				if not expr_object(names, arg2.binding_policy) then
+					arg1[#arg1 + 1] = "Variable / key mismatch following: `" .. arg2.error_policy .. "` policy"
+				end
+			end
+		end
+	end
+
+	return function(info, wname)
+		if info == "editor_event" then
+			return EditorEvent
+		elseif info == "value_type" then
+			return rtype
+		else
+			local wlist = wname or "loading_level"
+			local expr_object, args = expression.Process(gdef, info.expression)
+
+			local function getter (comp, name)
+				if comp then
+					args[name] = comp
+				else
+					return expr_object(args)
+				end
+			end
+
+			--
+			if info.values then
+				args = {}
+
+				for label, target in pairs(info.values) do
+					bind.Subscribe(wlist, target, getter, label)
+				end
+			end
+
+			return getter
+		end
 	end
 end
 

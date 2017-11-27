@@ -1,4 +1,4 @@
---- Activate an object that will react to a specified condition.
+--- Maintain a counter.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,24 +23,16 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Modules --
-local bind = require("tektite_core.bind")
-local state_vars = require("config.StateVariables")
-
---
---
---
-
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
-		-- Activate
-		-- Fire!
-		-- can reactivate?
-		-- Delay between polling the condition
-		-- condition to watch
+		-- state: running total
+		-- params: persist across reset, upper limit
+		-- in: count (uint)
+		-- out: count
+		-- actions: decrement, increment, reset, set
+		-- events: On(non_zero), On(try_to_decrement_past_zero), On(try_to_exceed_upper_limit), On(zero)
 	else
-		-- check if session id is stale
 
 		return function()
 			return -- TODO!

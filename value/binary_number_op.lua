@@ -23,13 +23,33 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.binary").Make("number", "NUM", "number_op", {
+-- Modules --
+local number = require("s3_objects.grammars.number")
+
+-- Plugins --
+local bit = require("plugin.bit")
+
+--
+--
+--
+
+return require("s3_objects.state_templates.binary").Make("number", number.gdef, "number_op", {
 	"+", function(a, b) return a + b end,
 	"-", function(a, b) return a - b end,
 	"*", function(a, b) return a * b end,
 	"/", function(a, b) return a / b end,
 	"%", function(a, b) return a % b end,
 	"^", function(a, b) return a ^ b end,
+	"arshift", bit.arshift,
 	"atan2", math.atan2,
-	"fmod", math.fmod
+	"band", bit.band,
+	"bor", bit.bor,
+	"bxor", bit.bxor,
+	"fmod", math.fmod,
+	"lshift", bit.lshift,
+	"max", math.max,
+	"min", math.min,
+	"rol", bit.rol,
+	"ror", bit.ror,
+	"rshift", bit.rshift
 }, "+")

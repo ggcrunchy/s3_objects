@@ -1,4 +1,4 @@
---- Common logic used to reduce an array of values to a result.
+--- Common logic used to reduce multiple values to a result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -25,6 +25,7 @@
 
 -- Modules --
 local bind = require("tektite_core.bind")
+local state_vars = require("config.StateVariables")
 
 -- Exports --
 local M = {}
@@ -33,12 +34,15 @@ local M = {}
 --
 --
 
+local LinkSuper
+
 local function LinkValue (bvalue, other, sub)
 	--
 end
 
 --- DOCME
-function M.Make (vtype, abbreviation)
+function M.Make (vtype, rtype)
+	rtype = rtype or vtype
 
 	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Enumerate Properties --
@@ -49,26 +53,30 @@ function M.Make (vtype, abbreviation)
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			--
+			arg1.get = { friendly_name = state_vars.abbreviations[rtype] .. ": result", is_source = true }
+			arg1.values = state_vars.abbreviations[vtype] .. "S: Source values"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			--
+			return "reduce_" .. vtype
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			--
+			return "extend_properties", nil, { [vtype] = "values+" }
 
-		-- Prep Link --
-		elseif what == "prep_link" then
+		-- Prep Value Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:value" then
+			LinkSuper = LinkSuper or arg1
+			
 			return LinkValue
 		
 		-- Verify --
 		-- arg1: Verify block
 		-- arg2: Values
-		-- arg3: Key
+		-- arg3: Representative object
 		elseif what == "verify" then
-			-- 
+			arg1[#arg1 + 1] = "`" .. arg1.links:GetTag(arg3) .. "` action has no `values` links"
 		end
 	end
 
@@ -76,7 +84,7 @@ function M.Make (vtype, abbreviation)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
-			return vtype
+			return rtype
 		else
 			--
 		end

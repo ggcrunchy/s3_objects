@@ -39,10 +39,15 @@ for _, name in ipairs(state_vars.families) do
 end
 
 local function EditorEvent (what, arg1)
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	if what == "enum_defs" then
+		arg1.family = state_vars.families[#state_vars.families]
+		
 	-- Enumerate Properties --
 	-- arg1: Dialog
-	if what == "enum_props" then
-		arg1:AddFamilyList{ value_name = "family", default = state_vars.families[#state_vars.families] }
+	elseif what == "enum_props" then
+		arg1:AddFamilyList{ value_name = "family" }
 	end
 end
 

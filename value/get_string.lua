@@ -23,4 +23,6 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.get_value").Make("string", "STR", "")
+return require("s3_objects.state_templates.get_value").Make("string", "", function(dialog)
+	dialog:AddString{ value_name = "constant_value", before = "String:" }
+end)

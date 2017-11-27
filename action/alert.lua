@@ -1,4 +1,4 @@
---- Call a function.
+--- Fire an alert.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -26,8 +26,11 @@
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
+		-- basically just a name + a soup of inputs
+		-- will be sent as an event: "alert:" .. name... then values under each type?
+		-- could also pull them from sets if those are added?
 	else
-		local family, name -- TODO (also get inputs)
+		local name -- TODO (also get inputs)
 
 		return function()
 			return -- TODO!

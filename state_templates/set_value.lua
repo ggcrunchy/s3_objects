@@ -23,6 +23,15 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local pairs = pairs
+
+-- Modules --
+local bind = require("tektite_core.bind")
+local state_vars = require("config.StateVariables")
+local store = require("s3_utils.state.store")
+local table_funcs = require("tektite_core.table.funcs")
+
 -- Exports --
 local M = {}
 
@@ -30,38 +39,135 @@ local M = {}
 --
 --
 
+local Families = table_funcs.Weak("k")
+
+local function BindFamily (get_family, getter)
+	Families[getter] = get_family()
+end
+
+local LinkSuper
+
+local function LinkSetter (setter, other, sub, other_sub, links)
+	if sub == "family" or sub == "value" then
+		bind.AddId(setter, sub == "family" and "get_family" or sub, other.uid, other_sub)
+	else
+		LinkSuper(setter, other, sub, other_sub, links)
+	end
+end
+
 --- DOCME
-function M.Make (vtype, abbreviation, def)
-	local function EditorEvent (what, arg1)
+function M.Make (vtype, def, add_constant)
+	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Build --
+		-- arg1: Level
+		-- arg2: Original entry
+		-- arg3: Item to build
+		if what == "build" then
+			if arg2.variable then
+				arg3.constant_value, arg3.variable = nil
+
+				if arg2.get_family then
+					arg3.family = nil
+				end
+			else
+				for k in pairs(arg2) do
+					if k ~= "constant_value" and k ~= "type" then
+						arg3[k] = nil
+					end
+				end
+			end
+
+		-- Enumerate Defaults --
+		-- arg1: Defaults
+		elseif what == "enum_defs" then
+			arg1.constant_value = def
+			arg1.variable = true
+			
 		-- Enumerate Properties --
 		-- arg1: Dialog
-		if what == "enum_props" then
-			-- Family, name
+		elseif what == "enum_props" then
+			arg1:AddCheckbox{ text = "Is variable?", value_name = "variable" }
+
+			local constant_section = arg1:BeginSection()
+
+				add_constant(arg1)
+
+			arg1:EndSection()
+
+			local variable_section = arg1:BeginSection()
+
+				arg1:AddString{ text = "Family", is_static = true }
+				arg1:AddFamilyList{ value_name = "family" }
+				arg1:AddString{ before = "Variable name", value_name = "var_name" }
+
+			arg1:EndSection()
+
+			--
+			arg1:SetStateFromValue_Watch(constant_section, "variable", "use_false")
+			arg1:SetStateFromValue_Watch(variable_section, "variable")
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.set = { friendly_name = abbreviation .. ": set value" }
-			arg1["mirble*"] = { friendly_name = "BLRGH"--[[, is_set = true]], is_source = true }
+			arg1.family = "FAM: Variable family"
+			arg1.value = state_vars.abbreviations[vtype] .. ": Value to set"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			return "set_" .. vtype -- TODO: derives from value?
+			return "set_" .. vtype
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "extend", nil, nil, { number = { ["mirble*"] = true } }, { [vtype] = "set" }
+			return "extend_properties", nil, { family = "family", [vtype] = "value" }
+
+		-- Prep Action Link --
+		-- arg1: Parent handler
+		elseif what == "prep_link:action" then
+			LinkSuper = LinkSuper or arg1
+
+			return LinkSetter
+
+		-- Verify --
+		-- arg1: Verify block
+		-- arg2: Values
+		-- arg3: Representative object
+		elseif what == "verify" then
+			if not arg1.links:HasLinks(arg3, "value") then
+				arg1[#arg1 + 1] = "`" .. arg1.links:GetTag(arg3) .. "` action has no `value` link"
+			end
 		end
 	end
 
-	return function(info)
+	return function(info, wlist)
 		if info == "editor_event" then
 			return EditorEvent
 		else
-			local family, name -- TODO (or constant?)
+			local k = info.constant_value
 
-			return function()
-				return -- TODO!
+			if k then
+				return function()
+					return k
+				end
+			else
+				local name, value = info.var_name
+
+				local function setter (comp)
+					if value then
+						store.SetVariable(Families[setter], vtype, name, value())
+					else
+						value = comp
+					end
+				end
+
+				bind.Subscribe(wlist, info.value, setter)
+
+				if info.get_family then
+					bind.Subscribe(wlist, info.get_family, BindFamily, setter)
+				else
+					Families[setter] = info.family
+				end
+
+				return setter
 			end
 		end
 	end

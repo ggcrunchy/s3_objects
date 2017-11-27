@@ -30,7 +30,7 @@ local abs = math.abs
 --
 --
 
-local maker = require("s3_objects.state_templates.binary").Make("number", "NUM", "number_predicate", {
+local maker = require("s3_objects.state_templates.binary").Make("number", nil, "number_predicate", {
 	"<", function(a, b) return a < b end,
 	">", function(a, b) return a > b end,
 	"==", function(a, b) return a == b end,
@@ -41,7 +41,7 @@ local maker = require("s3_objects.state_templates.binary").Make("number", "NUM",
 	"approximately", function(a, b, tolerance)
 		return abs(a - b) <= tolerance
 	end
-}, "+")
+}, "+", "boolean")
 
 local editor_event = maker("editor_event")
 

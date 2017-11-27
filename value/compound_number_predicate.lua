@@ -23,6 +23,8 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- TODO: splice in number ops + number predicates
+
 return function(info)
 	if info == "editor_event" then
 		-- TODO!
