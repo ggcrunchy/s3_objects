@@ -33,7 +33,7 @@ local bit = require("plugin.bit")
 --
 --
 
-local Grammar {
+local Grammar = {
 	default = 0,
 
 	constants = { e = math.exp(1), inf = 1 / 0, nan = 0 / 0 },
