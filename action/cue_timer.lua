@@ -28,6 +28,7 @@ local pairs = pairs
 
 -- Modules --
 local bind = require("tektite_core.bind")
+local table_funcs = require("tektite_core.table.funcs")
 
 -- Corona globals --
 local timer = timer
@@ -35,6 +36,12 @@ local timer = timer
 --
 --
 --
+
+local Events = {}
+
+for _, v in ipairs{ "on_cancel", "on_perform", "on_too_many" } do
+	Events[v] = bind.BroadcastBuilder_Helper("loading_level")
+end
 
 local N, NormalTimers, PersistentTimers = 0
 
@@ -67,47 +74,104 @@ for k, v in pairs{
 	Runtime:addEventListener(k, v)
 end
 
+local IDs = table_funcs.Weak("k")
 local TimerCapacity = 100
 
-local function MakeAdder (list_group, delay, continue, actions)
+local function MakeAdder (list_group, delay, continue)
 	list_group = list_group or {}
 
-	local list_id, list = #list_group + 1, { id = 0 }
+	local list_id, list = #list_group + 1, {}
 
 	list_group[list_id] = list
 
-	return function()
-		if N < TimerCapacity then
-			local id = list.id
-			local handle = timer.performWithDelay(delay, function(event)
-				local how = continue(event)
+	local function cue (what)
+		if what == "fire" then
+			if N < TimerCapacity then
+				local id = (IDs[cue] or 0) + 1 -- 0 = null, thus we may fetch it safely
+				local handle = timer.performWithDelay(delay, function(event)
+					local how = continue(event)
 
-				if true then
-					actions("fire")
-				else
-					if how == "quit" then
-						-- follow-up, if any
+					if how == true then
+						Events.on_fire(cue, "fire", false)
+					else
+						if how == "quit" then
+							Events.on_quit(cue, "fire", false)
+						end
+
+						timer.cancel(event.source)
+
+						N, list[id] = N - 1
 					end
+				end, 0)
 
-					timer.cancel(event.source)
-
-					N, list[id] = N - 1
-				end
-			end, 0)
-
-			list[id], list.id, N = handle, list.id + 1, N + 1
-		else
-			actions("too_many")
+				list[id], IDs[cue], N = handle, id, N + 1
+			else
+				Events.on_too_many(cue, "fire", false)
+			end
+		elseif what == "is_done" then
+			return true
 		end
-	end, list_group, list
+	end
+
+	return cue, list_group, list
 end
 
 local function DefContinue () return true end
 
+local function EditorEvent (what, arg1, arg2, arg3)
+	-- Build --
+	-- arg1: Level
+	-- arg2: Original entry
+	-- arg3: Action to build
+	if what == "build" then
+		-- elide cancel_id if no cancel...
+		-- iterations if <= 0
+
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	elseif what == "enum_defs" then
+		arg1.delay = 500
+		arg1.iterations = 1
+
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	elseif what == "enum_props" then
+		-- spinner for iterations?
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		--
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "cue_timer"
+
+	-- New Tag --
+	elseif what == "new_tag" then
+--		return "extend", { on_cancel, on_perform, on_quit, on_too_many }, { cancel }, {
+--			uint: most_recent_id
+--		}, {
+--			uint: cancel_id, uint: wants_to_quit
+--		}
+
+	-- Prep Action Link --
+	-- arg1: Parent handler
+	elseif what == "prep_link:action" then
+		-- URGH...
+
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		-- cancel and cancel_id go together
+	end
+end
+
 return function(info)
 	if info == "editor_event" then
+		return EditorEvent
 		-- TODO!
-		-- delay
 		-- number of repetitions
 		-- Wants to quit?
 		-- On(cancel), On(quit)
@@ -115,27 +179,30 @@ return function(info)
 		-- Action to do
 		-- Action if too may timers...
 	else
-		local delay, iterations, cue, list, cancel, event, too_many = info.delay, info.iterations or 0
+		local delay, iterations, cue, list = info.delay, info.iterations or 0
 
-		local function actions (what, arg)
-			if event then
+		if info.cancel then
+			local cancel_id --
+
+			local function cancel (what)
 				if what == "fire" then
-					event("fire", false)
-				elseif what == "too_many" and too_many then
-					too_many()
-				elseif what == "cancel" and cancel then
-					local id = cancel()
-					local handle = list[id]
+					local id = cancel_id() --
+					local handle = list[id] -- not right (could be in either list), just need both indices into list groups?
 
 					if handle then
 						timer.cancel(handle)
 
 						N, list[id] = N - 1
+
+						Events.on_cancel(cue, "fire", false)
 					end
+				elseif what == "is_done" then
+					return true
 				end
-			else
-				--
 			end
+
+			-- publish cancel
+			-- subscribe cancel_id
 		end
 
 		local continue
@@ -156,6 +223,8 @@ return function(info)
 					return wants_to_quit() and "quit"
 				end
 			end
+
+			-- subscribe wants_to_quit
 		elseif iterations > 0 then
 			function continue (event)
 				return event.count <= iterations
@@ -165,17 +234,14 @@ return function(info)
 		end
 
 		if info.persist_across_reset then
-			cue, PersistentTimers, list = MakeAdder(PersistentTimers, delay, continue, actions)
+			cue, PersistentTimers, list = MakeAdder(PersistentTimers, delay, continue)
 		else
-			cue, NormalTimers, list = MakeAdder(NormalTimers, delay, continue, actions)
+			cue, NormalTimers, list = MakeAdder(NormalTimers, delay, continue)
 		end
 
-		-- verify has event (actually, COULD just use to watch flags and respond)
-		-- check for cancel, too_many, wants_to_quit, On(cancel), On(quit)...
-		-- bind
+		-- subscribe to events
+		-- publish most recent id
 
-		return function()
-			return -- TODO!
-		end
+		return cue
 	end
 end
