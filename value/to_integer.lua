@@ -23,18 +23,99 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
+-- Modules --
+local bind = require("tektite_core.bind")
+
+--
+--
+--
+
+local LinkSuper
+
+local function LinkToInteger (to_int, other, sub, other_sub, links)
+	if sub == "value" then
+		bind.AddId(to_int, sub, other.uid, other_sub)
+	else
+		LinkSuper(to_int, other, sub, other_sub, links)
+	end
+end
+
+local Methods = { ceiling = math.ceil, floor = math.floor, round = math.round }
+
+function Methods.truncate (n)
+	if n < 0 then
+		local rem = n % 1
+
+		if n + rem^2 == n then
+			return n
+		else
+			return n - rem + 1
+		end
+	else
+		return n - n % 1
+	end
+end
+
+local function EditorEvent (what, arg1, arg2, arg3)
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	if what == "enum_defs" then
+		arg1.method = "round"
+
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	elseif what == "enum_props" then
+		arg1:AddListbox{ value_name = "method", "ceiling", "floor", "round", "truncate" }
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.value = "NUM: Value to convert"
+
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "to_integer"
+
+	-- New Tag --
+	elseif what == "new_tag" then
+		return "extend_properties", nil, { number = "value" }
+
+	-- Prep Value Link --
+	-- arg1: Parent handler
+	elseif what == "prep_link:value" then
+		LinkSuper = LinkSuper or arg1
+
+		return LinkToInteger
+
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		if not arg1.links:HasLinks(arg3, "value") then
+			arg1[#arg1 + 1] = "to_integer has no `value` link"
+		end
+	end
+end
+
+return function(info, wlist)
 	if info == "editor_event" then
-		-- TODO!
-		-- choice: ceiling, floor, round, trunc
-		-- number source
+		return EditorEvent
 	elseif info == "value_type" then
 		return "integer"
 	else
-		-- TODO
+		local method, value = Methods[info.method]
 
-		return function()
-			return -- TODO
+		local function to_integer (comp)
+			if value then
+				return method(value())
+			else
+				value = comp
+			end
 		end
+
+		bind.Subscribe(wlist, info.value, to_integer)
+
+		return to_integer
 	end
 end

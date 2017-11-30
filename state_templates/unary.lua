@@ -39,7 +39,7 @@ local LinkSuper
 
 local function LinkValue (bvalue, other, sub, other_sub, links)
 	if sub == "value" then
-		bvalue.value = other.uid
+		bind.AddId(bvalue, sub, other.uid, other_sub)
 	else
 		LinkSuper(bvalue, other, sub, other_sub, links)
 	end
