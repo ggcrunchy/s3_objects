@@ -24,15 +24,13 @@
 --
 
 -- Standard library imports --
+local huge = math.huge
 local pairs = pairs
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local bind = require("tektite_core.bind")
 local state_vars = require("config.StateVariables")
-
--- Corona globals --
-local timer = timer
 
 --
 --
@@ -45,73 +43,90 @@ for _, v in ipairs{ "on_hit_limit", "on_one_to_zero", "on_try_to_decrement_zero"
 end
 
 local Actions = {
-	decrement = function()
-		--
+	do_decrement = function(counter)
+		return function(what)
+			if what == "fire" then
+				local n = counter() - 1
+
+				if n >= 0 then
+					counter("set", n)
+				end
+
+				if n <= 0 then
+					Events[n == 0 and "on_one_to_zero" or "on_try_to_decrement_zero"](counter, "fire", false)
+				end
+			elseif what == "is_done" then
+				return true
+			end
+		end
 	end,
 
-	increment = function()
-		--
+	do_increment = function(counter)
+		return function(what)
+			if what == "fire" then
+				local n, limit = counter() + 1, counter("get_limit")
+
+				if n <= limit then
+					counter("set", n)
+				end
+
+				if n == 1 then
+					Events.on_zero_to_one(counter, "fire", false)
+				end
+
+				if n >= limit then
+					Events[n == limit and "on_hit_limit" or "on_try_to_exceed_limit"](counter, "fire", false)
+				end
+			elseif what == "is_done" then
+				return true
+			end
+		end
 	end,
 
-	reset = function()
-		--
+	do_reset = function(counter)
+		return function(what)
+			if what == "fire" then
+				counter("set", 0)
+			elseif what == "is_done" then
+				return true
+			end
+		end
 	end,
 
-	set = function()
-		--
+	do_set = function(counter)
+		return function(what)
+			if what == "fire" then
+				local count = counter("get_count")
+
+				if count ~= counter() then
+					local limit = counter("get_limit")
+
+					if limit and count > limit then
+						Events.on_try_to_exceed_limit(counter, "fire", false)
+					else
+						counter("set", count)
+
+						if count == limit then
+							Events.on_hit_limit(counter, "fire", false)
+						end
+					end
+				end
+			elseif what == "is_done" then
+				return true
+			end
+		end
 	end
 }
 
 local LinkSuper
 
 local function LinkCounter (counter, other, sub, other_sub, links)
-	if Events[sub] then
-		bind.AddId(counter, sub, other, other_sub)
-	else
+	if sub == "get_count" or sub == "get_limit" then
+		bind.AddId(counter, sub, other.uid, other_sub)
+	elseif not bind.LinkActionsAndEvents(counter, other, sub, other_sub, Events, Actions, "actions") then
 		LinkSuper(counter, other, sub, other_sub, links)
 	end
 end
-
---[[
-local function MakeCue (delay, continue)
-	local list_id, list, get_cancel_id = #Timers + 1, { id = 0 }
-
-	Timers[list_id] = list
-
-	local function cue (what)
-		if what then -- special commands
-			if what == "get_id_and_list" then
-				return get_cancel_id, list
-			else
-				get_cancel_id = what
-			end
-		elseif Timers.n < TimerCapacity then
-			local id = list.id + 1 -- 0 = null, thus we may fetch it safely
-			local handle = timer.performWithDelay(delay, function(event)
-				local how = continue(event)
-
-				if how == true then
-					Events.on_fire(cue, "fire", false)
-				else
-					if how == "quit" then
-						Events.on_quit(cue, "fire", false)
-					end
-
-					timer.cancel(event.source)
-
-					Timers.n, list[id] = Timers.n - 1
-				end
-			end, 0)
-
-			list[id], list.id, Timers.n = handle, id, Timers.n + 1
-		else
-			Events.on_too_many(cue, "fire", false)
-		end
-	end
-
-	return cue, list
-end
-]]
 
 local function EditorEvent (what, arg1, arg2, arg3)
 	-- Build --
@@ -119,49 +134,51 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Original entry
 	-- arg3: Action to build
 	if what == "build" then
-		if not (arg2.increment or arg2.set) then
-			arg3.limit, arg3.limit = nil
+		local actions = arg2.actions
+
+		if not (actions and (actions.do_increment or actions.do_set)) then
+			arg3.limit, arg3.on_try_to_exceed_limit, arg3.get_limit = nil
+		elseif arg2.get_limit then
+			arg3.limit = nil
 		end
 
-		if not arg2.decrement then
-			--
+		if not (actions and actions.do_decrement) then
+			arg3.on_one_to_zero, arg3.on_try_to_decrement_zero = nil
 		end
 
-		if not (arg2.decrement or arg3.reset or arg3.set) then
-			--
+		if not (actions and actions.do_increment) then
+			arg3.on_hit_limit, arg3.on_zero_to_one = nil
 		end
 
-		if arg3.limit or arg3.get_limit then
-			if arg2.get_limit then
-				arg3.limit = nil
-			end
+		if actions and actions.do_set then
+			arg3.count = nil
 		else
-			arg3.on_hit_limit, arg3.on_try_to_exceed_limit = nil
+			arg3.get_count = nil
 		end
-
-		
 
 	-- Enumerate Defaults --
 	-- arg1: Defaults
 	elseif what == "enum_defs" then
+		arg3.count = 0
 		arg1.persist_across_reset = false
 		arg1.limit = 1
 
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
-		-- spinner for iterations?
+		-- spinners for count assignement, limit
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.get = { "UINT: Counter value", is_source = true }
+		arg1.get_count = "UINT: Count to assign"
 		arg1.get_limit = "UINT: Upper limit"
 		arg1.on_hit_limit = "On(hit limit)"
-		arg1.on_one_to_zero = "On(1 -> 0)"
+		arg1.on_one_to_zero = "On(decrement 1 -> 0)"
 		arg1.on_try_to_decrement_zero = "On(try to decrement 0)"
 		arg1.on_try_to_exceed_limit = "On(try to exceed limit)"
-		arg1.on_zero_to_one "On(0 -> 1)"
+		arg1.on_zero_to_one "On(increment 0 -> 1)"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
@@ -169,54 +186,78 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-	--[[
-		return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(Properties), {
-			uint = "get_limit"
-		}]]
+		return "extend", Events, Actions, nil, {
+			uint = { get_count = true, get_limit = true }
+		}
 
-	-- Prep Action Link --
+	-- Prep Value Link --
 	-- arg1: Parent handler
-	elseif what == "prep_link:action" then
+	elseif what == "prep_link:value" then
 		LinkSuper = LinkSuper or arg1
 
 		return LinkCounter
-
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Values
-	-- arg3: Representative object
-	elseif what == "verify" then
-	--[[
-		if arg1.links:HasLinks(arg3, "do_cancel") and not arg1.links:HasLinks(arg3, "get_cancel_id") then
-			arg1[#arg1 + 1] = "Cancel event must be paired with a cancel ID getter"
-		end]]
 	end
 end
+
+local function PersistID () return false end
 
 return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
 	else
-		if info.limit or info.get_limit then
-			--
-			-- bind hit_limit, try_to_exceed_limit
+		local is_stale
+
+		if info.persist_across_reset then
+			is_stale = PersistID
 		else
-			--
+			local session_id
+
+			function is_stale ()
+				local id = state_vars.GetSessionID()
+
+				if id ~= session_id then
+					session_id = id
+
+					return true
+				end
+			end
 		end
 
-	--	bind.Subscribe(wlist, info.get_cancel_id, cue) -- see "special commands" in MakeCue()
+		local count, get_count, limit
+
+		local function counter (what, getter)
+			if is_stale then
+				count, limit = nil
+			end
+
+			if what then
+				if what == "get_count" then -- does double duty in bind and later calls
+					get_count = get_count or getter
+
+					return get_count and get_count() or (count or 0)
+				elseif what == "get_limit" then -- ditto
+					limit = limit or (getter and getter()) or huge
+
+					return limit
+				elseif what == "set" then
+					count = what
+				end
+			else
+				return count
+			end
+		end
+
+		bind.Subscribe(wlist, info.get_count, counter, "get_count") -- see notes in counter()
+		bind.Subscribe(wlist, info.get_limit, counter, "get_limit")
 
 		for k, event in pairs(Events) do
---			event.Subscribe(cue, info[k])
+			event.Subscribe(counter, info[k])
 		end
 
-		--
 		for k in adaptive.IterSet(info.actions) do
-	--		bind.Publish("loading_level", Actions[k](cue), info.uid, k)
+			bind.Publish(wlist, Actions[k](counter), info.uid, k)
 		end
 
-	--	state_vars.PublishProperties(info.props, Properties, info.uid, cue)
-
-		return cue
+		return counter
 	end
 end

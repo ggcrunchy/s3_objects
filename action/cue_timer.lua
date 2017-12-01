@@ -192,6 +192,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
+		-- numeric textfield?
 		-- spinner for iterations?
 
 	-- Get Link Info --
@@ -229,7 +230,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg3: Representative object
 	elseif what == "verify" then
 		if arg1.links:HasLinks(arg3, "do_cancel") and not arg1.links:HasLinks(arg3, "get_cancel_id") then
-			arg1[#arg1 + 1] = "Cancel event must be paired with a cancel ID getter"
+			arg1[#arg1 + 1] = "Cancel action must be paired with a cancel ID getter"
 		end
 	end
 end
@@ -285,7 +286,6 @@ return function(info, wlist)
 			event.Subscribe(cue, info[k])
 		end
 
-		--
 		for k in adaptive.IterSet(info.actions) do
 			bind.Publish("loading_level", Actions[k](cue), info.uid, k)
 		end
