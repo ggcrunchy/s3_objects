@@ -22,3 +22,28 @@
 --
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
+
+-- Modules --
+local strings = require("tektite_core.var.strings")
+
+--
+--
+--
+
+local function EditorEvent (what, arg1)
+	-- Get Link Info --
+	-- arg1: Info to populate
+	if what == "get_link_info" then
+		arg1.get = { friendly_name = "STR: Generate symbol", is_source = true }
+	end
+end
+
+return function(info, wlist)
+	if info == "editor_event" then
+		return EditorEvent
+	elseif info == "value_type" then
+		return "string"
+	else
+		return strings.NewName
+	end
+end

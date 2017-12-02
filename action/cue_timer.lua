@@ -146,7 +146,7 @@ local function MakeCue (delay, continue)
 				get_cancel_id = what
 			end
 		elseif Timers.n < TimerCapacity then
-			local id = list.id + 1 -- 0 = null, thus we may fetch it safely
+			local id = list.id + 1 -- 0 = null, thus we can fetch it safely
 			local handle = timer.performWithDelay(delay, function(event)
 				local how = continue(event)
 
@@ -208,6 +208,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.do_cancel = "Cancel a timer"
+		arg1.fire = "Cue a timer"
 		arg1.get_cancel_id = "UINT: Timer to cancel"
 		arg1.most_recent_id = { friendly_name = "UINT: Most recent timer", is_source = true }
 		arg1.on_cancel = "On(cancel)"
@@ -297,7 +298,7 @@ return function(info, wlist)
 			bind.Publish("loading_level", Actions[k](cue), info.uid, k)
 		end
 
-		state_vars.PublishProperties(info.props, Properties, info.uid, cue)
+		state_vars.PublishProperties(info.props, OutProperties, info.uid, cue)
 
 		return cue
 	end

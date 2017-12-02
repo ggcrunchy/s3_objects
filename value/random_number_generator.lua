@@ -219,10 +219,10 @@ return function(info, wlist)
 			end
 		end
 
-		bind.Subscribe(wlist, info.get_ibound1 or info.get_nbound1, rng, "bound1")
-		bind.Subscribe(wlist, info.get_ibound2 or info.get_nbound2, rng, "bound2")
-		bind.Subscribe(wlist, info.get_seed1, rng, "seed1")
-		bind.Subscribe(wlist, info.get_seed2, rng, "seed2")
+		bind.Subscribe(wlist, info.get_ibound1 or info.get_nbound1, rng, "get_bound1")
+		bind.Subscribe(wlist, info.get_ibound2 or info.get_nbound2, rng, "get_bound2")
+		bind.Subscribe(wlist, info.get_seed1, rng, "get_seed1")
+		bind.Subscribe(wlist, info.get_seed2, rng, "get_seed2")
 
 		return rng
 	end

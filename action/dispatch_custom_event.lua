@@ -1,4 +1,4 @@
---- Fire an alert.
+--- Dispatch a custom runtime event.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -27,7 +27,7 @@ return function(info)
 	if info == "editor_event" then
 		-- TODO!
 		-- basically just a name + a soup of inputs
-		-- will be sent as an event: "alert:" .. name... then values under each type?
+		-- will be sent as an event: "custom:" .. name... then values under each type?
 		-- could also pull them from sets if those are added?
 	else
 		local name -- TODO (also get inputs)

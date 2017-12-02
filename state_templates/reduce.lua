@@ -76,7 +76,7 @@ function M.Make (vtype, rtype)
 		-- arg2: Values
 		-- arg3: Representative object
 		elseif what == "verify" then
-			arg1[#arg1 + 1] = "`" .. arg1.links:GetTag(arg3) .. "` action has no `values` links"
+			arg1[#arg1 + 1] = "`" .. arg1.links:GetTag(arg3) .. "` has no `values` links"
 		end
 	end
 
