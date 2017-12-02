@@ -69,7 +69,9 @@ local Actions = {
 	end
 }
 
-local Properties = {
+local InProperties = { boolean = "wants_to_quit", uint = "get_cancel_id" }
+
+local OutProperties = {
 	uint = {
 		-- Most Recent ID --
 		most_recent_id = function(cue)
@@ -84,9 +86,16 @@ local Properties = {
 
 local LinkSuper
 
-local function LinkTimer (setter, other, sub, other_sub, links)
-	if not bind.LinkActionsEventsAndProperties(setter, other, sub, other_sub, Events, Actions, "actions", Properties, "props") then
-		LinkSuper(setter, other, sub, other_sub, links)
+local function LinkTimer (setter, other, tsub, other_sub, links)
+	local helper = bind.PrepLink(setter, other, tsub, other_sub)
+
+	helper("try_actions", Actions)
+	helper("try_events", Events)
+	helper("try_in_properties", InProperties)
+	helper("try_out_properties", OutProperties)
+
+	if not helper("commit") then
+		LinkSuper(setter, other, tsub, other_sub, links)
 	end
 end
 
@@ -213,9 +222,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(Properties), {
-			boolean = "wants_to_quit", uint = "get_cancel_id"
-		}
+		return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 	-- Prep Action Link --
 	-- arg1: Parent handler

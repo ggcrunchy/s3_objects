@@ -23,6 +23,9 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local max = math.max
+
 -- Modules --
 local bind = require("tektite_core.bind")
 local state_vars = require("config.StateVariables")
@@ -34,13 +37,20 @@ local system = system
 --
 --
 
+local InProperties = {
+	boolean = { should_disable = true, start_ready = true },
+	uint = "get_amount"
+}
+
 local LinkSuper
 
-local function LinkReady (ready, other, sub, other_sub, links)
-	if sub == "get_amount" or sub == "should_disable" or sub == "starts_ready" then
-		bind.AddId(ready, sub, other.uid, other_sub)
-	else
-		LinkSuper(ready, other, sub, other_sub, links)
+local function LinkReady (ready, other, rsub, other_sub, links)
+	local helper = bind.PrepLink(ready, other, rsub, other_sub)
+
+	helper("try_in_properties", InProperties)
+
+	if not helper("commit") then
+		LinkSuper(ready, other, rsub, other_sub, links)
 	end
 end
 
@@ -50,7 +60,12 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Original entry
 	-- arg3: Item to build
 	if what == "build" then
-		--
+		arg3.as_count = arg2.as_count or nil
+		arg3.persist_across_reset = arg2.persist_across_reset or nil
+
+		if arg2.get_amount then
+			arg3.amount = nil
+		end
 
 	-- Enumerate Defaults --
 	-- arg1: Defaults
@@ -79,7 +94,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend_properties", nil, { boolean = { should_disable = true, start_ready = true }, uint = "get_amount" }
+		return "extend_properties", nil, InProperties
 
 	-- Prep Value Link --
 	-- arg1: Parent handler
@@ -87,78 +102,97 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		LinkSuper = LinkSuper or arg1
 
 		return LinkReady
+	end
+end
 
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Values
-	-- arg3: Representative object
-	elseif what == "verify" then
-	--[[
-		if not arg1.links:HasLinks(arg3, "value") then
-			arg1[#arg1 + 1] = "to_integer has no `value` link"
-		end
-		]]
+local function AddGetter (list, what, getter)
+	list = list or {}
+
+	list[what] = getter
+
+	return list
+end
+
+local function Update (is_stale, amount, threshold, getters)
+	if is_stale() then
+		threshold = nil
+	end
+
+	local starts_ready = getters and getters.starts_ready
+
+	if threshold == nil and starts_ready and starts_ready() then
+		threshold = 0 -- next steps skipped, dovetails with normal check for 0
+	end
+
+	local is_new
+
+	if threshold == "disabled" then
+		return false, "disabled"
+	elseif threshold == nil then
+		threshold, is_new = amount or getters.get_amount(), true
+	end
+
+	if threshold == 0 then
+		local should_disable = getters and getters.should_disable
+
+		return true, (should_disable and should_disable()) and "disabled" or nil
+	else
+		return false, threshold, is_new
 	end
 end
 
 return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
-
-		-- delay or times to poll
-		-- starts ready?
-		-- stays ready?
-		-- can be off?
-		-- set state
-
-		-- is session stale?
 	elseif info == "value_type" then
 		return "boolean"
 	else
-		local is_enabled, amount, get_amount, ready, threshold = true, info.amount
+		local is_stale = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+		local amount, getters, ready, threshold = info.amount
 
 		if info.as_count then
-			local pos
+			function ready (what, getter)
+				if what then
+					getters = AddGetter(what, getter)
+				else
+					local is_ready, result = Update(is_stale, amount, threshold, getters)
 
-			function ready (comp)
-				if comp then
-					get_amount = comp
-				elseif is_enabled then
-					if pos ~= threshold then
-						pos = pos + 1
+					if is_ready or result == "disabled" then
+						threshold = result
 					else
-						-- if active, etc.
-						threshold = amount or get_amount()
+						threshold = threshold - 1
 					end
+
+					return is_ready
 				end
 			end
 		else
-			threshold = -1
+			local up_to
 
-			function ready (comp)
-				if comp then
-					get_amount = comp
-				elseif is_enabled then
-					local now = system.getTimer()
-
-					if now >= threshold then
-						-- if active, etc.
-						threshold = now + (amount or get_amount())
+			function ready (what, getter)
+				if what then
+					getters = AddGetter(what, getter)
+				else
+					if up_to then
+						threshold = max(0, up_to - system.getTimer())
 					end
+
+					local is_ready, result, is_new = Update(is_stale, amount, threshold, getters)
+
+					if is_ready or result == "disabled" then
+						threshold, up_to = result
+					elseif is_new then
+						up_to = system.getTimer() + result
+					end
+
+					return is_ready
 				end
 			end
 		end
 
-		if info.should_disable then
-			--
-		end
-
-		if info.starts_ready then
-			--
-		end
-		-- ^^^ Timing?
-
-		bind.Subscribe(wlist, info.get_amount, ready)
+		bind.Subscribe(wlist, info.get_amount, ready, "get_amount")
+		bind.Subscribe(wlist, info.should_disable, ready, "should_disable")
+		bind.Subscribe(wlist, info.starts_ready, ready, "starts_ready")
 
 		return ready
 	end

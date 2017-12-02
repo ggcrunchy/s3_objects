@@ -118,13 +118,21 @@ local Actions = {
 	end
 }
 
+local InProperties = {
+	uint = { get_count = true, get_limit = true }
+}
+
 local LinkSuper
 
-local function LinkCounter (counter, other, sub, other_sub, links)
-	if sub == "get_count" or sub == "get_limit" then
-		bind.AddId(counter, sub, other.uid, other_sub)
-	elseif not bind.LinkActionsAndEvents(counter, other, sub, other_sub, Events, Actions, "actions") then
-		LinkSuper(counter, other, sub, other_sub, links)
+local function LinkCounter (counter, other, csub, other_sub, links)
+	local helper = bind.PrepLink(counter, other, csub, other_sub)
+
+	helper("try_actions", Actions)
+	helper("try_events", Events)
+	helper("try_in_properties", InProperties)
+
+	if not helper("commit") then
+		LinkSuper(counter, other, csub, other_sub, links)
 	end
 end
 
@@ -138,7 +146,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 		if not (actions and (actions.do_increment or actions.do_set)) then
 			arg3.limit, arg3.on_try_to_exceed_limit, arg3.get_limit = nil
-		elseif arg2.get_limit then
+		elseif arg2.get_limit or arg2.limit == 0 then
 			arg3.limit = nil
 		end
 
@@ -150,11 +158,13 @@ local function EditorEvent (what, arg1, arg2, arg3)
 			arg3.on_hit_limit, arg3.on_zero_to_one = nil
 		end
 
-		if actions and actions.do_set then
+		if not (actions and actions.do_set) then
+			arg3.count, arg3.get_count = nil
+		elseif arg2.get_count then
 			arg3.count = nil
-		else
-			arg3.get_count = nil
 		end
+
+		arg3.persist_across_reset = arg2.persist_across_reset or nil
 
 	-- Enumerate Defaults --
 	-- arg1: Defaults
@@ -186,9 +196,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", Events, Actions, nil, {
-			uint = { get_count = true, get_limit = true }
-		}
+		return "extend", Events, Actions, nil, InProperties
 
 	-- Prep Value Link --
 	-- arg1: Parent handler
@@ -199,34 +207,15 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-local function PersistID () return false end
-
 return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
 	else
-		local is_stale
-
-		if info.persist_across_reset then
-			is_stale = PersistID
-		else
-			local session_id
-
-			function is_stale ()
-				local id = state_vars.GetSessionID()
-
-				if id ~= session_id then
-					session_id = id
-
-					return true
-				end
-			end
-		end
-
+		local is_stale = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 		local count, get_count, limit
 
 		local function counter (what, getter)
-			if is_stale then
+			if is_stale() then
 				count, limit = nil
 			end
 
