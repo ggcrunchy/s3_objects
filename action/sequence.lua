@@ -23,13 +23,42 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
+-- Modules --
+local bind = require("tektite_core.bind")
+
+--
+--
+--
+
+local function EditorEvent (what, arg1, arg2, arg3)
+	--
+end
+
+return function(info, wlist)
 	if info == "editor_event" then
+		return EditorEvent
 		-- TODO!
 		-- Array-style link
+		-- Care about gaps?
+		-- No sorting among multiple links
+		-- Any way to use the bind event helper?
+			-- maybe just build raw broadcaster as upvalue and then use the indices as "object"?
 	else
+		local builder, object_to_broadcaster = bind.BroadcastBuilder()
+		local n -- TODO!
+
+		for i = 1, n do
+--			bind.Subscribe(wlist, info.indices, builder, i)
+		end
+
 		return function()
-			return -- TODO!
+			for i = 1, n do
+				local func = object_to_broadcaster[i]
+
+				if func then
+					func("fire", false)
+				end
+			end
 		end
 	end
 end
