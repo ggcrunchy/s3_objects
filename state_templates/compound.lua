@@ -98,8 +98,6 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
-			arg1:StockElements()
-			arg1:AddSeparator()
 			arg1:AddString{ before = "Expression:", value_name = "expression" }
 			-- ^^ TODO: okay, but could make these use GetText overlay... not an expression problem, however
 			arg1:AddString{ text = "Binding policy", is_static = true }
@@ -109,7 +107,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
 			arg1.get = { friendly_name = state_vars.abbreviations[rtype] .. " Result", is_source = true }
-			arg1["values*"] = state_vars.abbreviations[vtype] .. "S: Source values"
+			arg1["values*"] = { friendly_name = state_vars.abbreviations[vtype] .. "S: Source values", is_set = true }
 
 		-- Get Tag --
 		elseif what == "get_tag" then

@@ -84,9 +84,6 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
-			arg1:StockElements()
-			arg1:AddSeparator()
-
 			arg1:AddCheckbox{ text = "Use expression?", value_name = "use_expression" }
 
 			local expression_section = arg1:BeginSection()

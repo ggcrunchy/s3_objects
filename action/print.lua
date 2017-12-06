@@ -41,17 +41,17 @@ local bind = require("tektite_core.bind")
 local Prefix = "get_"
 
 local InProperties = {
-	boolean = Prefix .. "bools+",
-	integer = Prefix .. "ints+",
-	number = Prefix .. "nums+",
-	string = Prefix .. "strs+",
-	uint = Prefix .. "uints+"
+	boolean = Prefix .. "bools",
+	integer = Prefix .. "ints",
+	number = Prefix .. "nums",
+	string = Prefix .. "strs",
+	uint = Prefix .. "uints"
 }
 
-local InPropertiesSanitized = {}
+local InPropertiesMulti = {}
 
 for k, v in pairs(InProperties) do
-	InProperties[k] = v:sub(1, -2)
+	InPropertiesMulti[k] = v .. "+"
 end
 
 local LinkSuper
@@ -59,7 +59,7 @@ local LinkSuper
 local function LinkPrint (print, other, psub, other_sub, links)
 	local helper = bind.PrepLink(print, other, psub, other_sub)
 
-	helper("try_in_properties", InPropertiesSanitized)
+	helper("try_in_properties", InProperties)
 
 	if not helper("commit") then
 		LinkSuper(print, other, psub, other_sub, links)
@@ -82,7 +82,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Original entry
 	-- arg3: Action to build
 	if what == "build" then
-		for _, name in pairs(InPropertiesSanitized) do
+		for _, name in pairs(InProperties) do
 			if not Find(arg2.message, name) then
 				arg3[name] = nil
 			end
@@ -96,14 +96,14 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
-		-- textfield
+		arg1:AddString{ value_name = "message", before = "Message:" }
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.fire = "Print message"
 
-		for _, name in pairs(InPropertiesSanitized) do
+		for _, name in pairs(InProperties) do
 			AddLinkInfo(arg1, name:sub(#Prefix + 1))
 		end
 
@@ -113,7 +113,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend_properties", nil, InProperties
+		return "extend_properties", nil, InPropertiesMulti
 
 	-- Prep Action Link --
 	-- arg1: Parent handler
@@ -127,7 +127,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Values
 	-- arg3: Representative object
 	elseif what == "verify" then
-		for vtype, name in pairs(InPropertiesSanitized) do
+		for vtype, name in pairs(InProperties) do
 			local found, _, specifier = Find(arg2.message, name)
 
 			if found and not arg1.links:HasLinks(name) then
@@ -140,12 +140,6 @@ end
 return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
-		-- TODO!
-		-- string to print
-		-- If contains $(UINT), $(INT), $(STR), $(NUM), $(BOOL) print corresponding value?
-		-- can verify that something is provided
-		-- if occur multiple times, repeat
-		-- if multiple inputs, gather all
 	else
 		local message, values = info.message
 
@@ -178,7 +172,7 @@ return function(info, wlist)
 			end
 		end
 
-		for _, name in pairs(InPropertiesSanitized) do
+		for _, name in pairs(InProperties) do
 			bind.Subscribe(wlist, info[name], print_message, name)
 		end
 
