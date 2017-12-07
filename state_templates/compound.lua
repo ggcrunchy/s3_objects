@@ -41,7 +41,7 @@ local M = {}
 local LinkSuper
 
 local function LinkCompound (cvalue, other, sub, other_sub)
-	local instance_to_label = cvalue.labeled_instances
+	local instance_to_label = cvalue.named_labels
 	local label = instance_to_label and instance_to_label[sub]
 
 	if label then
@@ -57,26 +57,6 @@ end
 
 local BindingPolicy = { value_name = "binding_policy", "none", "check_match", "check_no_extra_args", "check_no_unbound_vars" }
 
---[[
-	LabelParams = LabelParams or {
-		params = {
-			func = function(how, button, text)
-				if how == "get" then
-					text.text = common.GetLabel(button.m_instance)
-				elseif how == "set" then
-					SetLabelText(button, text.text)
-				elseif how == "where" then
-					return button:localToContent(0, 0)
-				end
-			end
-		}
-	}
-
-	LabelParams.params.arg = button
-
-	composer.showOverlay("s3_editor.overlay.GetText", LabelParams)
-]]
-
 --- DOCME
 function M.Make (vtype, gdef, suffix, rtype)
 	rtype = rtype or vtype
@@ -87,7 +67,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- arg2: Entry
 		-- arg3: Built
 		if what == "build" then
-			arg3.binding_policy = nil
+			arg3.named_labels, arg3.binding_policy = arg3.labeled_instances
 
 		-- Enumerate Defaults --
 		-- arg1: Defaults
@@ -99,7 +79,6 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- arg1: Dialog
 		elseif what == "enum_props" then
 			arg1:AddString{ before = "Expression:", value_name = "expression" }
-			-- ^^ TODO: okay, but could make these use GetText overlay... not an expression problem, however
 			arg1:AddString{ text = "Binding policy", is_static = true }
 			arg1:AddListbox(BindingPolicy)
 

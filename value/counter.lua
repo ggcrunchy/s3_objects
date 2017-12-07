@@ -169,7 +169,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Defaults --
 	-- arg1: Defaults
 	elseif what == "enum_defs" then
-		arg3.count = 0
+		arg1.count = 0
 		arg1.persist_across_reset = false
 		arg1.limit = 1
 
@@ -188,7 +188,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		arg1.on_one_to_zero = "On(decrement 1 -> 0)"
 		arg1.on_try_to_decrement_zero = "On(try to decrement 0)"
 		arg1.on_try_to_exceed_limit = "On(try to exceed limit)"
-		arg1.on_zero_to_one "On(increment 0 -> 1)"
+		arg1.on_zero_to_one = "On(increment 0 -> 1)"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
@@ -210,6 +210,8 @@ end
 return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
+	elseif info == "value_type" then
+		return "uint"
 	else
 		local is_stale = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 		local count, get_count, limit
