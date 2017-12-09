@@ -47,16 +47,16 @@ end
 
 local LinkSuper
 
-local function LinkSetter (setter, other, sub, other_sub, links)
-	if sub == "family" or sub == "value" then
-		bind.AddId(setter, sub == "family" and "get_family" or sub, other.uid, other_sub)
+local function LinkSetter (setter, other, ssub, other_sub, links)
+	if ssub == "get_family" or ssub == "value" then
+		bind.AddId(setter, ssub, other.uid, other_sub)
 	else
-		LinkSuper(setter, other, sub, other_sub, links)
+		LinkSuper(setter, other, ssub, other_sub, links)
 	end
 end
 
 --- DOCME
-function M.Make (vtype, def, add_constant)
+function M.Make (vtype, def, add_constant, fix_constant)
 	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Build --
 		-- arg1: Level
@@ -109,7 +109,7 @@ function M.Make (vtype, def, add_constant)
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.family = "FAM: Variable family"
+			arg1.get_family = "FAM: Variable family"
 			arg1.value = state_vars.abbreviations[vtype] .. ": Value to set"
 
 		-- Get Tag --
@@ -118,7 +118,7 @@ function M.Make (vtype, def, add_constant)
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "extend_properties", nil, { family = "family", [vtype] = "value" }
+			return "extend_properties", nil, { family = "get_family", [vtype] = "value" }
 
 		-- Prep Action Link --
 		-- arg1: Parent handler
@@ -145,6 +145,10 @@ function M.Make (vtype, def, add_constant)
 			local k = info.constant_value
 
 			if k then
+				if fix_constant then
+					k = fix_constant(k)
+				end
+
 				return function()
 					return k
 				end

@@ -23,6 +23,13 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local number = require("s3_objects.grammars.number")
+
+--
+--
+--
+
 return require("s3_objects.state_templates.set_value").Make("number", 0, function(dialog)
-	dialog:AddString{ value_name = "constant_value", text = "Value:" }
-end)
+	dialog:AddString{ value_name = "constant_value", text = "Value:", set_editable_text = number.set_editable_text }
+end, number.fix_constant)

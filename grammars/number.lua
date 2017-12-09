@@ -23,6 +23,9 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local tonumber = tonumber
+
 -- Modules --
 local expression = require("s3_utils.state.expression")
 
@@ -34,9 +37,9 @@ local bit = require("plugin.bit")
 --
 
 local Grammar = {
-	default = 0,
+	default = 0, numbers = "number",
 
-	constants = { e = math.exp(1), inf = 1 / 0, nan = 0 / 0 },
+	constants = { e = math.exp(1), inf = 1 / 0, nan = 0 / 0, pi = math.pi },
 	binary_ops = {
 		["^"] = { op = function(oper1, oper2, params) return oper1(params) ^ oper2(params) end, prec = 2 },
 		["*"] = { op = function(oper1, oper2, params) return oper1(params) * oper2(params) end, prec = 3 },
@@ -91,4 +94,39 @@ local Grammar = {
 	}
 }
 
-return { grammar = Grammar, gdef = expression.DefineGrammar(Grammar) }
+local gdef = expression.DefineGrammar(Grammar)
+
+return {
+	grammar = Grammar, gdef = gdef,
+
+	fix_constant = function(what)
+		if what == "-inf" then
+			return -1 / 0
+		elseif what == "inf" then
+			return 1 / 0
+		elseif what == "nan" then
+			return 0 / 0
+		else
+			return tonumber(what)
+		end
+	end,
+
+	set_editable_text = function(editable, text)
+		local str = editable:GetString()
+
+		if tonumber(text) then
+			str.text = text
+		else
+			local expr_obj = expression.Process(gdef, text)
+			local res = expr_obj and expr_obj()
+
+			if res ~= res then
+				str.text = "nan"
+			elseif res and 1 / res == 0 then
+				str.text = res < 0 and "-inf" or "inf"
+			elseif res then
+				str.text = res
+			end
+		end
+	end
+}

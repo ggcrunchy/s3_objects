@@ -30,8 +30,13 @@ local state_vars = require("config.StateVariables")
 --
 --
 
+local function EditorEvent (what, arg1, arg2, arg3)
+	--
+end
+
 return function(info)
 	if info == "editor_event" then
+		return EditorEvent
 		-- TODO!
 		-- get: return interpolated value?
 		-- within: is inside?
@@ -43,9 +48,10 @@ return function(info)
 		return "number"
 	else
 		-- TODO
-
-		return function()
-			return -- TODO
+		local function interval ()
+			--
 		end
+
+		return interval
 	end
 end

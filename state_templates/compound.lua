@@ -41,7 +41,7 @@ local M = {}
 
 local LinkSuper
 
-local function LinkCompound (cvalue, other, sub, other_sub)
+local function LinkCompound (cvalue, other, sub, other_sub, links)
 	local instance_to_label = cvalue.named_labels
 	local label = instance_to_label and instance_to_label[sub]
 
@@ -60,7 +60,7 @@ local function LinkCompound (cvalue, other, sub, other_sub)
 			cvalue.named_labels = nil
 		end
 	else
-		LinkSuper(cvalue, other, sub, other_sub)
+		LinkSuper(cvalue, other, sub, other_sub, links)
 	end
 end
 
