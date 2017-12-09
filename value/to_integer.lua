@@ -70,6 +70,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
+		arg1.get = { friendly_name = "INT: Result", is_source = true }
 		arg1.value = "NUM: Value to convert"
 
 	-- Get Tag --
