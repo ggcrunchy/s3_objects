@@ -42,10 +42,8 @@ local Prefix = "get_"
 
 local InProperties = {
 	boolean = Prefix .. "bools",
-	integer = Prefix .. "ints",
 	number = Prefix .. "nums",
-	string = Prefix .. "strs",
-	uint = Prefix .. "uints"
+	string = Prefix .. "strs"
 }
 
 local InPropertiesMulti = {}

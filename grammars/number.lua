@@ -112,20 +112,18 @@ return {
 	end,
 
 	set_editable_text = function(editable, text)
-		local str = editable:GetString()
-
 		if tonumber(text) then
-			str.text = text
+			editable:SetStringText(text)
 		else
 			local expr_obj = expression.Process(gdef, text)
 			local res = expr_obj and expr_obj()
 
 			if res ~= res then
-				str.text = "nan"
+				editable:SetStringText("nan")
 			elseif res and 1 / res == 0 then
-				str.text = res < 0 and "-inf" or "inf"
+				editable:SetStringText(res < 0 and "-inf" or "inf")
 			elseif res then
-				str.text = res
+				editable:SetStringText(res)
 			end
 		end
 	end

@@ -97,6 +97,7 @@ function M.Make (vtype, def, add_constant, fix_constant)
 		-- arg1: Defaults
 		elseif what == "enum_defs" then
 			arg1.constant_value = def
+			arg1.family = state_vars.families[#state_vars.families]
 			arg1.update_policy = "cached"
 			arg1.variable = true
 	
