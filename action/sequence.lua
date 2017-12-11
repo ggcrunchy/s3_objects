@@ -81,7 +81,7 @@ local function EditorEvent (what, arg1, _, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", nil, "stages*"
+		return "extend", "stages*", nil
 
 	-- Prep Action Link --
 	-- arg1: Parent handler

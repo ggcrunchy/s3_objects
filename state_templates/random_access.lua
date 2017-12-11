@@ -1,4 +1,4 @@
---- Given an array of booleans, pick one.
+--- Common logic used to add values to, and remove them from, a random access container.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -22,3 +22,23 @@
 --
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
+
+-- Modules --
+local bind = require("tektite_core.bind")
+local expression = require("s3_utils.state.expression")
+local state_vars = require("config.StateVariables")
+
+-- Exports --
+local M = {}
+
+--
+--
+--
+
+-- array, map
+-- actions: append; pop; insert; remove
+-- in props: insert_pos; remove_pos; at_index / key
+-- out props: get; count; contains (troublesome for numbers...); empty; front; back; (hmm, array / set might need to be distinct)
+-- events: on(add), on(remove), on(tried_to_remove_when_empty), on(bad_insert_pos), on(bad_remove_pos), on(bad_get_pos),
+-- on(tried_to_add_when_full), on(get_when_empty), on(became_empty), on(became_full)
+-- misc: max count / hard max, persist across reset

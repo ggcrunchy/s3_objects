@@ -102,7 +102,7 @@ return {
 	fix_constant = function(what)
 		if what == "-inf" then
 			return -1 / 0
-		elseif what == "inf" then
+		elseif what == "+inf" then
 			return 1 / 0
 		elseif what == "nan" then
 			return 0 / 0
@@ -121,7 +121,7 @@ return {
 			if res ~= res then
 				editable:SetStringText("nan")
 			elseif res and 1 / res == 0 then
-				editable:SetStringText(res < 0 and "-inf" or "inf")
+				editable:SetStringText(res < 0 and "-inf" or "+inf")
 			elseif res then
 				editable:SetStringText(res)
 			end

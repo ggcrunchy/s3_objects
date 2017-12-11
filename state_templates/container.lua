@@ -1,4 +1,4 @@
---- Common logic used to pick from an array of values.
+--- Common logic used to add values to, and remove them from, a container.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -33,60 +33,9 @@ local M = {}
 --
 --
 
-local LinkSuper
-
-local function LinkValue (bvalue, other, sub)
-	--
-end
-
---- DOCME
-function M.Make (vtype)
-
-	local function EditorEvent (what, arg1, arg2, arg3)
-		-- Enumerate Properties --
-		-- arg1: Dialog
-		if what == "enum_props" then
-			--
-
-		-- Get Link Info --
-		-- arg1: Info to populate
-		elseif what == "get_link_info" then
-			--
-
-		-- Get Tag --
-		elseif what == "get_tag" then
-			--
-
-		-- New Tag --
-		elseif what == "new_tag" then
-			--
-
-		-- Prep Value Link --
-		-- arg1: Parent handler
-		elseif what == "prep_link:value" then
-			LinkSuper = LinkSuper or arg1
-
-			return LinkValue
-		
-		-- Verify --
-		-- arg1: Verify block
-		-- arg2: Values
-		-- arg3: Key
-		elseif what == "verify" then
-			-- 
-		end
-	end
-
-	return function(info, wname)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
-		else
-			--
-		end
-	end
-end
-
--- Export the module.
-return M
+-- stack, queue, ring buffer, singleton
+-- actions: add; remove
+-- out props: peek; "get" = extract, i.e. peek + remove; count; empty
+-- in props: value
+-- events: on(add), on(remove), on(remove_when_empty), on(add_when_full), on(get_when_empty), on(became_empty), on(became_full)
+-- misc: max count / hard max, persist across reset

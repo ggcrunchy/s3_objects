@@ -1,4 +1,4 @@
---- Common logic used to pick from a set of values.
+--- Given an array of actions, do the ones referred to by an index.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -35,7 +35,7 @@ local M = {}
 
 local LinkSuper
 
-local function LinkValue (bvalue, other, sub)
+local function LinkDoIndexed (bvalue, other, sub)
 	--
 end
 
@@ -61,12 +61,12 @@ function M.Make (vtype)
 		elseif what == "new_tag" then
 			--
 
-		-- Prep Value Link --
+		-- Prep Action Link --
 		-- arg1: Parent handler
-		elseif what == "prep_link:value" then
+		elseif what == "prep_link:action" then
 			LinkSuper = LinkSuper or arg1
 
-			return LinkValue
+			return LinkDoIndexed
 		
 		-- Verify --
 		-- arg1: Verify block
@@ -80,8 +80,6 @@ function M.Make (vtype)
 	return function(info, wname)
 		if info == "editor_event" then
 			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
 		else
 			--
 		end
