@@ -25,7 +25,6 @@
 
 -- Standard library imports --
 local max = math.max
-local next = next
 local pairs = pairs
 local tonumber = tonumber
 
@@ -39,25 +38,11 @@ local bind = require("tektite_core.bind")
 local LinkSuper
 
 local function LinkSequence (sequence, other, ssub, other_sub, links)
-	local instance_to_index = sequence.named_labels
-	local index = instance_to_index and instance_to_index[ssub]
+	local helper = bind.PrepLink(sequence, other, ssub, other_sub)
 
-	if index then
-		local list = sequence.stages or {}
+	helper("try_instances", "named_labels", "stages")
 
-		bind.AddId(list, index, other.uid, other_sub)
-
-		sequence.stages = list
-
-		-- Cull the labels. In most circumstances IDs could be bound directly into the table,
-		-- but this accounts for the case of labels also being instance names. (This is rather
-		-- paranoid since these should be indices.)
-		instance_to_index[ssub] = nil
-
-		if next(instance_to_index, nil) == nil then
-			sequence.named_labels = nil
-		end
-	else
+	if not helper("commit") then
 		LinkSuper(sequence, other, ssub, other_sub, links)
 	end
 end

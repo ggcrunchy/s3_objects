@@ -24,7 +24,6 @@
 --
 
 -- Standard library imports --
-local next = next
 local pairs = pairs
 
 -- Modules --
@@ -41,26 +40,13 @@ local M = {}
 
 local LinkSuper
 
-local function LinkCompound (cvalue, other, sub, other_sub, links)
-	local instance_to_label = cvalue.named_labels
-	local label = instance_to_label and instance_to_label[sub]
+local function LinkCompound (cvalue, other, csub, other_sub, links)
+	local helper = bind.PrepLink(cvalue, other, csub, other_sub)
 
-	if label then
-		local list = cvalue.values or {}
+	helper("try_instances", "named_labels", "values")
 
-		bind.AddId(list, label, other.uid, other_sub)
-
-		cvalue.values = list
-
-		-- Cull the labels. In most circumstances IDs could be bound directly into the table,
-		-- but this accounts for the case of labels also being instance names.
-		instance_to_label[sub] = nil
-
-		if next(instance_to_label, nil) == nil then
-			cvalue.named_labels = nil
-		end
-	else
-		LinkSuper(cvalue, other, sub, other_sub, links)
+	if not helper("commit") then
+		LinkSuper(cvalue, other, csub, other_sub, links)
 	end
 end
 
