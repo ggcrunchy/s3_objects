@@ -43,7 +43,7 @@ local LinkSuper
 local function LinkCompound (cvalue, other, csub, other_sub, links)
 	local helper = bind.PrepLink(cvalue, other, csub, other_sub)
 
-	helper("try_instances", "named_labels", "values")
+	helper("try_in_instances", "named_labels", "values")
 
 	if not helper("commit") then
 		LinkSuper(cvalue, other, csub, other_sub, links)

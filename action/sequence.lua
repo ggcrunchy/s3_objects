@@ -40,7 +40,7 @@ local LinkSuper
 local function LinkSequence (sequence, other, ssub, other_sub, links)
 	local helper = bind.PrepLink(sequence, other, ssub, other_sub)
 
-	helper("try_instances", "named_labels", "stages")
+	helper("try_in_instances", "named_labels", "stages")
 
 	if not helper("commit") then
 		LinkSuper(sequence, other, ssub, other_sub, links)
