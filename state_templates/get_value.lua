@@ -132,10 +132,18 @@ function M.Make (vtype, def, add_constant, fix_constant)
 			arg1:SetStateFromValue_Watch(variable_section, "variable")
 			arg1:SetStateFromValue_Watch(fresh_section, "update_policy", WillBake)
 
+		-- Get Link Grouping --
+		elseif what == "get_link_grouping" then
+			return {
+				{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_family",
+				{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+			}
+
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = { friendly_name = state_vars.abbreviations[vtype] .. ": Get value", is_source = true }
+			arg1.get = state_vars.abbreviations[vtype] .. ": Get value"
 			arg1.get_family = "FAM: Variable family"
 
 		-- Get Tag --

@@ -90,7 +90,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		arg1.persist_across_reset = false
 		arg1.ibound1, arg1.ibound2 = 1, 1
 		arg1.nbound1, arg1.nbound2 = 0, 1
-		-- arg1.seed1, arg1.seed2 = Seed1, Seed2
+		arg1.seed1, arg1.seed2 = Seed1, Seed2
 
 	-- Enumerate Properties --
 	-- arg1: Dialog
@@ -100,9 +100,18 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		-- various bounds...
 		-- seeds
 
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_nbound1", "get_nbound2", "get_ibound1", "get_ibound2", "get_seed1", "get_seed2",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
+		arg1.get = "Random number"
 		arg1.get_ibound1 = "INT: Bound #1"
 		arg1.get_ibound2 = "INT: Bound #2"
 		arg1.get_nbound1 = "NUM: Bound #1"
@@ -135,6 +144,12 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		if has_ints and (arg1.links:HasLinks(arg3, "get_nbound1") or arg1.links:HasLinks(arg3, "get_nbound2")) then
 			arg1[#arg1 + 1] = "RNG `" .. arg2.name .. "` links to both integer and number bounds getters"
 		end
+--[[
+TODO: would be nice, but how to achieve?
+		if arg1.links:HasLinks(arg3, "get_integer") and not has_ints then
+			arg1[#arg1 + 1] = "RNG `get_integer` links require integer bounds"
+		end
+		]]
 	end
 end
 
@@ -167,9 +182,9 @@ end
 
 return function(info, wlist)
 	if not Seed1 then
-		local _, get_zw = mwc_rng.MakeGenerator()
+		local _, get_zw = mwc_rng.MakeGenerator{ get_zw = true }
 
-		Seed1, Seed2 = get_zw{ get_zw = true }
+		Seed1, Seed2 = get_zw()
 	end
 	
 	if info == "editor_event" then

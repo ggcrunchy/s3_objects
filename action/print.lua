@@ -65,11 +65,11 @@ local function LinkPrint (print, other, psub, other_sub, links)
 end
 
 local function AddLinkInfo (info, name)
-	info[Prefix .. name] = "Value(s) for $" .. name:upper()
+	info[Prefix .. name] = name:sub(1, -2):upper() .. ": Value(s) for $" .. name:sub(1, 1):upper()
 end
 
 local function Find (message, name)
-	local specifier = "$" .. name:sub(#Prefix + 1)
+	local specifier = "$" .. name:sub(#Prefix + 1, #Prefix + 1)
 
 	return message:find(specifier, 1, true), specifier
 end
@@ -95,6 +95,14 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg1: Dialog
 	elseif what == "enum_props" then
 		arg1:AddString{ value_name = "message", before = "Message:" }
+
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", -- rest filled in automatically
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead"
+		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate

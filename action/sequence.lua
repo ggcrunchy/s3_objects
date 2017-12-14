@@ -55,9 +55,18 @@ local function EditorEvent (what, arg1, _, arg3)
 	if what == "build" then
 		arg3.named_labels = arg3.labeled_instances
 
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "ACTIONS", font = "bold", r = .2, g = .7, b = .2 }, "fire",
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead", "stages*"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
+		arg1.fire = "Launch"
 		arg1["stages*"] = "Stages, in order"
 
 	-- Get Tag --

@@ -178,17 +178,31 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	elseif what == "enum_props" then
 		-- spinners for count assignement, limit
 
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "ACTIONS", font = "bold", color = "actions" }, "do_decrement", "do_increment", "do_reset",
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_limit",
+			{ text = "SET COUNTER", font = "bold", r = .2, g = .7, b = .2 }, "get_count", "do_set",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before", "on_one_to_zero", "on_zero_to_one", "on_hit_limit", "on_try_to_decrement_zero", "on_try_to_exceed_limit"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.get = { "UINT: Counter value", is_source = true }
+		arg1.do_decrement = "Decrement"
+		arg1.do_increment = "Increment"
+		arg1.do_reset = "Reset"
+		arg1.do_set = "Set it"
+		arg1.get = "UINT: Counter value"
 		arg1.get_count = "UINT: Count to assign"
 		arg1.get_limit = "UINT: Upper limit"
-		arg1.on_hit_limit = "On(hit limit)"
-		arg1.on_one_to_zero = "On(decrement 1 -> 0)"
+		arg1.on_hit_limit = "On(hit upper limit)"
+		arg1.on_one_to_zero = "On(decremented to 0)"
 		arg1.on_try_to_decrement_zero = "On(try to decrement 0)"
 		arg1.on_try_to_exceed_limit = "On(try to exceed limit)"
-		arg1.on_zero_to_one = "On(increment 0 -> 1)"
+		arg1.on_zero_to_one = "On(incremented from 0)"
 
 	-- Get Tag --
 	elseif what == "get_tag" then

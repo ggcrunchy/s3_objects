@@ -107,9 +107,18 @@ function M.Make (vtype, def, add_constant, fix_constant)
 			arg1:SetStateFromValue_Watch(constant_section, "variable", "use_false")
 			arg1:SetStateFromValue_Watch(variable_section, "variable")
 
+		-- Get Link Grouping --
+		elseif what == "get_link_grouping" then
+			return {
+				{ text = "SET " .. vtype:upper(), font = "bold", r = .2, g = .7, b = .2 }, "value", "fire",
+				{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", "get_family",
+				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead"
+			}
+
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
+			arg1.fire = "Set it"
 			arg1.get_family = "FAM: Variable family"
 			arg1.value = state_vars.abbreviations[vtype] .. ": Value to set"
 

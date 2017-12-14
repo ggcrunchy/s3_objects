@@ -208,12 +208,11 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
-			{ text = "EVENTS", font = "bold", r = 1, g = 0, b = 0 }, "fire",
-			{ text = "IN-PROPERTIES", font = "bold", r = 0, g = 1, b = 0 }, "can_fire", "wants_to_quit",
-			{ text = "CANCELLATION", font = "bold", r = 0, g = 0, b = 1 }, "get_cancel_id", "do_cancel",
-			{ text = "STOCK ACTIONS", font = "bold", r = .5, g = 0, b = .5, is_source = true }, "next", "instead",
-			{ text = "CUSTOM ACTIONS", font = "bold", r = 0, g = .5, b = .5, is_source = true }, "on_cancel", "on_perform", "on_quit", "on_too_many",
-			{ text = "OUT-PROPERTIES", font = "bold", r = .5, g = .5, b = 0, is_source = true }, "most_recent_id"
+			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", "wants_to_quit",
+			{ text = "CANCELLATION", font = "bold", r = .2, g = .7, b = .2 }, "get_cancel_id", "do_cancel",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead", "on_cancel", "on_perform", "on_quit", "on_too_many",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "most_recent_id"
 		}
 
 	-- Get Link Info --

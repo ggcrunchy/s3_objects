@@ -77,10 +77,18 @@ function M.Make (vtype, gdef, suffix, rtype)
 			arg1:AddString{ text = "Binding policy", is_static = true }
 			arg1:AddListbox(BindingPolicy)
 
+		-- Get Link Grouping --
+		elseif what == "get_link_grouping" then
+			return {
+				{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "values*",
+				{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+			}
+
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = { friendly_name = state_vars.abbreviations[rtype] .. " Result", is_source = true }
+			arg1.get = state_vars.abbreviations[rtype] .. ": Result"
 			arg1["values*"] = { friendly_name = state_vars.abbreviations[vtype] .. "S: Source values", is_set = true }
 
 		-- Get Tag --
