@@ -204,6 +204,15 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		-- numeric textfield?
 		-- spinner for iterations?
 
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			"Events", "fire", "do_cancel",
+			"In-properties", "get_cancel_id", "wants_to_quit",
+			{ text = "Actions", is_source = true }, "on_cancel", "on_perform", "on_quit", "on_too_many",
+			{ text = "Out-properties", is_source = true }, "most_recent_id"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
