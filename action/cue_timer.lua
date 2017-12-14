@@ -32,6 +32,7 @@ local bind = require("tektite_core.bind")
 local state_vars = require("config.StateVariables")
 
 -- Corona globals --
+local native = native
 local timer = timer
 
 --
@@ -207,19 +208,21 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
-			"Events", "fire", "do_cancel",
-			"In-properties", "get_cancel_id", "wants_to_quit",
-			{ text = "Actions", is_source = true }, "on_cancel", "on_perform", "on_quit", "on_too_many",
-			{ text = "Out-properties", is_source = true }, "most_recent_id"
+			{ text = "EVENTS", font = "bold", r = 1, g = 0, b = 0 }, "fire",
+			{ text = "IN-PROPERTIES", font = "bold", r = 0, g = 1, b = 0 }, "can_fire", "wants_to_quit",
+			{ text = "CANCELLATION", font = "bold", r = 0, g = 0, b = 1 }, "get_cancel_id", "do_cancel",
+			{ text = "STOCK ACTIONS", font = "bold", r = .5, g = 0, b = .5, is_source = true }, "next", "instead",
+			{ text = "CUSTOM ACTIONS", font = "bold", r = 0, g = .5, b = .5, is_source = true }, "on_cancel", "on_perform", "on_quit", "on_too_many",
+			{ text = "OUT-PROPERTIES", font = "bold", r = .5, g = .5, b = 0, is_source = true }, "most_recent_id"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.do_cancel = "Cancel a timer"
+		arg1.do_cancel = "Cancel it"
 		arg1.fire = "Cue a timer"
 		arg1.get_cancel_id = "UINT: Timer to cancel"
-		arg1.most_recent_id = { friendly_name = "UINT: Most recent timer", is_source = true }
+		arg1.most_recent_id = "UINT: Most recent timer"
 		arg1.on_cancel = "On(cancel)"
 		arg1.on_perform = "On(perform)"
 		arg1.on_quit = "On(quit)"
