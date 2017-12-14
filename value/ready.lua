@@ -80,10 +80,18 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		arg1:AddCheckbox{ value_name = "as_count", text = "Interpret amount as times fetched?" }
 		arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_amount", "should_disable", "start_ready",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.get = { friendly_name = "BOOL: Is ready?", is_source = true }
+		arg1.get = "BOOL: Is ready?"
 		arg1.get_amount = "NUM: Count or delay until ready again"
 		arg1.should_disable = "BOOL: Disable after reporting ready?"
 		arg1.start_ready = "BOOL: Start in ready state?"

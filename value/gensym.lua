@@ -31,10 +31,17 @@ local strings = require("tektite_core.var.strings")
 --
 
 local function EditorEvent (what, arg1)
+	-- Get Link Grouping --
+	if what == "get_link_grouping" then
+		return {
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
-	if what == "get_link_info" then
-		arg1.get = { friendly_name = "STR: Generate symbol", is_source = true }
+	elseif what == "get_link_info" then
+		arg1.get = "STR: Generate symbol"
 	end
 end
 

@@ -48,6 +48,18 @@ local function EditorEvent (what, arg1)
 	-- arg1: Dialog
 	elseif what == "enum_props" then
 		arg1:AddFamilyList{ value_name = "family" }
+
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+		}
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.get = "FAM: Choice"
 	end
 end
 

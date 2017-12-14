@@ -247,12 +247,18 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 		arg1:AddCheckbox{ text = "Starts forward?", value_name = "forward" }
 		arg1:AddCheckbox{ text = "Reverse on trip?", value_name = "reverses" }
 
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "EVENTS", font = "bold", color = "actions", is_source = true }, "trip", "ftrip", "rtrip"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.trip = "Link to event target"
-		arg1.ftrip = "Forward-only link"
-		arg1.rtrip = "Reverse-only link"
+		arg1.trip = "Fire target action"
+		arg1.ftrip = "Fire forward-only action"
+		arg1.rtrip = "Fire reverse-only action"
 
 	-- Get Tag --
 	elseif what == "get_tag" then

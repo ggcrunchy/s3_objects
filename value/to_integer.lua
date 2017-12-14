@@ -67,10 +67,18 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	elseif what == "enum_props" then
 		arg1:AddListbox{ value_name = "method", "ceiling", "floor", "round", "truncate" }
 
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "value",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+		}
+
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.get = { friendly_name = "INT: Result", is_source = true }
+		arg1.get = "INT: Result"
 		arg1.value = "NUM: Value to convert"
 
 	-- Get Tag --

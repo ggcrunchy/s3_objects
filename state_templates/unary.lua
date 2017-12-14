@@ -103,12 +103,19 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 			--
 			arg1:SetStateFromValue_Watch(expression_section, "use_expression")
 			arg1:SetStateFromValue_Watch(ops_section, "use_expression", "use_false")
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "value",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+		}
 
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = { friendly_name = state_vars.abbreviations[rtype] .. ": result", is_source = true }
-			arg1.value = state_vars.abbreviations[vtype] .. ": source value"
+			arg1.get = state_vars.abbreviations[rtype] .. ": Result"
+			arg1.value = state_vars.abbreviations[vtype] .. ": Source value"
 
 		-- Get Tag --
 		elseif what == "get_tag" then

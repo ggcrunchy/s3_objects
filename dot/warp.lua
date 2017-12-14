@@ -616,7 +616,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.from = { text = "Link from source warp", is_source = true }
+		arg1.from = { friendly_name = "Link from source warp", is_source = true }
 		arg1.to = "Link to target (warp or position)"
 
 	-- Get Tag --
