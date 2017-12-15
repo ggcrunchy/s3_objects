@@ -31,18 +31,20 @@ local tonumber = tonumber
 -- Modules --
 local bind = require("tektite_core.bind")
 
--- Exports --
-local M = {}
+--
+--
+--
 
---
---
---
+local Events = { on_bad_index = bind.BroadcastBuilder_Helper(nil) }
+local InProperties = { uint = "get_index" }
 
 local LinkSuper
 
 local function LinkDoIndexed (indexed, other, isub, other_sub, links)
 	local helper = bind.PrepLink(indexed, other, isub, other_sub)
 
+	helper("try_events", Events)
+	helper("try_in_properties", InProperties)
 	helper("try_in_instances", "named_labels", "choices")
 
 	if not helper("commit") then
@@ -50,7 +52,7 @@ local function LinkDoIndexed (indexed, other, isub, other_sub, links)
 	end
 end
 
-local function EditorEvent (what, arg1, arg2, arg3)
+local function EditorEvent (what, arg1, _, arg3)
 	-- Build --
 	-- arg1: Level
 	-- arg2: Entry
@@ -61,16 +63,18 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
-			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
+			{ text = "LAUNCH", font = "bold", color = "unary_action" }, "get_index", "fire",
 			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead", "choices*"
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "choices*", "on_bad_index", "next", "instead"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.fire = "Launch choice"
 		arg1["choices*"] = "Array of choices"
+		arg1.fire = "Launch it"
+		arg1.get_index = "Choose action"
+		arg1.on_bad_index = "On(bad index)"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
@@ -78,7 +82,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", "choices*", nil
+		return "extend", { ["choices*"] = true, on_bad_index = true }, nil, nil, InProperties
 
 	-- Prep Action Link --
 	-- arg1: Parent handler
@@ -92,7 +96,9 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Values
 	-- arg3: Representative object
 	elseif what == "verify" then
-		-- Has indexing link...
+		if not arg1.links:HasLinks(arg3, "get_indexed") then
+			arg1[#arg1 + 1] = "do_indexed actions require `get_index` link"
+		end
 	end
 end
 
@@ -111,20 +117,30 @@ return function(info, wlist)
 			end
 		end
 
-		return function()
-			if n > 0 then
-				--[[ get index
-				if i >= 1 and i <= n then
-					local func = object_to_broadcaster[i]
+		local get_index
+
+		local function do_indexed (comp)
+			if comp then
+				get_index = comp
+			else
+				local index = get_index()
+
+				if index >= 1 and index <= n then
+					local func = object_to_broadcaster[index]
 
 					if func then
 						func("fire", false)
 					end
 				else
-					out_of_bounds()
+					Events.on_bad_index(do_indexed, "fire", false)
 				end
-				]]
 			end
 		end
+
+		Events.on_bad_index.Subscribe(do_indexed, info.on_bad_index, wlist)
+
+		bind.Publish(wlist, info.get_index, do_indexed)
+
+		return do_indexed
 	end
 end

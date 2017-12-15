@@ -29,18 +29,20 @@ local pairs = pairs
 -- Modules --
 local bind = require("tektite_core.bind")
 
--- Exports --
-local M = {}
+--
+--
+--
 
---
---
---
+local Events = { on_bad_name = bind.BroadcastBuilder_Helper(nil) }
+local InProperties = { uint = "get_name" }
 
 local LinkSuper
 
 local function LinkDoNamed (named, other, nsub, other_sub, links)
 	local helper = bind.PrepLink(named, other, nsub, other_sub)
 
+	helper("try_events", Events)
+	helper("try_in_properties", InProperties)
 	helper("try_in_instances", "named_labels", "choices")
 
 	if not helper("commit") then
@@ -48,7 +50,7 @@ local function LinkDoNamed (named, other, nsub, other_sub, links)
 	end
 end
 
-local function EditorEvent (what, arg1, arg2, arg3)
+local function EditorEvent (what, arg1, _, arg3)
 	-- Build --
 	-- arg1: Level
 	-- arg2: Entry
@@ -59,16 +61,18 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
-			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
+			{ text = "LAUNCH", font = "bold", color = "unary_action" }, "get_name", "fire",
 			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead", "choices*"
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "choices*", "on_bad_name", "next", "instead"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.fire = "Launch choice"
 		arg1["choices*"] = { friendly_name = "Map of choices", is_set = true }
+		arg1.fire = "Launch it"
+		arg1.get_name = "Choose action"
+		arg1.on_bad_name = "On(bad name)"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
@@ -76,7 +80,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", "choices*", nil
+		return "extend", { ["choices*"] = true, on_bad_name = true }, nil, nil, InProperties
 
 	-- Prep Action Link --
 	-- arg1: Parent handler
@@ -99,14 +103,16 @@ local function EditorEvent (what, arg1, arg2, arg3)
 				local label = arg1.get_label(instances[i])
 
 				if names[label] then
-					arg1[#arg1] = "Name `" .. label .. "`has shown up more than once"
+					arg1[#arg1 + 1] = "Name `" .. label .. "`has shown up more than once"
 				else
 					names[label] = true
 				end
 			end
 		end
 
-		-- Has indexing link...
+		if not arg1.links:HasLinks(arg3, "get_name") then
+			arg1[#arg1 + 1] = "do_named actions require `get_name` link"
+		end
 	end
 end
 
@@ -118,26 +124,39 @@ return function(info, wlist)
 
 		if info.choices then
 			for name, id in pairs(info.choices) do
-				-- TODO: Include a no-op under some nonce, just to know it's one of our keys?
-
 				bind.Subscribe(wlist, id, builder, name)
 			end
 		end
 
-		return function()
-			--[[
-				get name
-	
+		local missing = info.named_labels and {} -- if this is still present, these labels were unassigned
+
+		if missing then
+			for _, label in pairs(info.named_labels) do
+				missing[label] = true
+			end
+		end
+
+		local get_name
+
+		local function do_named (comp)
+			if comp then
+				get_name = comp
+			else
+				local name = get_name()
 				local func = object_to_broadcaster[name]
 
 				if func then
 					func("fire", false)
+				elseif missing and missing[name] then
+					Events.on_bad_name(do_named, "fire", false)
 				end
-
-				-- any way to detect "bad" name?
-					-- possible as above about no-op
 			end
-			]]
 		end
+
+		Events.on_bad_name.Subscribe(do_named, info.on_bad_name, wlist)
+
+		bind.Publish(wlist, info.get_name, do_named)
+
+		return do_named
 	end
 end

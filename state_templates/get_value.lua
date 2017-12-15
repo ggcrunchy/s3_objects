@@ -31,7 +31,6 @@ local bind = require("tektite_core.bind")
 local frames = require("corona_utils.frames")
 local state_vars = require("config.StateVariables")
 local store = require("s3_utils.state.store")
-local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
 local M = {}
@@ -40,14 +39,8 @@ local M = {}
 --
 --
 
-local Families = table_funcs.Weak("k")
-
-local function BindFamily (get_family, getter)
-	Families[getter] = get_family()
-end
-
-local function GetValue (vtype, name, def, getter)
-	local value = store.GetVariable(Families[getter], vtype, name)
+local function GetValue (family, vtype, name, def)
+	local value = store.GetVariable(family, vtype, name)
 
 	if value == nil then
 		return def
@@ -180,48 +173,60 @@ function M.Make (vtype, def, add_constant, fix_constant)
 					return k
 				end
 			else
-				local name, getter = info.var_name
+				local name, family, getter = info.var_name
 
 				if info.update_policy == "cached" then
 					local id, value
 
-					function getter ()
-						local fid = frames.GetFrameID()
+					function getter (comp)
+						if comp then
+							family = comp
+						else
+							local fid = frames.GetFrameID()
 
-						if fid ~= id then
-							id, value = fid, GetValue(vtype, name, def, getter)
+							if fid ~= id then
+								id, value = fid, GetValue(family, vtype, name, def)
+							end
+
+							return value
 						end
-
-						return value
 					end
 				elseif info.update_policy == "bake" then
 					local can_go_stale, session_id, value = info.stale_on_reset
 
-					function getter ()
-						if can_go_stale then
-							local id = state_vars.GetSessionID()
+					function getter (comp)
+						if comp then
+							family = comp
+						else
+							if can_go_stale then
+								local id = state_vars.GetSessionID()
 
-							if id ~= session_id then
-								session_id, value = id
+								if id ~= session_id then
+									session_id, value = id
+								end
 							end
-						end
 
-						if value == nil then
-							value = GetValue(vtype, name, def, getter)
-						end
+							if value == nil then
+								value = GetValue(family, vtype, name, def)
+							end
 
-						return value
+							return value
+						end
 					end
 				else
-					function getter ()
-						return GetValue(vtype, name, def, getter)
+					function getter (comp)
+						if comp then
+							family = comp
+						else
+							return GetValue(family, vtype, name, def)
+						end
 					end
 				end
 
 				if info.get_family then
-					bind.Subscribe(wlist, info.get_family, BindFamily, getter)
+					bind.Subscribe(wlist, info.get_family, getter)
 				else
-					Families[getter] = info.family
+					family = info.family
 				end
 
 				return getter

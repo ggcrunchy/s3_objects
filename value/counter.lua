@@ -39,7 +39,7 @@ local state_vars = require("config.StateVariables")
 local Events = {}
 
 for _, v in ipairs{ "on_hit_limit", "on_one_to_zero", "on_try_to_decrement_zero", "on_try_to_exceed_limit", "on_zero_to_one" } do
-	Events[v] = bind.BroadcastBuilder_Helper("loading_level")
+	Events[v] = bind.BroadcastBuilder_Helper(nil)
 end
 
 local Actions = {
@@ -183,7 +183,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return {
 			{ text = "ACTIONS", font = "bold", color = "actions" }, "do_decrement", "do_increment", "do_reset",
 			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_limit",
-			{ text = "SET COUNTER", font = "bold", r = .2, g = .7, b = .2 }, "get_count", "do_set",
+			{ text = "SET COUNTER", font = "bold", color = "unary_action" }, "get_count", "do_set",
 			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
 			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before", "on_one_to_zero", "on_zero_to_one", "on_hit_limit", "on_try_to_decrement_zero", "on_try_to_exceed_limit"
 		}
@@ -256,7 +256,7 @@ return function(info, wlist)
 		bind.Subscribe(wlist, info.get_limit, counter, "get_limit")
 
 		for k, event in pairs(Events) do
-			event.Subscribe(counter, info[k])
+			event.Subscribe(counter, info[k], wlist)
 		end
 
 		for k in adaptive.IterSet(info.actions) do

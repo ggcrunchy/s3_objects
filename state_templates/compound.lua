@@ -123,7 +123,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 					local label = arg1.get_label(instances[i])
 
 					if names[label] then
-						arg1[#arg1] = "Name `" .. label .. "`has shown up more than once"
+						arg1[#arg1 + 1] = "Name `" .. label .. "`has shown up more than once"
 					else
 						names[label] = true
 					end

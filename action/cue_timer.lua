@@ -42,7 +42,7 @@ local timer = timer
 local Events = {}
 
 for _, v in ipairs{ "on_cancel", "on_perform", "on_quit", "on_too_many" } do
-	Events[v] = bind.BroadcastBuilder_Helper("loading_level")
+	Events[v] = bind.BroadcastBuilder_Helper(nil)
 end
 
 local Timers
@@ -210,7 +210,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return {
 			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
 			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", "wants_to_quit",
-			{ text = "CANCELLATION", font = "bold", r = .2, g = .7, b = .2 }, "get_cancel_id", "do_cancel",
+			{ text = "CANCELLATION", font = "bold", color = "unary_action" }, "get_cancel_id", "do_cancel",
 			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead", "on_cancel", "on_perform", "on_quit", "on_too_many",
 			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "most_recent_id"
 		}
@@ -302,7 +302,7 @@ return function(info, wlist)
 		bind.Subscribe(wlist, info.get_cancel_id, cue) -- see "special commands" in MakeCue()
 
 		for k, event in pairs(Events) do
-			event.Subscribe(cue, info[k])
+			event.Subscribe(cue, info[k], wlist)
 		end
 
 		for k in adaptive.IterSet(info.actions) do

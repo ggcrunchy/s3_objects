@@ -1,4 +1,4 @@
---- Intervals and some operations on them.
+--- Maintain a string container.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,41 +23,4 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Modules --
-local state_vars = require("config.StateVariables")
-
---
---
---
-
-local function EditorEvent (what, arg1, arg2, arg3)
-	--
-end
-
-return function(info)
-	if info == "editor_event" then
-		return EditorEvent
-		-- TODO!
-		-- get: return interpolated value?
-		-- within: is inside?
-			-- can refine for open / closed bounds?
-			-- info.bound1, info.get_bound1, *2
-			-- info.open1, info.get_open1, *2
-		-- t: interpolation time
-			-- info.t (could be slider if no extrapolation), info.get_t
-		-- value: Value "between" bounds -> for t, within
-			-- info.value, info.get_value
-		-- time: Time from [0, 1] (as far as bounds) -> get
-		-- sort bounds? (should probably not sort open, though?)
-		-- On(extrapolate), On(interpolate)?
-	elseif info == "value_type" then
-		return "number"
-	else
-		-- TODO
-		local function interval ()
-			--
-		end
-
-		return interval
-	end
-end
+return require("s3_objects.state_templates.container").Make("string", "")

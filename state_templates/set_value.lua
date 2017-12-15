@@ -30,7 +30,6 @@ local pairs = pairs
 local bind = require("tektite_core.bind")
 local state_vars = require("config.StateVariables")
 local store = require("s3_utils.state.store")
-local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
 local M = {}
@@ -38,12 +37,6 @@ local M = {}
 --
 --
 --
-
-local Families = table_funcs.Weak("k")
-
-local function BindFamily (get_family, getter)
-	Families[getter] = get_family()
-end
 
 local LinkSuper
 
@@ -110,7 +103,7 @@ function M.Make (vtype, def, add_constant, fix_constant)
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then
 			return {
-				{ text = "SET " .. vtype:upper(), font = "bold", r = .2, g = .7, b = .2 }, "value", "fire",
+				{ text = "SET " .. vtype:upper(), font = "bold", color = "unary_action" }, "value", "fire",
 				{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", "get_family",
 				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead"
 			}
@@ -163,22 +156,26 @@ function M.Make (vtype, def, add_constant, fix_constant)
 					return k
 				end
 			else
-				local name, value = info.var_name
+				local name, family, value = info.var_name
 
-				local function setter (comp)
-					if value then
-						store.SetVariable(Families[setter], vtype, name, value())
+				local function setter (comp, get_family)
+					if comp then
+						if get_family then
+							family = comp()
+						else
+							value = comp
+						end
 					else
-						value = comp
+						store.SetVariable(family, vtype, name, value())
 					end
 				end
 
 				bind.Subscribe(wlist, info.value, setter)
 
 				if info.get_family then
-					bind.Subscribe(wlist, info.get_family, BindFamily, setter)
+					bind.Subscribe(wlist, info.get_family, setter, true)
 				else
-					Families[setter] = info.family
+					family = info.family
 				end
 
 				return setter
