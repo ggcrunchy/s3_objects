@@ -1,4 +1,4 @@
---- Reduce an array of numbers to a final result.
+--- Reduce an array of booleans to a final result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,17 +23,8 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- choice: band, bor, bxor, max, min, product, sum
-	elseif info == "value_type" then
-		return "number"
-	else
-		-- TODO
-
-		return function()
-			return -- TODO
-		end
-	end
-end
+return require("s3_objects.state_templates.reduce").Make("boolean", "booleans_op", {
+	"all", function(acc, b) return acc and b end,
+	"any", function(acc, b) return acc or b end,
+	"none", function(acc, b) return acc and not b end
+}, "all", { any = false, default = true })

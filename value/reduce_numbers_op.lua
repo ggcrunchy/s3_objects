@@ -1,4 +1,4 @@
---- Reduce an array of booleans to a final result.
+--- Reduce an array of numbers to a final result.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,17 +23,19 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return function(info)
-	if info == "editor_event" then
-		-- TODO!
-		-- choice: any, all, none
-	elseif info == "value_type" then
-		return "boolean"
-	else
-		-- TODO
+-- Plugins --
+local bit = require("plugin.bit")
 
-		return function()
-			return -- TODO
-		end
-	end
-end
+--
+--
+--
+
+return require("s3_objects.state_templates.reduce").Make("number", "numbers_op", {
+	"band", bit.band,
+	"bor", bit.bor,
+	"bxor", bit.bxor,
+	"max", math.max,
+	"min", math.min,
+	"product", function(acc, n) return acc * n end,
+	"sum", function(acc, n) return acc + n end
+}, "band", { band = bit.bnot(0), max = -1 / 0, min = 1 / 0, product = 1, default = 0 })

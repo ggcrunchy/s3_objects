@@ -167,13 +167,13 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 		end
 	end
 
-	return function(info, wname)
+	return function(info, wlist)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
 			return vtype
 		else
-			local wlist, getter, value1, value2 = wname or "loading_level"
+			local getter, value1, value2
 
 			if info.expression then
 				local expr_object = expression.Process(gdef, info.expression)

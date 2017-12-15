@@ -37,11 +37,11 @@ local M = {}
 
 local LinkSuper
 
-local function LinkValue (bvalue, other, sub, other_sub, links)
+local function LinkValue (uvalue, other, sub, other_sub, links)
 	if sub == "value" then
-		bind.AddId(bvalue, sub, other.uid, other_sub)
+		bind.AddId(uvalue, sub, other.uid, other_sub)
 	else
-		LinkSuper(bvalue, other, sub, other_sub, links)
+		LinkSuper(uvalue, other, sub, other_sub, links)
 	end
 end
 
@@ -103,13 +103,14 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 			--
 			arg1:SetStateFromValue_Watch(expression_section, "use_expression")
 			arg1:SetStateFromValue_Watch(ops_section, "use_expression", "use_false")
-	-- Get Link Grouping --
-	elseif what == "get_link_grouping" then
-		return {
-			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "value",
-			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
-		}
+
+		-- Get Link Grouping --
+		elseif what == "get_link_grouping" then
+			return {
+				{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "value",
+				{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
+			}
 
 		-- Get Link Info --
 		-- arg1: Info to populate
@@ -153,13 +154,13 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 		end
 	end
 
-	return function(info, wname)
+	return function(info, wlist)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
 			return rtype
 		else
-			local wlist, getter, value = wname or "loading_level"
+			local getter, value
 
 			if info.expression then
 				local expr_object = expression.Process(gdef, info.expression)

@@ -306,7 +306,7 @@ return function(info, wlist)
 		end
 
 		for k in adaptive.IterSet(info.actions) do
-			bind.Publish("loading_level", Actions[k](cue), info.uid, k)
+			bind.Publish(wlist, Actions[k](cue), info.uid, k)
 		end
 
 		state_vars.PublishProperties(info.props, OutProperties, info.uid, cue)

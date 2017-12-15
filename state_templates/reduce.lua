@@ -24,6 +24,7 @@
 --
 
 -- Modules --
+local adaptive = require("tektite_core.table.adaptive")
 local bind = require("tektite_core.bind")
 local state_vars = require("config.StateVariables")
 
@@ -36,19 +37,38 @@ local M = {}
 
 local LinkSuper
 
-local function LinkValue (bvalue, other, sub)
-	--
+local function LinkReduce (reduce, other, rsub, other_sub, links)
+	if rsub == "values" then
+		bind.AddId(reduce, rsub, other.uid, other_sub)
+	else
+		LinkSuper(reduce, other, rsub, other_sub, links)
+	end
 end
 
 --- DOCME
-function M.Make (vtype, rtype)
+function M.Make (vtype, suffix, choice_pairs, def_choice, defs, rtype)
 	rtype = rtype or vtype
 
-	local function EditorEvent (what, arg1, arg2, arg3)
+	local list_opts, ops = { value_name = "choice" }, {}
+
+	for i = 1, #choice_pairs, 2 do
+		local name = choice_pairs[i]
+
+		list_opts[#list_opts + 1] = name
+		ops[name] = choice_pairs[i + 1]
+	end
+
+	local function EditorEvent (what, arg1, _, arg3)
+		-- Enumerate Defaults --
+		-- arg1: Defaults
+		if what == "enum_defs" then
+			arg1.choice = def_choice
+
 		-- Enumerate Properties --
 		-- arg1: Dialog
-		if what == "enum_props" then
-			--
+		elseif what == "enum_props" then
+			arg1:AddString{ text = "Choices", is_static = true }
+			arg1:AddListbox(list_opts)
 
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then
@@ -66,7 +86,7 @@ function M.Make (vtype, rtype)
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			return "reduce_" .. vtype
+			return "reduce_" .. suffix
 
 		-- New Tag --
 		elseif what == "new_tag" then
@@ -77,7 +97,7 @@ function M.Make (vtype, rtype)
 		elseif what == "prep_link:value" then
 			LinkSuper = LinkSuper or arg1
 			
-			return LinkValue
+			return LinkReduce
 		
 		-- Verify --
 		-- arg1: Verify block
@@ -88,13 +108,35 @@ function M.Make (vtype, rtype)
 		end
 	end
 
-	return function(info, wname)
+	return function(info, wlist)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
 			return rtype
 		else
-			--
+			local def, op, getter, values = defs[info.choice], ops[info.choice]
+
+			if def == nil then
+				def = defs.default
+			end
+
+			function getter (comp)
+				if comp then
+					values = adaptive.Append(values, comp)
+				else
+					local result = def
+
+					for _, value in adaptive.IterArray(values) do
+						result = op(result, value())
+					end
+
+					return result
+				end
+			end
+
+			bind.Subscribe(wlist, info.value, getter)
+
+			return getter
 		end
 	end
 end
