@@ -64,12 +64,18 @@ local function LinkPrint (print, other, psub, other_sub, links)
 	end
 end
 
+local function Specifier (name, offset)
+	offset = (offset or 0) + 1
+
+	return "{" .. name:sub(offset, offset):upper() .. "}"
+end
+
 local function AddLinkInfo (info, name)
-	info[Prefix .. name] = name:sub(1, -2):upper() .. ": Value(s) for $" .. name:sub(1, 1):upper()
+	info[Prefix .. name] = name:sub(1, -2):upper() .. ": Value(s) for " .. Specifier(name)
 end
 
 local function Find (message, name)
-	local specifier = "$" .. name:sub(#Prefix + 1, #Prefix + 1)
+	local specifier = Specifier(name, #Prefix)
 
 	return message:find(specifier, 1, true), specifier
 end
@@ -101,13 +107,15 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return {
 			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
 			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", -- rest filled in automatically
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead"
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get_string"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.fire = "Print message"
+		arg1.get_string = "STR: Resolved message"
 
 		for _, name in pairs(InProperties) do
 			AddLinkInfo(arg1, name:sub(#Prefix + 1))
@@ -119,7 +127,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend_properties", nil, InPropertiesMulti
+		return "extend_properties", { string = "get_string" }, InPropertiesMulti
 
 	-- Prep Action Link --
 	-- arg1: Parent handler
@@ -134,9 +142,9 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg3: Representative object
 	elseif what == "verify" then
 		for vtype, name in pairs(InProperties) do
-			local found, _, specifier = Find(arg2.message, name)
+			local found, specifier = Find(arg2.message, name)
 
-			if found and not arg1.links:HasLinks(name) then
+			if found and not arg1.links:HasLinks(arg3, name) then
 				arg1[#arg1 + 1] = "`" .. specifier .. "` found without " .. vtype .. " value(s) to satisfy it"
 			end
 		end
@@ -149,9 +157,9 @@ return function(info, wlist)
 	else
 		local message, values = info.message
 
-		local function print_message (comp, arg)
+		local function get_string (comp, arg)
 			if comp then
-				local specifier = "%$" .. arg:sub(#Prefix + 1):upper()
+				local specifier = Specifier(arg, #Prefix)
 
 				values = values or {}
 				values[specifier] = adaptive.Append(values[specifier], comp)
@@ -174,14 +182,16 @@ return function(info, wlist)
 					end
 				end
 
-				print(resolved)
+				return resolved
 			end
 		end
 
 		for _, name in pairs(InProperties) do
-			bind.Subscribe(wlist, info[name], print_message, name)
+			bind.Subscribe(wlist, info[name], get_string, name)
 		end
 
-		return print_message
+		return function()
+			print(get_string())
+		end
 	end
 end

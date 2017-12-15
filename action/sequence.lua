@@ -58,7 +58,7 @@ local function EditorEvent (what, arg1, _, arg3)
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
-			{ text = "ACTIONS", font = "bold", r = .2, g = .7, b = .2 }, "fire",
+			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
 			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire",
 			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead", "stages*"
 		}

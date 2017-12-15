@@ -1,4 +1,4 @@
---- Common logic used to add values to, and remove them from, a random access container.
+--- Common logic used to maintain a name-value map.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -35,10 +35,16 @@ local M = {}
 --
 --
 
--- array, map
--- actions: append; pop; insert; remove
--- in props: insert_pos; remove_pos; at_index / key
--- out props: get; count; contains (troublesome for numbers...); empty; front; back; (hmm, array / set might need to be distinct)
--- events: on(add), on(remove), on(tried_to_remove_when_empty), on(bad_insert_pos), on(bad_remove_pos), on(bad_get_pos),
--- on(tried_to_add_when_full), on(get_when_empty), on(became_empty), on(became_full)
+-- actions: insert; remove
+-- in props: insert_pos; remove_pos
+-- out props: get; count; contains (troublesome for numbers...); empty
+-- events: on(add), on(remove), on(bad_remove_key), on(bad_get_key), on(tried_to_add_when_full), on(became_empty), on(became_full)
 -- misc: max count / hard max, persist across reset
+
+--- DOCME
+function M.Make (vtype, def)
+	--
+end
+
+-- Export the module.
+return M

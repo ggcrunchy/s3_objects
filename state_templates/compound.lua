@@ -113,17 +113,20 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- arg2: Values
 		-- arg3: Representative object
 		elseif what == "verify" then
-			local tag_db, names = arg1.links:GetTagDatabase()
+			local tag_db, instances, names = arg1.links:GetTagDatabase(), arg1.get_instances(arg3)
+			local tag = arg1.links:GetTag(arg3)
 
-			for instance in tag_db:Sublinks(arg1.links:GetTag(arg3), "values*") do
-				names = names or {}
+			for i = 1, #(instances or "") do
+				if tag_db:GetTemplate(tag, instances[i]) == "values*" then
+					names = names or {}
 
-				local label = arg1.get_label(instance)
+					local label = arg1.get_label(instances[i])
 
-				if names[label] then
-					arg1[#arg1] = "Name `" .. label .. "`has shown up more than once"
-				else
-					names[label] = true
+					if names[label] then
+						arg1[#arg1] = "Name `" .. label .. "`has shown up more than once"
+					else
+						names[label] = true
+					end
 				end
 			end
 

@@ -1,4 +1,4 @@
---- Common logic used to add values to, and remove them from, a container.
+--- Common logic used to maintain an array of values.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -25,6 +25,8 @@
 
 -- Modules --
 local bind = require("tektite_core.bind")
+local expression = require("s3_utils.state.expression")
+local state_vars = require("config.StateVariables")
 
 -- Exports --
 local M = {}
@@ -33,11 +35,11 @@ local M = {}
 --
 --
 
--- stack, queue, ring buffer, singleton (add merely a replace, either empty or full)
--- actions: add; remove
--- out props: "get" = peek; extract, i.e. peek + remove; count; empty
--- in props: value
--- events: on(add), on(remove), on(remove_when_empty), on(add_when_full), on(get_when_empty), on(became_empty), on(became_full)
+-- actions: append; pop; insert; remove
+-- in props: insert_pos; remove_pos; at_index
+-- out props: get; count; contains (troublesome for numbers...); empty; front; back
+-- events: on(add), on(remove), on(tried_to_pop_when_empty), on(bad_insert_pos), on(bad_remove_pos), on(bad_get_pos),
+-- on(tried_to_add_when_full), on(became_empty), on(became_full)
 -- misc: max count / hard max, persist across reset
 
 --- DOCME
