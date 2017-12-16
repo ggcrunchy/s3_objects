@@ -29,7 +29,9 @@ local pairs = pairs
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local bind = require("tektite_core.bind")
+local ring_buffer = require("tektite_core.array.ring_buffer")
 local state_vars = require("config.StateVariables")
+local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
 local M = {}
@@ -37,11 +39,6 @@ local M = {}
 --
 --
 --
-
--- stack, queue, ring buffer, singleton (add merely a replace, either empty or full)
--- actions: add; remove
--- out props: "get" = peek; extract, i.e. peek + remove; count; empty
--- misc: max count / hard max, persist across reset
 
 local Events = {}
 
@@ -101,6 +98,40 @@ local OutProperties = {
 
 local LinkSuper
 
+local Singletons = table_funcs.Weak("k")
+
+local ADT = {
+	queue = function(list, what, arg)
+		if what == "peek" then
+			return list[list.tail or 1]
+		elseif what == "add" then
+			list.head, list.tail = ring_buffer.Push(list, arg, list.head, list.tail, list.limit)
+		elseif what == "remove" then
+			arg, list.head, list.tail = ring_buffer.Pop(list, list.head, list.tail, list.limit) -- arg = junk
+		end
+	end,
+
+	singleton = function(key, what, arg)
+		if what == "peek" then
+			return Singletons[key]
+		elseif what == "add" then
+			Singletons[key] = arg
+		elseif what == "remove" then
+			Singletons[key] = nil
+		end
+	end,
+
+	stack = function(list, what, arg)
+		if what == "peek" then
+			return list[#list]
+		elseif what == "add" then
+			list[#list + 1] = arg
+		elseif what == "remove" then
+			list[#list] = nil
+		end
+	end
+}
+
 --- DOCME
 function M.Make (vtype, def)
 	local InProperties = { [vtype] = "value" }
@@ -139,7 +170,7 @@ function M.Make (vtype, def)
 		-- arg1: Dialog
 		elseif what == "enum_props" then
 			arg1:AddString{ text = "Kind of container:", is_static = true }
-			arg1:AddListbox{ value_name = "kind", "queue", "stack", "ring", "singleton" }
+			arg1:AddListbox{ value_name = "kind", "queue", "stack", "singleton" }
 			-- limit spinner?
 
 		-- Get Link Grouping --
@@ -204,17 +235,77 @@ function M.Make (vtype, def)
 		elseif info == "value_type" then
 			return vtype
 		else
-			local kind, n, container = info.kind, 0
+			local adt, limit, n, t, value = ADT[info.kind], info.limit, 0
 
-			if kind == "queue" then
-				--
-			elseif kind == "ring" then
-				--
-			elseif kind == "singleton" then
-				--
-			elseif kind == "stack" then
-				--
+			local function container (comp)
+				local remove
+
+				if comp then
+					if value then
+						if comp == "count" then
+							return n
+						elseif comp == "add" then
+							if n == limit then
+								Events.on_add_when_full(container, "fire", false)
+							else
+								n = n + 1
+
+								adt(t, "add", value())
+
+								Events.on_add(container, "fire", false)
+
+								if n == limit then
+									Events.on_became_full(container, "fire", false)
+								end
+							end
+						elseif comp == "remove" then
+							remove = true
+						end
+					else
+						value = comp
+					end
+				else
+					remove = true
+				end
+
+				local result
+
+				if n > 0 then
+					result = adt(t, "peek")
+				else
+					result = def
+
+					Events.on_get_when_empty(container, "fire", false)
+				end
+
+				if remove then
+					if n > 0 then
+						n = n - 1
+
+						adt(t, "remove")
+
+						Events.on_remove(container, "fire", false)
+
+						if n == 0 then
+							Events.on_became_empty(container, "fire", false)
+						end
+					else
+						Events.on_remove_when_empty(container, "fire", false)
+					end
+				end
+
+				return result
 			end
+
+			if info.kind == "queue" then
+				t = { limit = limit }
+			elseif info.kind ~= "singleton" then
+				t = {}
+			else
+				t = container -- use as key in weak table
+			end
+
+			bind.Subscribe(wlist, info.get_value, container)
 
 			for k, event in pairs(Events) do
 				event.Subscribe(container, info[k], wlist)
