@@ -35,20 +35,33 @@ local state_vars = require("config.StateVariables")
 --
 --
 
+local Events = { before = bind.BroadcastBuilder_Helper(nil) }
+
 local InProperties = {
 	integer = { get_ibound1 = "ibound1", get_ibound2 = "ibound2", get_seed1 = "seed1", get_seed2 = "seed2" },
 	number = { get_nbound1 = "nbound1", get_nbound2 = "nbound2" }
 }
 
+local OutProperties = {
+	integer = {
+		-- Get Integer --
+		get_integer = function(rng)
+			return rng -- already in proper form
+		end
+	}
+}
+
 local LinkSuper
 
-local function LinkRNG (rng, other, sub, other_sub)
-	local helper = bind.PrepLink(rng, other, sub, other_sub)
+local function LinkRNG (rng, other, rsub, other_sub)
+	local helper = bind.PrepLink(rng, other, rsub, other_sub)
 
+	-- no events, since value will already link Before
 	helper("try_in_properties", InProperties)
+	helper("try_out_properties", OutProperties)
 
 	if not helper("commit") then
-		LinkSuper(rng, other, sub, other_sub)
+		LinkSuper(rng, other, rsub, other_sub)
 	end
 end
 
@@ -104,7 +117,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	elseif what == "get_link_grouping" then
 		return {
 			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_nbound1", "get_nbound2", "get_ibound1", "get_ibound2", "get_seed1", "get_seed2",
-			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get",
+			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get", "get_integer",
 			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before"
 		}
 
@@ -114,6 +127,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		arg1.get = "Random number"
 		arg1.get_ibound1 = "INT: Bound #1"
 		arg1.get_ibound2 = "INT: Bound #2"
+		arg1.get_integer = "Random integer"
 		arg1.get_nbound1 = "NUM: Bound #1"
 		arg1.get_nbound2 = "NUM: Bound #2"
 		arg1.get_seed1 = "INT: Custom seed #1"
@@ -125,7 +139,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend_properties", nil, InProperties
+		return "extend_properties", state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 	-- Prep Value Link --
 	-- arg1: Parent handler
@@ -144,12 +158,10 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		if has_ints and (arg1.links:HasLinks(arg3, "get_nbound1") or arg1.links:HasLinks(arg3, "get_nbound2")) then
 			arg1[#arg1 + 1] = "RNG `" .. arg2.name .. "` links to both integer and number bounds getters"
 		end
---[[
-TODO: would be nice, but how to achieve?
+
 		if arg1.links:HasLinks(arg3, "get_integer") and not has_ints then
 			arg1[#arg1 + 1] = "RNG `get_integer` links require integer bounds"
 		end
-		]]
 	end
 end
 
@@ -201,6 +213,8 @@ return function(info, wlist)
 				if comp then
 					getters = AddGetter(getters, arg, comp)
 				else
+					Events.before(rng, "fire", false)
+
 					local i1, i2
 
 					gen, i1, i2 = Update(is_stale, gen, getters, bound1, bound2, seed1, seed2)
@@ -225,6 +239,8 @@ return function(info, wlist)
 				if comp then
 					getters = AddGetter(getters, arg, comp)
 				else
+					Events.before(rng, "fire", false)
+
 					local n1, n2
 
 					gen, n1, n2 = Update(is_stale, gen, getters, bound1, bound2, seed1, seed2)
@@ -234,11 +250,15 @@ return function(info, wlist)
 			end
 		end
 
+		Events.before.Subscribe(rng, info.get_integer, wlist)
+
 		bind.Subscribe(wlist, info.get_ibound1 or info.get_nbound1, rng, "get_bound1")
 		bind.Subscribe(wlist, info.get_ibound2 or info.get_nbound2, rng, "get_bound2")
 		bind.Subscribe(wlist, info.get_seed1, rng, "get_seed1")
 		bind.Subscribe(wlist, info.get_seed2, rng, "get_seed2")
 
-		return rng
+		state_vars.PublishProperties(info.props, OutProperties, info.uid, rng)
+
+		return rng, "no_before" -- using own Before
 	end
 end
