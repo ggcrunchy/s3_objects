@@ -23,6 +23,11 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local abs = math.abs
+local frexp = math.frexp
+local ldexp = math.ldexp
+
 -- Modules --
 local state_vars = require("config.StateVariables")
 
@@ -34,7 +39,31 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	--
 end
 
-return function(info)
+local NextBefore, NextAfter
+
+function NextAfter (x)
+	local m, e = frexp(x)
+
+	m = m + 2^-53
+
+	if m == 1 then
+		m, e = .5, e + 1
+	end
+
+	return ldexp(m, e)
+end
+
+function NextBefore  (x)
+	local m, e = frexp(x)
+
+	if m == .5 then
+		m, e = 1, e - 1
+	end
+
+	return ldexp(m - 2^-53, e)
+end
+
+return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
 		-- TODO!

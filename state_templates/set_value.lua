@@ -104,8 +104,8 @@ function M.Make (vtype, def, add_constant, fix_constant)
 		elseif what == "get_link_grouping" then
 			return {
 				{ text = "SET " .. vtype:upper(), font = "bold", color = "unary_action" }, "value", "fire",
-				{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", "get_family",
-				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead"
+				{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_family",
+				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next"
 			}
 
 		-- Get Link Info --

@@ -24,6 +24,7 @@
 --
 
 -- Standard library imports --
+local ipairs = ipairs
 local pairs = pairs
 
 -- Modules --
@@ -50,20 +51,23 @@ local function LinkDoNamed (named, other, nsub, other_sub, links)
 	end
 end
 
-local function EditorEvent (what, arg1, _, arg3)
-	-- Build --
-	-- arg1: Level
-	-- arg2: Entry
-	-- arg3: Built
-	if what == "build" then
-		arg3.named_labels = arg3.labeled_instances
+local function EditorEvent (what, arg1, arg2, arg3)
+	-- Build Instances --
+	-- arg1: Built
+	-- arg2: Instances
+	-- arg3: Labels
+	if what == "build_instances" then
+		arg1.named_labels = {}
+
+		for _, instance in ipairs(arg2) do
+			arg1.named_labels[instance] = arg3[instance]
+		end
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
 			{ text = "LAUNCH", font = "bold", color = "unary_action" }, "get_name", "fire",
-			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "choices*", "on_bad_name", "next", "instead"
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "choices*", "on_bad_name", "next"
 		}
 
 	-- Get Link Info --

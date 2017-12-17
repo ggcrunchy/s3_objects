@@ -106,8 +106,8 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	elseif what == "get_link_grouping" then
 		return {
 			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
-			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", -- rest filled in automatically
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead",
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, -- filled in automatically
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next",
 			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get_string"
 		}
 

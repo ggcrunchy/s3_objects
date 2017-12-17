@@ -1,4 +1,4 @@
---- Fire a series of events in sequence.
+--- Do one action or another according to some condition.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -24,10 +24,7 @@
 --
 
 -- Standard library imports --
-local ipairs = ipairs
-local max = math.max
 local pairs = pairs
-local tonumber = tonumber
 
 -- Modules --
 local bind = require("tektite_core.bind")
@@ -36,57 +33,67 @@ local bind = require("tektite_core.bind")
 --
 --
 
+local Events = {}
+
+for _, name in ipairs{ "instead", "next" } do
+	Events[name] = bind.BroadcastBuilder_Helper(nil)
+end
+
+local InProperties = { boolean = "should_do_next" }
+
 local LinkSuper
 
-local function LinkSequence (sequence, other, ssub, other_sub, links)
-	local helper = bind.PrepLink(sequence, other, ssub, other_sub)
+local function LinkBranch (branch, other, bsub, other_sub, links)
+	local helper = bind.PrepLink(branch, other, bsub, other_sub)
 
-	helper("try_in_instances", "named_labels", "stages")
+	helper("try_events", Events)
+	helper("try_in_properties", InProperties)
 
 	if not helper("commit") then
-		LinkSuper(sequence, other, ssub, other_sub, links)
+		LinkSuper(branch, other, bsub, other_sub, links)
 	end
 end
 
-local function EditorEvent (what, arg1, arg2, arg3)
-	-- Build Instances --
-	-- arg1: Built
-	-- arg2: Instances
-	-- arg3: Labels
-	if what == "build_instances" then
-		arg1.named_labels = {}
-
-		for _, instance in ipairs(arg2) do
-			arg1.named_labels[instance] = arg3[instance]
-		end
-
+local function EditorEvent (what, arg1, _, arg3)
 	-- Get Link Grouping --
-	elseif what == "get_link_grouping" then
+	if what == "get_link_grouping" then
 		return {
 			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "stages*"
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "should_do_next",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.fire = "Launch"
-		arg1["stages*"] = "Stages, in order"
+		arg1.fire = "Do choice"
+		arg1.instead = "Instead"
+		arg1.next = "Next"
+		arg1.should_do_next = "BOOL: Do 'Next'?"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
-		return "sequence" 
+		return "branch"
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", { ["stages*"] = true, no_next = true }, nil -- next is superfluous, so suppress it
+		return "extend", "instead", nil, nil, InProperties
 
 	-- Prep Action Link --
 	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
 		LinkSuper = LinkSuper or arg1
 
-		return LinkSequence
+		return LinkBranch
+
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		if not arg1.links:HasLinks(arg3, "should_do_next") then
+			arg1[#arg1 + 1] = "Branch requires decision predicate"
+		end
 	end
 end
 
@@ -94,25 +101,22 @@ return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
 	else
-		local n, builder, object_to_broadcaster = 0, bind.BroadcastBuilder()
+		local should_do_next
 
-		if info.stages then
-			for index, id in pairs(info.stages) do
-				index = tonumber(index)
-				n = max(index, n)
-
-				bind.Subscribe(wlist, id, builder, index)
+		local function branch (comp)
+			if comp then
+				should_do_next = comp
+			else
+				Events[should_do_next() and "next" or "instead"](branch, "fire", false)
 			end
 		end
 
-		return function()
-			for i = 1, n do
-				local func = object_to_broadcaster[i]
+		bind.Subscribe(wlist, info.should_go_next, branch)
 
-				if func then
-					func("fire", false)
-				end
-			end
+		for k, event in pairs(Events) do
+			event.Subscribe(branch, info[k], wlist)
 		end
+
+		return branch, "no_next" -- using own next, so suppress stock version
 	end
 end

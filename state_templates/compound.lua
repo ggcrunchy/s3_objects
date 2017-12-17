@@ -24,6 +24,7 @@
 --
 
 -- Standard library imports --
+local ipairs = ipairs
 local pairs = pairs
 
 -- Modules --
@@ -62,7 +63,18 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- arg2: Entry
 		-- arg3: Built
 		if what == "build" then
-			arg3.named_labels, arg3.binding_policy = arg3.labeled_instances
+			arg3.binding_policy = nil
+
+		-- Build Instances --
+		-- arg1: Built
+		-- arg2: Instances
+		-- arg3: Labels
+		elseif what == "build_instances" then
+			arg1.named_labels = {}
+
+			for _, instance in ipairs(arg2) do
+				arg1.named_labels[instance] = arg3[instance]
+			end
 
 		-- Enumerate Defaults --
 		-- arg1: Defaults

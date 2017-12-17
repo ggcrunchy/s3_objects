@@ -1,4 +1,4 @@
---- Fire a series of events in sequence.
+--- Tether one event to a named source.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,70 +23,77 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local ipairs = ipairs
-local max = math.max
-local pairs = pairs
-local tonumber = tonumber
-
 -- Modules --
+local require_ex = require("tektite_core.require_ex")
+local actions = require_ex.Lazy("s3_utils.state.actions")
 local bind = require("tektite_core.bind")
 
 --
 --
 --
 
+local InProperties = { string = "get_name" }
+
 local LinkSuper
 
-local function LinkSequence (sequence, other, ssub, other_sub, links)
-	local helper = bind.PrepLink(sequence, other, ssub, other_sub)
+local function LinkTetherTo (tether, other, tsub, other_sub, links)
+	local helper = bind.PrepLink(tether, other, tsub, other_sub)
 
-	helper("try_in_instances", "named_labels", "stages")
+	helper("try_in_properties", InProperties)
 
 	if not helper("commit") then
-		LinkSuper(sequence, other, ssub, other_sub, links)
+		LinkSuper(tether, other, tsub, other_sub, links)
 	end
 end
 
 local function EditorEvent (what, arg1, arg2, arg3)
-	-- Build Instances --
-	-- arg1: Built
-	-- arg2: Instances
-	-- arg3: Labels
-	if what == "build_instances" then
-		arg1.named_labels = {}
-
-		for _, instance in ipairs(arg2) do
-			arg1.named_labels[instance] = arg3[instance]
+	-- Build --
+	-- arg1: Level
+	-- arg2: Original entry
+	-- arg3: Action to build
+	if what == "build" then
+		if arg2.get_name then
+			arg3.source_name = nil
 		end
+
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	elseif what == "enum_defs" then
+		arg1.source_name = ""
+
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	elseif what == "enum_props" then
+		arg1:AddString{ value_name = "source_name", before = "Name of source:" }
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
 			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "stages*"
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_name",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.fire = "Launch"
-		arg1["stages*"] = "Stages, in order"
+		arg1.fire = "From"
+		arg1.get_name = "STR: Name of source"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
-		return "sequence" 
+		return "tether_to_named_source"
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", { ["stages*"] = true, no_next = true }, nil -- next is superfluous, so suppress it
+		return "extend_properties", nil, InProperties
 
 	-- Prep Action Link --
 	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
 		LinkSuper = LinkSuper or arg1
 
-		return LinkSequence
+		return LinkTetherTo
 	end
 end
 
@@ -94,25 +101,22 @@ return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
 	else
-		local n, builder, object_to_broadcaster = 0, bind.BroadcastBuilder()
+		local name, get_name = info.source_name
 
-		if info.stages then
-			for index, id in pairs(info.stages) do
-				index = tonumber(index)
-				n = max(index, n)
-
-				bind.Subscribe(wlist, id, builder, index)
-			end
-		end
-
-		return function()
-			for i = 1, n do
-				local func = object_to_broadcaster[i]
-
-				if func then
-					func("fire", false)
+		local function tether_to (comp)
+			if comp then
+				get_name = comp
+			else
+				if get_name then
+					name = get_name()
 				end
+
+				return actions.CallNamedSource(name)
 			end
 		end
+
+		bind.Subscribe(wlist, info.get_name, tether_to)
+
+		return tether_to
 	end
 end

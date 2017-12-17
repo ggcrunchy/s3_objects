@@ -1,4 +1,4 @@
---- Dispatch a custom runtime event.
+--- Named event source.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,27 +23,51 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Modules --
-local bind = require("tektite_core.bind")
-
--- Corona globals --
-local Runtime = Runtime
-
 --
 --
 --
 
-return function(info, wlist)
-	if info == "editor_event" then
-		-- TODO!
-		-- basically just a name + a soup of inputs
-		-- will be sent as an event: "custom:" .. name... then values under each type?
-		-- could also pull them from sets if those are added?
-	else
-		local name -- TODO (also get inputs)
+local function EditorEvent (what, arg1, arg2, arg3)
+	-- Build --
+	-- arg1: Level
+	-- arg2: Original entry
+	-- arg3: Action to build
+	if what == "build" then
+		arg3.name = arg2.name -- name stripped by default
 
-		return function()
-			return -- TODO!
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+		return {
+			{ text = "ACTIONS", font = "bold", color = "actions" },
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }
+			-- ^^ Filled in automatically
+		}
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.fire = "Invoke manually"
+		arg1.next = "Target"
+
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "named_source"
+
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		if not arg1.links:HasLinks(arg3, "next") then
+			arg1[#arg1 + 1] = "Named source must have target"
 		end
+	end
+end
+
+return function(info, _)
+	if info == "editor_event" then
+		return EditorEvent
+	else
+		return nil, "named" -- No body
 	end
 end

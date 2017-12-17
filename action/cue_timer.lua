@@ -209,9 +209,9 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	elseif what == "get_link_grouping" then
 		return {
 			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
-			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "can_fire", "wants_to_quit",
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "wants_to_quit",
 			{ text = "CANCELLATION", font = "bold", color = "unary_action" }, "get_cancel_id", "do_cancel",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "instead", "on_cancel", "on_perform", "on_quit", "on_too_many",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "on_cancel", "on_perform", "on_quit", "on_too_many",
 			{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "most_recent_id"
 		}
 
