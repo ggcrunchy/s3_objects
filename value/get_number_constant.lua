@@ -1,4 +1,4 @@
---- Assign to a number in the store.
+--- Fetch a number constant.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -30,6 +30,6 @@ local number = require("s3_objects.grammars.number")
 --
 --
 
-return require("s3_objects.state_templates.set_value").Make("number", 0, function(dialog)
+return require("s3_objects.state_templates.constant").Make("number", 0, function(dialog)
 	dialog:AddString{ value_name = "constant_value", text = "Value:", set_editable_text = number.set_editable_text }
 end, number.fix_constant)

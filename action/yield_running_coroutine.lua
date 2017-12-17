@@ -1,4 +1,4 @@
---- Supply one of the available families.
+--- Yield the running coroutine, if any.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,53 +23,44 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Modules --
-local state_vars = require("config.StateVariables")
-
 --
 --
 --
 
-local FamilyFuncs = {}
-
-for _, name in ipairs(state_vars.families) do
-	FamilyFuncs[name] = function()
-		return name
-	end
-end
-
-local function EditorEvent (what, arg1)
-	-- Enumerate Defaults --
-	-- arg1: Defaults
-	if what == "enum_defs" then
-		arg1.family = state_vars.families[#state_vars.families]
-		
-	-- Enumerate Properties --
-	-- arg1: Dialog
-	elseif what == "enum_props" then
-		arg1:AddFamilyList{ value_name = "family" }
+local function EditorEvent (what, arg1, _, arg3)
+	-- Get Link Grouping --
+	if what == "get_link_grouping" then
+		return {
+			{ text = "ACTIONS", font = "bold", color = "actions" },
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }
+			-- ^^ Filled in automatically
+		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.get = { friendly_name = "FAM: Choice", is_source = true }
+		arg1.fire = "From"
+		arg1.next = "Tether to"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
-		return "choose_family"
+		return "tether"
 
-	-- New Tag --
-	elseif what == "new_tag" then
-		return "extend", "no_before"
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		if not arg1.links:HasLinks(arg3, "next") then
+			arg1[#arg1 + 1] = "Tether must have target"
+		end
 	end
 end
 
-return function(info)
+return function(info, _)
 	if info == "editor_event" then
 		return EditorEvent
-	elseif info == "value_type" then
-		return "family"
 	else
-		return FamilyFuncs[info.family]
+		return nil -- No body
 	end
 end

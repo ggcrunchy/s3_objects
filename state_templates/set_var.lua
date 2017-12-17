@@ -1,4 +1,4 @@
---- Common logic used to assign a value in the store.
+--- Common logic used to assign a variable.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,9 +23,6 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local pairs = pairs
-
 -- Modules --
 local bind = require("tektite_core.bind")
 local state_vars = require("config.StateVariables")
@@ -47,56 +44,29 @@ local function LinkSetter (setter, other, ssub, other_sub)
 end
 
 --- DOCME
-function M.Make (vtype, def, add_constant, fix_constant)
+function M.Make (vtype)
 	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Build --
 		-- arg1: Level
 		-- arg2: Original entry
 		-- arg3: Item to build
 		if what == "build" then
-			if arg2.variable then
-				arg3.constant_value, arg3.variable = nil
-
-				if arg2.get_family then
-					arg3.family = nil
-				end
-			else
-				for k in pairs(arg2) do
-					if k ~= "constant_value" and k ~= "type" then
-						arg3[k] = nil
-					end
-				end
+			if arg2.get_family then
+				arg3.family = nil
 			end
 
 		-- Enumerate Defaults --
 		-- arg1: Defaults
 		elseif what == "enum_defs" then
-			arg1.constant_value = def
 			arg1.family = state_vars.families[#state_vars.families]
-			arg1.variable = true
+			arg1.var_name = ""
 			
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
-			arg1:AddCheckbox{ text = "Is variable?", value_name = "variable" }
-
-			local constant_section = arg1:BeginSection()
-
-				add_constant(arg1)
-
-			arg1:EndSection()
-
-			local variable_section = arg1:BeginSection()
-
-				arg1:AddString{ text = "Family", is_static = true }
-				arg1:AddFamilyList{ value_name = "family" }
-				arg1:AddString{ before = "Variable name", value_name = "var_name" }
-
-			arg1:EndSection()
-
-			--
-			arg1:SetStateFromValue_Watch(constant_section, "variable", "use_false")
-			arg1:SetStateFromValue_Watch(variable_section, "variable")
+			arg1:AddString{ text = "Family", is_static = true }
+			arg1:AddFamilyList{ value_name = "family" }
+			arg1:AddString{ before = "Variable name", value_name = "var_name" }
 
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then
@@ -140,41 +110,29 @@ function M.Make (vtype, def, add_constant, fix_constant)
 		if info == "editor_event" then
 			return EditorEvent
 		else
-			local k = info.constant_value
+			local name, family, value = info.var_name
 
-			if k then
-				if fix_constant then
-					k = fix_constant(k)
-				end
-
-				return function()
-					return k
-				end
-			else
-				local name, family, value = info.var_name
-
-				local function setter (comp, get_family)
-					if comp then
-						if get_family then
-							family = comp()
-						else
-							value = comp
-						end
+			local function setter (comp, get_family)
+				if comp then
+					if get_family then
+						family = comp()
 					else
-						store.SetVariable(family, vtype, name, value())
+						value = comp
 					end
-				end
-
-				bind.Subscribe(wlist, info.value, setter)
-
-				if info.get_family then
-					bind.Subscribe(wlist, info.get_family, setter, true)
 				else
-					family = info.family
+					store.SetVariable(family, vtype, name, value())
 				end
-
-				return setter
 			end
+
+			bind.Subscribe(wlist, info.value, setter)
+
+			if info.get_family then
+				bind.Subscribe(wlist, info.get_family, setter, true)
+			else
+				family = info.family
+			end
+
+			return setter
 		end
 	end
 end

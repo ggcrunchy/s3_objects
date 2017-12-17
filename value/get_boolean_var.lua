@@ -1,4 +1,4 @@
---- Assign to a boolean in the store.
+--- Fetch a boolean variable.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,6 +23,4 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-return require("s3_objects.state_templates.set_value").Make("boolean", false, function(dialog)
-	dialog:AddCheckbox{ value_name = "constant_value", text = "True?" }
-end)
+return require("s3_objects.state_templates.get_var").Make("boolean", false)
