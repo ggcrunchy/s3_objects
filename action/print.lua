@@ -52,16 +52,12 @@ for k, v in pairs(InProperties) do
 	InPropertiesMulti[k] = v .. "+"
 end
 
-local LinkSuper
-
-local function LinkPrint (print, other, psub, other_sub, links)
+local function LinkPrint (print, other, psub, other_sub)
 	local helper = bind.PrepLink(print, other, psub, other_sub)
 
 	helper("try_in_properties", InProperties)
 
-	if not helper("commit") then
-		LinkSuper(print, other, psub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local function Specifier (name, offset)
@@ -130,10 +126,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend_properties", { string = "get_string" }, InPropertiesMulti
 
 	-- Prep Action Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkPrint
 
 	-- Verify --

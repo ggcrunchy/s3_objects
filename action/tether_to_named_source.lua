@@ -34,16 +34,12 @@ local bind = require("tektite_core.bind")
 
 local InProperties = { string = "get_name" }
 
-local LinkSuper
-
-local function LinkTetherTo (tether, other, tsub, other_sub, links)
+local function LinkTetherTo (tether, other, tsub, other_sub)
 	local helper = bind.PrepLink(tether, other, tsub, other_sub)
 
 	helper("try_in_properties", InProperties)
 
-	if not helper("commit") then
-		LinkSuper(tether, other, tsub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local function EditorEvent (what, arg1, arg2, arg3)
@@ -89,10 +85,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend_properties", nil, InProperties
 
 	-- Prep Action Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkTetherTo
 	end
 end

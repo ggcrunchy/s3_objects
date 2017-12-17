@@ -30,13 +30,11 @@ local bind = require("tektite_core.bind")
 --
 --
 
-local LinkSuper
-
-local function LinkToInteger (to_int, other, sub, other_sub, links)
+local function LinkToInteger (to_int, other, sub, other_sub)
 	if sub == "value" then
 		bind.AddId(to_int, sub, other.uid, other_sub)
-	else
-		LinkSuper(to_int, other, sub, other_sub, links)
+
+		return true
 	end
 end
 
@@ -90,10 +88,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend_properties", nil, { number = "value" }
 
 	-- Prep Value Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:value" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkToInteger
 
 	-- Verify --

@@ -29,11 +29,38 @@ local frexp = math.frexp
 local ldexp = math.ldexp
 
 -- Modules --
-local state_vars = require("config.StateVariables")
+local bind = require("tektite_core.bind")
 
 --
 --
 --
+
+local Before = bind.BroadcastBuilder_Helper(nil)
+
+local OutProperties = {
+	-- T --
+	get_t = function(interval)
+		return function()
+			--
+		end
+	end,
+
+	-- Within --
+	within = function(interval)
+		return function()
+			-- get bounds
+			-- check interval()
+		end
+	end
+}
+
+local function LinkInterval (interval, other, isub, other_sub)
+	local helper = bind.PrepLink(interval, other, isub, other_sub)
+
+	-- TODO!
+
+	return helper("commit")
+end
 
 local function EditorEvent (what, arg1, arg2, arg3)
 	--
@@ -87,6 +114,6 @@ return function(info, wlist)
 			--
 		end
 
-		return interval
+		return interval, "no_before" -- using own Before
 	end
 end

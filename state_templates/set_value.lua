@@ -38,13 +38,11 @@ local M = {}
 --
 --
 
-local LinkSuper
-
-local function LinkSetter (setter, other, ssub, other_sub, links)
+local function LinkSetter (setter, other, ssub, other_sub)
 	if ssub == "get_family" or ssub == "value" then
 		bind.AddId(setter, ssub, other.uid, other_sub)
-	else
-		LinkSuper(setter, other, ssub, other_sub, links)
+
+		return true
 	end
 end
 
@@ -124,10 +122,7 @@ function M.Make (vtype, def, add_constant, fix_constant)
 			return "extend_properties", nil, { family = "get_family", [vtype] = "value" }
 
 		-- Prep Action Link --
-		-- arg1: Parent handler
 		elseif what == "prep_link:action" then
-			LinkSuper = LinkSuper or arg1
-
 			return LinkSetter
 
 		-- Verify --

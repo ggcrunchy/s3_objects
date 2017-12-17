@@ -35,7 +35,7 @@ local state_vars = require("config.StateVariables")
 --
 --
 
-local Events = { before = bind.BroadcastBuilder_Helper(nil) }
+local Before = bind.BroadcastBuilder_Helper(nil)
 
 local InProperties = {
 	integer = { get_ibound1 = "ibound1", get_ibound2 = "ibound2", get_seed1 = "seed1", get_seed2 = "seed2" },
@@ -51,8 +51,6 @@ local OutProperties = {
 	}
 }
 
-local LinkSuper
-
 local function LinkRNG (rng, other, rsub, other_sub)
 	local helper = bind.PrepLink(rng, other, rsub, other_sub)
 
@@ -60,9 +58,7 @@ local function LinkRNG (rng, other, rsub, other_sub)
 	helper("try_in_properties", InProperties)
 	helper("try_out_properties", OutProperties)
 
-	if not helper("commit") then
-		LinkSuper(rng, other, rsub, other_sub)
-	end
+	return helper("commit")
 end
 
 local Seed1, Seed2
@@ -92,6 +88,8 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		if arg2.seed1 == Seed1 then
 			arg3.seed1 = nil
 		end
+
+		arg3.persist_across_reset = arg2.persist_across_reset or nil
 
 		if arg2.seed2 == Seed2 then
 			arg3.seed2 = nil
@@ -142,10 +140,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend_properties", state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 	-- Prep Value Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:value" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkRNG
 
 	-- Verify --
@@ -213,7 +208,7 @@ return function(info, wlist)
 				if comp then
 					getters = AddGetter(getters, arg, comp)
 				else
-					Events.before(rng, "fire", false)
+					Before(rng, "fire", false)
 
 					local i1, i2
 
@@ -239,7 +234,7 @@ return function(info, wlist)
 				if comp then
 					getters = AddGetter(getters, arg, comp)
 				else
-					Events.before(rng, "fire", false)
+					Before(rng, "fire", false)
 
 					local n1, n2
 
@@ -250,7 +245,7 @@ return function(info, wlist)
 			end
 		end
 
-		Events.before.Subscribe(rng, info.get_integer, wlist)
+		Before.Subscribe(rng, info.get_integer, wlist)
 
 		bind.Subscribe(wlist, info.get_ibound1 or info.get_nbound1, rng, "get_bound1")
 		bind.Subscribe(wlist, info.get_ibound2 or info.get_nbound2, rng, "get_bound2")

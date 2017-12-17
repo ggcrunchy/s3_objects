@@ -36,16 +36,12 @@ local bind = require("tektite_core.bind")
 --
 --
 
-local LinkSuper
-
-local function LinkSequence (sequence, other, ssub, other_sub, links)
+local function LinkSequence (sequence, other, ssub, other_sub)
 	local helper = bind.PrepLink(sequence, other, ssub, other_sub)
 
 	helper("try_in_instances", "named_labels", "stages")
 
-	if not helper("commit") then
-		LinkSuper(sequence, other, ssub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local function EditorEvent (what, arg1, arg2, arg3)
@@ -82,10 +78,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend", { ["stages*"] = true, no_next = true }, nil -- next is superfluous, so suppress it
 
 	-- Prep Action Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkSequence
 	end
 end

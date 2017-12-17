@@ -122,18 +122,14 @@ local InProperties = {
 	uint = { get_count = true, get_limit = true }
 }
 
-local LinkSuper
-
-local function LinkCounter (counter, other, csub, other_sub, links)
+local function LinkCounter (counter, other, csub, other_sub)
 	local helper = bind.PrepLink(counter, other, csub, other_sub)
 
 	helper("try_actions", Actions)
 	helper("try_events", Events)
 	helper("try_in_properties", InProperties)
 
-	if not helper("commit") then
-		LinkSuper(counter, other, csub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local function EditorEvent (what, arg1, arg2, arg3)
@@ -213,10 +209,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend", Events, Actions, nil, InProperties
 
 	-- Prep Value Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:value" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkCounter
 	end
 end
@@ -228,11 +221,15 @@ return function(info, wlist)
 		return "uint"
 	else
 		local is_stale = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-		local count, get_count, limit
+		local limit, count, get_count, get_limit = info.limit or (not info.get_limit and huge)
 
 		local function counter (what, getter)
 			if is_stale() then
-				count, limit = nil
+				count = nil
+
+				if get_limit then
+					limit = nil
+				end
 			end
 
 			if what then
@@ -241,14 +238,17 @@ return function(info, wlist)
 
 					return get_count and get_count() or (count or 0)
 				elseif what == "get_limit" then -- ditto
-					limit = limit or (getter and getter()) or huge
+					if not limit then -- absence implies get_limit is available
+						get_limit = get_limit or getter
+						limit = get_limit()
+					end
 
 					return limit
 				elseif what == "set" then
 					count = what
 				end
 			else
-				return count
+				return count or 0
 			end
 		end
 

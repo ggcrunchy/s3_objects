@@ -49,13 +49,11 @@ local function GetValue (family, vtype, name, def)
 	end
 end
 
-local LinkSuper
-
-local function LinkGetter (getter, other, gsub, other_sub, links)
+local function LinkGetter (getter, other, gsub, other_sub)
 	if gsub == "get_family" then
 		bind.AddId(getter, "get_family", other.uid, other_sub)
-	else
-		LinkSuper(getter, other, gsub, other_sub, links)
+
+		return true
 	end
 end
 
@@ -148,10 +146,7 @@ function M.Make (vtype, def, add_constant, fix_constant)
 			return "extend_properties", nil, { family = "get_family" }
 
 		-- Prep Value Link --
-		-- arg1: Parent handler
 		elseif what == "prep_link:value" then
-			LinkSuper = LinkSuper or arg1
-
 			return LinkGetter
 		end
 	end

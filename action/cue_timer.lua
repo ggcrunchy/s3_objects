@@ -85,9 +85,7 @@ local OutProperties = {
 	}
 }
 
-local LinkSuper
-
-local function LinkTimer (setter, other, tsub, other_sub, links)
+local function LinkTimer (setter, other, tsub, other_sub)
 	local helper = bind.PrepLink(setter, other, tsub, other_sub)
 
 	helper("try_actions", Actions)
@@ -95,9 +93,7 @@ local function LinkTimer (setter, other, tsub, other_sub, links)
 	helper("try_in_properties", InProperties)
 	helper("try_out_properties", OutProperties)
 
-	if not helper("commit") then
-		LinkSuper(setter, other, tsub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 for k, v in pairs{
@@ -237,10 +233,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 	-- Prep Action Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkTimer
 
 	-- Verify --

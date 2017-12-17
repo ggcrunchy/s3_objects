@@ -42,16 +42,12 @@ local InProperties = {
 	uint = "get_amount"
 }
 
-local LinkSuper
-
-local function LinkReady (ready, other, rsub, other_sub, links)
+local function LinkReady (ready, other, rsub, other_sub)
 	local helper = bind.PrepLink(ready, other, rsub, other_sub)
 
 	helper("try_in_properties", InProperties)
 
-	if not helper("commit") then
-		LinkSuper(ready, other, rsub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local function EditorEvent (what, arg1, arg2, arg3)
@@ -105,10 +101,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend_properties", nil, InProperties
 
 	-- Prep Value Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:value" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkReady
 	end
 end

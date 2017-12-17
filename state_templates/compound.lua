@@ -39,16 +39,12 @@ local M = {}
 --
 --
 
-local LinkSuper
-
-local function LinkCompound (cvalue, other, csub, other_sub, links)
+local function LinkCompound (cvalue, other, csub, other_sub)
 	local helper = bind.PrepLink(cvalue, other, csub, other_sub)
 
 	helper("try_in_instances", "named_labels", "values")
 
-	if not helper("commit") then
-		LinkSuper(cvalue, other, csub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local BindingPolicy = { value_name = "binding_policy", "none", "check_match", "check_no_extra_args", "check_no_unbound_vars" }
@@ -114,10 +110,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 			-- ^^^ If either is already the vtype, simplify
 
 		-- Prep Value Link --
-		-- arg1: Parent handler
 		elseif what == "prep_link:value" then
-			LinkSuper = LinkSuper or arg1
-
 			return LinkCompound
 
 		-- Verify --

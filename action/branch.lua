@@ -41,17 +41,13 @@ end
 
 local InProperties = { boolean = "should_do_next" }
 
-local LinkSuper
-
-local function LinkBranch (branch, other, bsub, other_sub, links)
+local function LinkBranch (branch, other, bsub, other_sub)
 	local helper = bind.PrepLink(branch, other, bsub, other_sub)
 
 	helper("try_events", Events)
 	helper("try_in_properties", InProperties)
 
-	if not helper("commit") then
-		LinkSuper(branch, other, bsub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local function EditorEvent (what, arg1, _, arg3)
@@ -80,10 +76,7 @@ local function EditorEvent (what, arg1, _, arg3)
 		return "extend", "instead", nil, nil, InProperties
 
 	-- Prep Action Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkBranch
 
 	-- Verify --

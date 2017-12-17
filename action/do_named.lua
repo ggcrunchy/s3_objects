@@ -37,18 +37,14 @@ local bind = require("tektite_core.bind")
 local Events = { on_bad_name = bind.BroadcastBuilder_Helper(nil) }
 local InProperties = { uint = "get_name" }
 
-local LinkSuper
-
-local function LinkDoNamed (named, other, nsub, other_sub, links)
+local function LinkDoNamed (named, other, nsub, other_sub)
 	local helper = bind.PrepLink(named, other, nsub, other_sub)
 
 	helper("try_events", Events)
 	helper("try_in_properties", InProperties)
 	helper("try_in_instances", "named_labels", "choices")
 
-	if not helper("commit") then
-		LinkSuper(named, other, nsub, other_sub, links)
-	end
+	return helper("commit")
 end
 
 local function EditorEvent (what, arg1, arg2, arg3)
@@ -87,10 +83,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		return "extend", { ["choices*"] = true, on_bad_name = true }, nil, nil, InProperties
 
 	-- Prep Action Link --
-	-- arg1: Parent handler
 	elseif what == "prep_link:action" then
-		LinkSuper = LinkSuper or arg1
-
 		return LinkDoNamed
 	
 	-- Verify --

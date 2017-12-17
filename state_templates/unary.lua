@@ -35,13 +35,11 @@ local M = {}
 --
 --
 
-local LinkSuper
-
-local function LinkValue (uvalue, other, sub, other_sub, links)
+local function LinkValue (uvalue, other, sub, other_sub)
 	if sub == "value" then
 		bind.AddId(uvalue, sub, other.uid, other_sub)
-	else
-		LinkSuper(uvalue, other, sub, other_sub, links)
+
+		return true
 	end
 end
 
@@ -127,10 +125,7 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 			return "extend_properties", nil, { [vtype] = "value" }
 
 		-- Prep Value Link --
-		-- arg1: Parent handler
 		elseif what == "prep_link:value" then
-			LinkSuper = LinkSuper or arg1
-
 			return LinkValue
 		
 		-- Verify --

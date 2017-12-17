@@ -35,13 +35,11 @@ local M = {}
 --
 --
 
-local LinkSuper
-
-local function LinkReduce (reduce, other, rsub, other_sub, links)
+local function LinkReduce (reduce, other, rsub, other_sub)
 	if rsub == "values" then
 		bind.AddId(reduce, rsub, other.uid, other_sub)
-	else
-		LinkSuper(reduce, other, rsub, other_sub, links)
+
+		return true
 	end
 end
 
@@ -93,10 +91,7 @@ function M.Make (vtype, suffix, choice_pairs, def_choice, defs, rtype)
 			return "extend_properties", nil, { [vtype] = "values+" }
 
 		-- Prep Value Link --
-		-- arg1: Parent handler
 		elseif what == "prep_link:value" then
-			LinkSuper = LinkSuper or arg1
-			
 			return LinkReduce
 		
 		-- Verify --

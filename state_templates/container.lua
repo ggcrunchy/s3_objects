@@ -24,6 +24,7 @@
 --
 
 -- Standard library imports --
+local next = next
 local pairs = pairs
 
 -- Modules --
@@ -78,7 +79,7 @@ local function Peek (container) -- stitched into proper type on startup
 	end
 end
 
-local OutProperties = {
+local OutPropertiesBase = {
 	boolean = {
 		-- Empty --
 		empty = function(container)
@@ -95,8 +96,6 @@ local OutProperties = {
 		end
 	}
 }
-
-local LinkSuper
 
 local Singletons = table_funcs.Weak("k")
 
@@ -132,11 +131,51 @@ local ADT = {
 	end
 }
 
+local function Add (adt, container, t, n, limit, value)
+	if n == limit then
+		Events.on_add_when_full(container, "fire", false)
+	else
+		n = n + 1
+
+		adt(t, "add", value())
+
+		Events.on_add(container, "fire", false)
+
+		if n == limit then
+			Events.on_became_full(container, "fire", false)
+		end
+	end
+
+	return n
+end
+
+local function Remove (adt, container, t, n)
+	if n > 0 then
+		n = n - 1
+
+		adt(t, "remove")
+
+		Events.on_remove(container, "fire", false)
+
+		if n == 0 then
+			Events.on_became_empty(container, "fire", false)
+		end
+	else
+		Events.on_remove_when_empty(container, "fire", false)
+	end
+
+	return n
+end
+
 --- DOCME
 function M.Make (vtype, def)
-	local InProperties = { [vtype] = "value" }
+	local InProperties, OutProperties = { [vtype] = "value" }, table_funcs.Copy(OutPropertiesBase)
+	local vout = OutProperties[vtype]
 
-	local function LinkContainer (container, other, csub, other_sub, links)
+	vout = vout and table_funcs.Copy(vout) or {}
+	OutProperties[vtype], vout.peek = vout, Peek
+
+	local function LinkContainer (container, other, csub, other_sub)
 		local helper = bind.PrepLink(container, other, csub, other_sub)
 
 		helper("try_events", Events)
@@ -144,11 +183,8 @@ function M.Make (vtype, def)
 		helper("try_in_properties", InProperties)
 		helper("try_out_properties", OutProperties)
 
-		if not helper("commit") then
-			LinkSuper(container, other, csub, other_sub, links)
-		end
+		return helper("commit")
 	end
-
 
 	local function EditorEvent (what, arg1, arg2, arg3)
 		-- Build --
@@ -160,11 +196,14 @@ function M.Make (vtype, def)
 				arg3.limit, arg3.get_limit = nil
 			end
 
+			arg3.persist_across_reset = arg2.persist_across_reset or nil
+
 		-- Enumerate Defaults --
 		-- arg1: Defaults
 		elseif what == "enum_defs" then
 			arg1.kind = "queue"
 			arg1.limit = 10
+			arg1.persist_across_reset = false
 	
 		-- Enumerate Properties --
 		-- arg1: Dialog
@@ -206,16 +245,10 @@ function M.Make (vtype, def)
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			OutProperties[vtype] = OutProperties[vtype] or {}
-			OutProperties[vtype].peek = Peek
-
 			return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 		-- Prep Value Link --
-		-- arg1: Parent handler
 		elseif what == "prep_link:value" then
-			LinkSuper = LinkSuper or arg1
-
 			return LinkContainer
 
 		-- Verify --
@@ -235,37 +268,38 @@ function M.Make (vtype, def)
 		elseif info == "value_type" then
 			return vtype
 		else
-			local adt, limit, n, t, value = ADT[info.kind], info.limit, 0
+			local kind, is_stale = info.kind, state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+			local adt, limit, n, t, value = ADT[kind], info.limit, 0
 
 			local function container (comp)
+				if is_stale() then
+					t, Singletons[container] = nil -- use container as key in weak table
+				end
+
+				if t == nil then
+					if kind == "queue" then
+						t = { limit = limit }
+					elseif kind ~= "singleton" then
+						t = {}
+					else
+						t = container -- see note in is_stale() block
+					end
+				end
+
 				local remove
 
-				if comp then
+				if comp and comp ~= "remove" then
 					if value then
 						if comp == "count" then
 							return n
 						elseif comp == "add" then
-							if n == limit then
-								Events.on_add_when_full(container, "fire", false)
-							else
-								n = n + 1
-
-								adt(t, "add", value())
-
-								Events.on_add(container, "fire", false)
-
-								if n == limit then
-									Events.on_became_full(container, "fire", false)
-								end
-							end
-						elseif comp == "remove" then
-							remove = true
+							n = Add(adt, container, t, n, limit, value) -- fall through to result below
 						end
 					else
 						value = comp
 					end
 				else
-					remove = true
+					remove = true -- "get" or comp == "remove"
 				end
 
 				local result
@@ -279,30 +313,10 @@ function M.Make (vtype, def)
 				end
 
 				if remove then
-					if n > 0 then
-						n = n - 1
-
-						adt(t, "remove")
-
-						Events.on_remove(container, "fire", false)
-
-						if n == 0 then
-							Events.on_became_empty(container, "fire", false)
-						end
-					else
-						Events.on_remove_when_empty(container, "fire", false)
-					end
+					n = Remove(adt, container, t, n)
 				end
 
 				return result
-			end
-
-			if info.kind == "queue" then
-				t = { limit = limit }
-			elseif info.kind ~= "singleton" then
-				t = {}
-			else
-				t = container -- use as key in weak table
 			end
 
 			bind.Subscribe(wlist, info.get_value, container)
