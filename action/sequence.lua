@@ -56,18 +56,11 @@ local function EditorEvent (what, arg1, arg2, arg3)
 			arg1.named_labels[instance] = arg3[instance]
 		end
 
-	-- Get Link Grouping --
-	elseif what == "get_link_grouping" then
-		return {
-			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "stages*"
-		}
-
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.fire = "Launch"
-		arg1["stages*"] = "Stages, in order"
+		arg1["stages*"] = { friendly_name = "Stages, in order", is_source = true }
 
 	-- Get Tag --
 	elseif what == "get_tag" then
