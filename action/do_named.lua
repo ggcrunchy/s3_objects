@@ -143,9 +143,9 @@ return function(info, wlist)
 				local func = object_to_broadcaster[name]
 
 				if func then
-					func("fire", false)
+					func()
 				elseif missing and missing[name] then
-					Events.on_bad_name(do_named, "fire", false)
+					Events.on_bad_name(do_named)
 				end
 			end
 		end

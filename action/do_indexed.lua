@@ -126,10 +126,10 @@ return function(info, wlist)
 					local func = object_to_broadcaster[index]
 
 					if func then
-						func("fire", false)
+						func()
 					end
 				else
-					Events.on_bad_index(do_indexed, "fire", false)
+					Events.on_bad_index(do_indexed)
 				end
 			end
 		end

@@ -84,18 +84,30 @@ function Switch:ActOn ()
 	end
 
 	-- Fire the event and stop showing its hint, and wait for it to finish.
+	local n = 0
+
 	for _, targets in TargetsLoop(self, self[forward]) do
 		local flag, waiting = 1, targets.m_waiting
 
 		for _, event in Events.Iter(targets) do
+			local commands = bind.GetActionCommands(event)
+
 			if band(waiting, flag) == 0 then
-				if event("fire", forward) ~= "failed" then
+				if commands then
+					commands("set_dirction", forward)
+				end
+
+				if event() ~= "failed" then
 					any_successes, waiting = true, waiting + flag
 				else
 					no_failures = false
 				end
 
-				event("show", self, false)
+				n = n + 1
+
+				if commands then
+					commands("show", self, false)
+				end
 			end
 
 			flag = 2 * flag
@@ -103,6 +115,8 @@ function Switch:ActOn ()
 
 		targets.m_waiting = waiting
 	end
+
+	bind.AddCalls(n)
 
 	--
 	if no_failures or any_successes then
@@ -162,11 +176,13 @@ function Switch:Update ()
 		local flag, waiting = 1, targets.m_waiting
 
 		for _, event in Events.Iter(targets) do
-			if band(waiting, flag) ~= 0 and event("is_done") then
+			local commands = bind.GetActionCommands(event)
+
+			if band(waiting, flag) ~= 0 and (not commands or commands("is_done")) then
 				waiting = waiting - flag
 
-				if touched then
-					event("show", self, true)
+				if touched and commands then
+					commands("show", self, true)
 				end
 			end
 
@@ -197,8 +213,10 @@ collision.AddHandler("switch", function(phase, switch, other, other_type)
 			local flag, waiting = 1, targets.m_waiting
 
 			for _, event in Events.Iter(targets) do
-				if band(waiting, flag) == 0 then
-					event("show", switch, is_touched)
+				local commands = bind.GetActionCommands(event)
+
+				if commands and band(waiting, flag) == 0 then
+					commands("show", switch, is_touched)
 				end
 
 				flag = 2 * flag

@@ -100,7 +100,7 @@ return function(info, wlist)
 			if comp then
 				should_do_next = comp
 			else
-				Events[should_do_next() and "next" or "instead"](branch, "fire", false)
+				Events[should_do_next() and "next" or "instead"](branch)
 			end
 		end
 

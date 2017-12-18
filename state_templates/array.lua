@@ -63,13 +63,13 @@ local Actions = {
 			if n < limit then
 				op(arr, "add", n + 1, array("value"))
 
-				Events.on_add(array, "fire", false)
+				Events.on_add(array)
 
 				if n + 1 == limit then
-					Events.on_became_full(array, "fire", false)
+					Events.on_became_full(array)
 				end
 			else
-				Events.on_add_when_full(array, "fire", false)
+				Events.on_add_when_full(array)
 			end
 		end
 	end,
@@ -86,16 +86,16 @@ local Actions = {
 				if index >= 1 and index <= n + 1 then
 					op(arr, "add", index, array("value"))
 
-					Events.on_add(array, "fire", false)
+					Events.on_add(array)
 
 					if n + 1 == limit then
-						Events.on_became_full(array, "fire", false)
+						Events.on_became_full(array)
 					end
 				else
-					Events.on_bad_remove_pos(array, "fire", false)
+					Events.on_bad_remove_pos(array)
 				end
 			else
-				Events.on_add_when_full(array, "fire", false)
+				Events.on_add_when_full(array)
 			end
 		end
 	end,
@@ -112,16 +112,16 @@ local Actions = {
 				if index >= 1 and index <= n then
 					op(arr, "remove", index)
 
-					Events.on_remove(array, "fire", false)
+					Events.on_remove(array)
 
 					if n == 1 then
-						Events.on_became_empty(array, "fire", false)
+						Events.on_became_empty(array)
 					end
 				else
-					Events.on_bad_remove_pos(array, "fire", false)
+					Events.on_bad_remove_pos(array)
 				end
 			else
-				Events.on_remove_when_empty(array, "fire", false)
+				Events.on_remove_when_empty(array)
 			end
 		end
 	end,
@@ -135,13 +135,13 @@ local Actions = {
 			if n > 0 then
 				op(arr, "remove", n)
 
-				Events.on_remove(array, "fire", false)
+				Events.on_remove(array)
 
 				if n == 1 then
-					Events.on_became_empty(array, "fire", false)
+					Events.on_became_empty(array)
 				end
 			else
-				Events.on_remove_when_empty(array, "fire", false)
+				Events.on_remove_when_empty(array)
 			end
 		end
 	end
@@ -216,7 +216,7 @@ local OutPropertiesBase = {
 					end
 				end
 
-				Events.on_not_found(array, "fire", false)
+				Events.on_not_found(array)
 
 				return 0
 			end
@@ -458,7 +458,7 @@ function M.Make (vtype, def, has_order, has_tolerance)
 						if value ~= nil then
 							return value
 						else
-							Events.on_bad_get_pos(array, "fire", false)
+							Events.on_bad_get_pos(array)
 
 							return def
 						end

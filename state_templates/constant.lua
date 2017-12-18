@@ -52,7 +52,7 @@ function M.Make (vtype, def, add_constant, fix_constant)
 
 		-- Get Tag --
 		elseif what == "get_tag" then
-			return "get_" .. vtype .. "_constant"
+			return vtype .. "_constant"
 
 		-- New Tag --
 		elseif what == "new_tag" then

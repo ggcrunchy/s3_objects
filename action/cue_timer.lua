@@ -50,21 +50,17 @@ local Timers
 local Actions = {
 	-- Do Cancel --
 	do_cancel = function(cue)
-		return function(what)
-			if what == "fire" then
-				local get_cancel_id, list = cue("get_cancel_id_and_list")
-				local id = get_cancel_id()
-				local handle = list[id]
+		return function()
+			local get_cancel_id, list = cue("get_cancel_id_and_list")
+			local id = get_cancel_id()
+			local handle = list[id]
 
-				if handle then
-					timer.cancel(handle)
+			if handle then
+				timer.cancel(handle)
 
-					Timers.n, list[id] = Timers.n - 1
+				Timers.n, list[id] = Timers.n - 1
 
-					Events.on_cancel(cue, "fire", false)
-				end
-			elseif what == "is_done" then
-				return true
+				return Events.on_cancel(cue)
 			end
 		end
 	end
@@ -148,10 +144,10 @@ local function MakeCue (delay, continue)
 				local how = continue(event)
 
 				if how == true then
-					Events.on_fire(cue, "fire", false)
+					Events.on_fire(cue)
 				else
 					if how == "quit" then
-						Events.on_quit(cue, "fire", false)
+						Events.on_quit(cue)
 					end
 
 					timer.cancel(event.source)
@@ -162,7 +158,7 @@ local function MakeCue (delay, continue)
 
 			list[id], list.id, Timers.n = handle, id, Timers.n + 1
 		else
-			Events.on_too_many(cue, "fire", false)
+			Events.on_too_many(cue)
 		end
 	end
 

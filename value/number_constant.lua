@@ -31,5 +31,5 @@ local number = require("s3_objects.grammars.number")
 --
 
 return require("s3_objects.state_templates.constant").Make("number", 0, function(dialog)
-	dialog:AddString{ value_name = "constant_value", text = "Value:", set_editable_text = number.set_editable_text }
+	dialog:AddString{ value_name = "constant_value", before = "Value:", set_editable_text = number.set_editable_text }
 end, number.fix_constant)

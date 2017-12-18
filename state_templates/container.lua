@@ -52,23 +52,15 @@ end
 local Actions = {
 	-- Add --
 	do_add = function(container)
-		return function(what)
-			if what == "fire" then
-				container("add")
-			elseif what == "is_done" then
-				return true
-			end
+		return function()
+			return container("add")
 		end
 	end,
 
 	-- Remove --
 	do_remove = function(container)
-		return function(what)
-			if what == "fire" then
-				container("remove")
-			elseif what == "is_done" then
-				return true
-			end
+		return function()
+			return container("remove")
 		end
 	end
 }
@@ -133,16 +125,16 @@ local ADT = {
 
 local function Add (adt, container, t, n, limit, value)
 	if n == limit then
-		Events.on_add_when_full(container, "fire", false)
+		Events.on_add_when_full(container)
 	else
 		n = n + 1
 
 		adt(t, "add", value())
 
-		Events.on_add(container, "fire", false)
+		Events.on_add(container)
 
 		if n == limit then
-			Events.on_became_full(container, "fire", false)
+			Events.on_became_full(container)
 		end
 	end
 
@@ -155,13 +147,13 @@ local function Remove (adt, container, t, n)
 
 		adt(t, "remove")
 
-		Events.on_remove(container, "fire", false)
+		Events.on_remove(container)
 
 		if n == 0 then
-			Events.on_became_empty(container, "fire", false)
+			Events.on_became_empty(container)
 		end
 	else
-		Events.on_remove_when_empty(container, "fire", false)
+		Events.on_remove_when_empty(container)
 	end
 
 	return n
@@ -309,7 +301,7 @@ function M.Make (vtype, def)
 				else
 					result = def
 
-					Events.on_get_when_empty(container, "fire", false)
+					Events.on_get_when_empty(container)
 				end
 
 				if remove then

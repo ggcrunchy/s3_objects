@@ -60,6 +60,9 @@ end
 return function(info, _)
 	if info == "editor_event" then
 		return EditorEvent
+		-- TODO: do_resume, on_resume, on_already_running, on_resume_when_dead, on_done
+		-- persist across reset, can restart
+		-- STR: status, BOOL: dead, normal, running, suspended
 	else
 		return nil -- No body
 	end

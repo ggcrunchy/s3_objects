@@ -60,6 +60,7 @@ end
 return function(info, _)
 	if info == "editor_event" then
 		return EditorEvent
+		-- TODO: do_yield, on_yield, on_none_running
 	else
 		return nil -- No body
 	end

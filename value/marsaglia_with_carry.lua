@@ -1,4 +1,4 @@
---- Fetch a random number.
+--- Fetch a random number using a Marsaglia "with carry" generator.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -208,7 +208,7 @@ return function(info, wlist)
 				if comp then
 					getters = AddGetter(getters, arg, comp)
 				else
-					Before(rng, "fire", false)
+					Before(rng)
 
 					local i1, i2
 
@@ -234,7 +234,7 @@ return function(info, wlist)
 				if comp then
 					getters = AddGetter(getters, arg, comp)
 				else
-					Before(rng, "fire", false)
+					Before(rng)
 
 					local n1, n2
 

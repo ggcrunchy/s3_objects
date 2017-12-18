@@ -44,75 +44,59 @@ end
 
 local Actions = {
 	do_decrement = function(counter)
-		return function(what)
-			if what == "fire" then
-				local n = counter() - 1
+		return function()
+			local n = counter() - 1
 
-				if n >= 0 then
-					counter("set", n)
-				end
+			if n >= 0 then
+				counter("set", n)
+			end
 
-				if n <= 0 then
-					Events[n == 0 and "on_one_to_zero" or "on_try_to_decrement_zero"](counter, "fire", false)
-				end
-			elseif what == "is_done" then
-				return true
+			if n <= 0 then
+				Events[n == 0 and "on_one_to_zero" or "on_try_to_decrement_zero"](counter)
 			end
 		end
 	end,
 
 	do_increment = function(counter)
-		return function(what)
-			if what == "fire" then
-				local n, limit = counter() + 1, counter("get_limit")
+		return function()
+			local n, limit = counter() + 1, counter("get_limit")
 
-				if n <= limit then
-					counter("set", n)
-				end
+			if n <= limit then
+				counter("set", n)
+			end
 
-				if n == 1 then
-					Events.on_zero_to_one(counter, "fire", false)
-				end
+			if n == 1 then
+				Events.on_zero_to_one(counter)
+			end
 
-				if n >= limit then
-					Events[n == limit and "on_hit_limit" or "on_try_to_exceed_limit"](counter, "fire", false)
-				end
-			elseif what == "is_done" then
-				return true
+			if n >= limit then
+				Events[n == limit and "on_hit_limit" or "on_try_to_exceed_limit"](counter)
 			end
 		end
 	end,
 
 	do_reset = function(counter)
-		return function(what)
-			if what == "fire" then
-				counter("set", 0)
-			elseif what == "is_done" then
-				return true
-			end
+		return function()
+			return counter("set", 0)
 		end
 	end,
 
 	do_set = function(counter)
-		return function(what)
-			if what == "fire" then
-				local count = counter("get_count")
+		return function()
+			local count = counter("get_count")
 
-				if count ~= counter() then
-					local limit = counter("get_limit")
+			if count ~= counter() then
+				local limit = counter("get_limit")
 
-					if limit and count > limit then
-						Events.on_try_to_exceed_limit(counter, "fire", false)
-					else
-						counter("set", count)
+				if limit and count > limit then
+					Events.on_try_to_exceed_limit(counter)
+				else
+					counter("set", count)
 
-						if count == limit then
-							Events.on_hit_limit(counter, "fire", false)
-						end
+					if count == limit then
+						Events.on_hit_limit(counter)
 					end
 				end
-			elseif what == "is_done" then
-				return true
 			end
 		end
 	end

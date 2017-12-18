@@ -96,7 +96,7 @@ return function(info, wlist)
 				local func = object_to_broadcaster[i]
 
 				if func then
-					func("fire", false)
+					func()
 				end
 			end
 		end

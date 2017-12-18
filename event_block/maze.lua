@@ -583,9 +583,9 @@ return function(info, block)
 	Deltas[3] = col2 - col1 + 1
 
 	-- Fires off the maze event
-	local occupancy = match_slot_id.Wrap(open)
+	local forward, occupancy = nil, match_slot_id.Wrap(open)
 
-	local function Fire (forward)
+	local function Fire ()
 		if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
 							-- _forward_ is also probably meaningless / failure
 			return "failed"
@@ -819,15 +819,15 @@ return function(info, block)
 	-- Put the maze into an initial state and supply its event.
 	block:Reset()
 
-	return function(what, arg1, arg2)
-		-- Fire --
-		-- arg1: forward boolean
-		if what == "fire" then
-			Fire(arg1)
-
+	return Fire, function(what, arg1, arg2)
 		-- Is Done? --
-		elseif what == "is_done" then
+		if what == "is_done" then
 			return not forming
+
+		-- Set Direction --
+		-- arg1: Forward boolean
+		elseif what == "set_direction" then
+			forward = not not arg1
 
 		-- Show --
 		-- arg1: Object that wants to show something, e.g. a switch
