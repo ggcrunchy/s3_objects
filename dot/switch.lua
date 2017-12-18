@@ -30,7 +30,7 @@ local pairs = pairs
 -- Modules --
 local args = require("iterator_ops.args")
 local audio = require("corona_utils.audio")
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
 local file = require("corona_utils.file")
 

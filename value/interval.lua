@@ -29,7 +29,7 @@ local frexp = math.frexp
 local ldexp = math.ldexp
 
 -- Modules --
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 
 --
 --

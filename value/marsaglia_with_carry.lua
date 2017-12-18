@@ -27,7 +27,7 @@
 local pairs = pairs
 
 -- Modules --
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local mwc_rng = require("number_sequences.mwc_rng")
 local state_vars = require("config.StateVariables")
 

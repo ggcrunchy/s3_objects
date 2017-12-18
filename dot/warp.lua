@@ -32,7 +32,7 @@ local type = type
 
 -- Modules --
 local audio = require("corona_utils.audio")
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")

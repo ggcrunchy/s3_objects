@@ -1,4 +1,4 @@
---- Dispatch a custom runtime event.
+--- Wait for a while in a coroutine.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,60 +23,46 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local pairs = pairs
-local remove = table.remove
-local type = type
-
--- Modules --
-local bind = require("corona_utils.bind")
-
--- Corona globals --
-local Runtime = Runtime
-
 --
 --
 --
 
-local function EditorEvent (what, arg1, arg2, arg3)
-	-- preserve name
-	-- verify: check within type for dups, otherwise ok
-end
+local function EditorEvent (what, arg1, _, arg3)
+	-- Get Link Grouping --
+	if what == "get_link_grouping" then
+		return {
+			{ text = "ACTIONS", font = "bold", color = "actions" },
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }
+			-- ^^ Filled in automatically
+		}
 
-local Event, Stash = {}, {}
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.fire = "From"
+		arg1.next = "Tether to"
 
-local function AddSubtable (key)
-	local t = remove(Stash) or {}
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "tether"
 
-	for k in pairs(t) do
-		t[k] = nil
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		if not arg1.links:HasLinks(arg3, "next") then
+			arg1[#arg1 + 1] = "Tether must have target"
+		end
 	end
-
-	Event[key] = t
 end
 
-return function(info, wlist)
+return function(info, _)
 	if info == "editor_event" then
 		return EditorEvent
+		-- TODO: on_yield
+		-- predicate, time
 	else
-		local name = "custom:" .. info.name
-
-		local function dispatch (comp, arg)
-			Event.name = name -- sanity check, since event is user code
-
-			-- Populate!
-
-			Runtime:dispatchEvent(Event)
-
-			for k, t in pairs(Event) do
-				if type(t) == "table" then -- another sanity check
-					Stash[#Stash + 1] = t
-				end
-
-				Event[k] = nil
-			end
-		end
-
-		return dispatch
+		return nil -- No body
 	end
 end

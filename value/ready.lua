@@ -27,7 +27,7 @@
 local max = math.max
 
 -- Modules --
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local state_vars = require("config.StateVariables")
 
 -- Corona globals --

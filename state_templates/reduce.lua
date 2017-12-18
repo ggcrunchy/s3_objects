@@ -25,7 +25,7 @@
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local state_vars = require("config.StateVariables")
 
 -- Exports --

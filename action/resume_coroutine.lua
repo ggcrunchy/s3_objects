@@ -63,6 +63,7 @@ return function(info, _)
 		-- TODO: do_resume, on_resume, on_already_running, on_resume_when_dead, on_done
 		-- persist across reset, can restart
 		-- STR: status, BOOL: dead, normal, running, suspended
+		-- FAM: local vars
 	else
 		return nil -- No body
 	end

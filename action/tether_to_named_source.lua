@@ -26,7 +26,7 @@
 -- Modules --
 local require_ex = require("tektite_core.require_ex")
 local actions = require_ex.Lazy("s3_utils.state.actions")
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 
 --
 --

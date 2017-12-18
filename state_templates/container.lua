@@ -29,7 +29,7 @@ local pairs = pairs
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local ring_buffer = require("tektite_core.array.ring_buffer")
 local state_vars = require("config.StateVariables")
 local table_funcs = require("tektite_core.table.funcs")

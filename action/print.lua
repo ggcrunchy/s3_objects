@@ -32,7 +32,14 @@ local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
+local ring_buffer = require("tektite_core.array.ring_buffer")
+
+-- Corona globals --
+local display = display
+local native = native
+local Runtime = Runtime
+local timer = timer
 
 --
 --
@@ -88,14 +95,18 @@ local function EditorEvent (what, arg1, arg2, arg3)
 			end
 		end
 
+		arg3.to_console = arg2.to_console or nil
+
 	-- Enumerate Defaults --
 	-- arg1: Defaults
 	elseif what == "enum_defs" then
 		arg1.message = ""
+		arg1.to_console = false
 
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
+		arg1:AddCheckbox{ value_name = "to_console", text = "Print to console?" }
 		arg1:AddString{ value_name = "message", before = "Message:" }
 
 	-- Get Link Grouping --
@@ -144,6 +155,58 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
+local StringGroup
+
+local function Print (message)
+	if not StringGroup then
+		StringGroup = display.newGroup()
+
+		for i = 1, 15 do
+			local text = display.newText(StringGroup, "", 0, i * 20, native.systemFontBold, 15)
+
+			text.anchorX, text.x = 0, 20
+		end
+
+		StringGroup.m_timer, StringGroup.m_ring = timer.performWithDelay(50, function()
+			StringGroup:toFront()
+
+			local ring, index = StringGroup.m_ring, 1
+
+			if ring_buffer.IsFull(ring.head) then
+				for i = ring.tail, StringGroup.numChildren do
+					StringGroup[index].text, index = ring[i], index + 1
+				end
+			
+				for i = 1, ring.tail - 1 do
+					StringGroup[index].text, index = ring[i], index + 1
+				end
+			else
+				for i = 1, ring.head do
+					StringGroup[index].text, index = ring[i], index + 1
+				end
+			end
+		end, 0), {}
+	end
+
+	local ring, _ = StringGroup.m_ring
+
+	if ring_buffer.IsFull(ring.head) then
+		_, ring.head, ring.tail = ring_buffer.Pop(ring, ring.head, ring.tail, StringGroup.numChildren)
+	end
+
+	ring.head, ring.tail = ring_buffer.Push(ring, message, ring.head, ring.tail, StringGroup.numChildren)
+end
+
+Runtime:addEventListener("leave_level", function()
+	if StringGroup then
+		timer.cancel(StringGroup.m_timer)
+
+		StringGroup:removeSelf()
+
+		StringGroup = nil
+	end
+end)
+
 return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
@@ -179,12 +242,16 @@ return function(info, wlist)
 			end
 		end
 
+		bind.Publish(wlist, get_string, info.uid, "get_string")
+
 		for _, name in pairs(InProperties) do
 			bind.Subscribe(wlist, info[name], get_string, name)
 		end
 
+		local pfunc = info.to_console and print or Print
+
 		return function()
-			print(get_string())
+			return pfunc(get_string())
 		end
 	end
 end

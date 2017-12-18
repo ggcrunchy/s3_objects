@@ -24,7 +24,7 @@
 --
 
 -- Modules --
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local frames = require("corona_utils.frames")
 local state_vars = require("config.StateVariables")
 local store = require("s3_utils.state.store")

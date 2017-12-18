@@ -34,7 +34,7 @@ local sort = table.sort
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local args = require("iterator_ops.args")
-local bind = require("tektite_core.bind")
+local bind = require("corona_utils.bind")
 local state_vars = require("config.StateVariables")
 local table_funcs = require("tektite_core.table.funcs")
 
