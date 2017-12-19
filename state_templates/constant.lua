@@ -49,17 +49,13 @@ function M.Make (vtype, def, add_constant, fix_constant, resolve_text)
 			arg1.constant_value = def
 
 			if fix_constant then
-				arg1.defer_evaluation = true
+				arg1.defer_evaluation = false
 			end
 
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
 			add_constant(arg1)
-
-			if fix_constant then
-				arg1:AddCheckbox{ value_name = "defer_evaluation", text = "Defer evaluation?" }
-			end
 
 		-- Get Tag --
 		elseif what == "get_tag" then
