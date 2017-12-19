@@ -203,6 +203,7 @@ function M.Make (vtype, def)
 			arg1:AddString{ text = "Kind of container:", is_static = true }
 			arg1:AddListbox{ value_name = "kind", "queue", "stack", "singleton" }
 			-- limit spinner?
+			arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then

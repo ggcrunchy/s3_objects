@@ -354,6 +354,8 @@ function M.Make (vtype, def, has_order, has_tolerance)
 				--
 			end
 
+			arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
+
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then
 			return {

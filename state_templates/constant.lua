@@ -23,9 +23,6 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Modules --
-local state_vars = require("config.StateVariables")
-
 -- Exports --
 local M = {}
 
@@ -33,22 +30,36 @@ local M = {}
 --
 --
 
-function M.Make (vtype, def, add_constant, fix_constant)
-	local function EditorEvent (what, arg1)
+function M.Make (vtype, def, add_constant, fix_constant, resolve_text)
+	local function EditorEvent (what, arg1, arg2, arg3)
+		-- Build --
+		-- arg1: Level
+		-- arg2: Original entry
+		-- arg3: Item to build
+		if what == "build" then
+			if resolve_text then
+				arg3.constant_value = resolve_text(arg2.constant_value)
+			end
+
+			arg3.defer_evaluation = nil
+
 		-- Enumerate Defaults --
 		-- arg1: Defaults
-		if what == "enum_defs" then
+		elseif what == "enum_defs" then
 			arg1.constant_value = def
-	
+
+			if fix_constant then
+				arg1.defer_evaluation = true
+			end
+
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
 			add_constant(arg1)
 
-		-- Get Link Info --
-		-- arg1: Info to populate
-		elseif what == "get_link_info" then
-			arg1.get = { friendly_name = state_vars.abbreviations[vtype] .. ": Get value", is_source = true }
+			if fix_constant then
+				arg1:AddCheckbox{ value_name = "defer_evaluation", text = "Defer evaluation?" }
+			end
 
 		-- Get Tag --
 		elseif what == "get_tag" then
@@ -57,6 +68,15 @@ function M.Make (vtype, def, add_constant, fix_constant)
 		-- New Tag --
 		elseif what == "new_tag" then
 			return "extend", "no_before"
+
+		-- Verify --
+		-- arg1: Verify block
+		-- arg2: Values
+		-- arg3: Representative object
+		elseif what == "verify" then
+			if arg2.defer_evaluation and not resolve_text(arg2.constant_value) then
+				arg1[#arg1 + 1] = "Invalid constant"
+			end
 		end
 	end
 

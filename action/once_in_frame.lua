@@ -1,4 +1,4 @@
---- Wait for a while in a coroutine.
+--- Do some action at most once in a given frame.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,28 +23,36 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local bind = require("corona_utils.bind")
+local frames = require("corona_utils.frames")
+
 --
 --
 --
+
+local Next = bind.BroadcastBuilder_Helper(nil)
+
+local function LinkOnceInFrame (oif, other, osub, other_sub)
+	if osub == "next" then
+		bind.AddId(oif, osub, other.uid, other_sub)
+	end
+end
 
 local function EditorEvent (what, arg1, _, arg3)
-	-- Get Link Grouping --
-	if what == "get_link_grouping" then
-		return {
-			{ text = "ACTIONS", font = "bold", color = "actions" },
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }
-			-- ^^ Filled in automatically
-		}
-
 	-- Get Link Info --
 	-- arg1: Info to populate
-	elseif what == "get_link_info" then
-		arg1.fire = "From"
-		arg1.next = "Tether to"
+	if what == "get_link_info" then
+		arg1.fire = "Attempt event (once only per frame)"
+		arg1.next = { friendly_name = "Event", is_source = true }
 
 	-- Get Tag --
 	elseif what == "get_tag" then
-		return "tether"
+		return "once_in_frame"
+
+	-- Prep Action Link --
+	elseif what == "prep_link:action" then
+		return LinkOnceInFrame
 
 	-- Verify --
 	-- arg1: Verify block
@@ -52,17 +60,33 @@ local function EditorEvent (what, arg1, _, arg3)
 	-- arg3: Representative object
 	elseif what == "verify" then
 		if not arg1.links:HasLinks(arg3, "next") then
-			arg1[#arg1 + 1] = "Tether must have target"
+			arg1[#arg1 + 1] = "Once-in-frame requires event"
 		end
 	end
 end
 
-return function(info, _)
+return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
-		-- TODO: on_yield
-		-- predicate(s), time
 	else
-		return nil -- No body
+		local id
+
+		local function once_in_frame ()
+			local fid = frames.GetFrameID()
+
+			if fid ~= id then
+				local at_limit = bind.AtLimit() -- will the next call fail?
+
+				Next(once_in_frame)
+
+				if not at_limit then
+					id = fid
+				end
+			end
+		end
+
+		Next.Subscribe(once_in_frame, info.next, wlist)
+
+		return once_in_frame, "no_next" -- using own next, so suppress stock version
 	end
 end

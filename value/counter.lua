@@ -157,6 +157,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg1: Dialog
 	elseif what == "enum_props" then
 		-- spinners for count assignement, limit
+		arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then

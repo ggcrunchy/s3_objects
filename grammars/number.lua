@@ -94,10 +94,27 @@ local Grammar = {
 	}
 }
 
-local gdef = expression.DefineGrammar(Grammar)
+local GrammarDef = expression.DefineGrammar(Grammar)
+
+local function ResolveText (text)
+	if tonumber(text) then
+		return text
+	else
+		local expr_obj = expression.Process(GrammarDef, text)
+		local res = expr_obj and expr_obj()
+
+		if res ~= res then
+			return "nan"
+		elseif res and 1 / res == 0 then
+			return res < 0 and "-inf" or "+inf"
+		elseif res then
+			return res
+		end
+	end
+end
 
 return {
-	grammar = Grammar, gdef = gdef,
+	grammar = Grammar, gdef = GrammarDef,
 
 	fix_constant = function(what)
 		if what == "-inf" then
@@ -111,20 +128,13 @@ return {
 		end
 	end,
 
-	set_editable_text = function(editable, text)
-		if tonumber(text) then
-			editable:SetStringText(text)
-		else
-			local expr_obj = expression.Process(gdef, text)
-			local res = expr_obj and expr_obj()
+	resolve_text = ResolveText,
 
-			if res ~= res then
-				editable:SetStringText("nan")
-			elseif res and 1 / res == 0 then
-				editable:SetStringText(res < 0 and "-inf" or "+inf")
-			elseif res then
-				editable:SetStringText(res)
-			end
+	set_editable_text = function(editable, text)
+		text = ResolveText(text)
+
+		if text then
+			editable:SetStringText(text)
 		end
 	end
 }

@@ -172,18 +172,8 @@ local function Print (message)
 
 			local ring, index = StringGroup.m_ring, 1
 
-			if ring_buffer.IsFull(ring.head) then
-				for i = ring.tail, StringGroup.numChildren do
-					StringGroup[index].text, index = ring[i], index + 1
-				end
-			
-				for i = 1, ring.tail - 1 do
-					StringGroup[index].text, index = ring[i], index + 1
-				end
-			else
-				for i = 1, ring.head do
-					StringGroup[index].text, index = ring[i], index + 1
-				end
+			for _, text in ring_buffer.Iterate(ring, ring.head, ring.tail, StringGroup.numChildren) do
+				StringGroup[index].text, index = text, index + 1
 			end
 		end, 0), {}
 	end

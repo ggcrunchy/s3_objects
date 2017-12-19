@@ -32,4 +32,15 @@ local number = require("s3_objects.grammars.number")
 
 return require("s3_objects.state_templates.constant").Make("number", 0, function(dialog)
 	dialog:AddString{ value_name = "constant_value", before = "Value:", set_editable_text = number.set_editable_text }
-end, number.fix_constant)
+	dialog:AddCheckbox{ value_name = "defer_evaluation", text = "Defer evaluation?" }
+
+	local cvalue, defer_cb = dialog:Find("constant_value"), dialog:Find("defer_evaluation")
+
+	cvalue:UseRawText(defer_cb:IsChecked())
+
+	dialog:addEventListener("update_object", function(event)
+		if event.object == defer_cb then
+			cvalue:UseRawText(defer_cb:IsChecked())
+		end
+	end)
+end, number.fix_constant, number.resolve_text)
