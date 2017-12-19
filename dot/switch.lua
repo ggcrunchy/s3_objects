@@ -94,7 +94,7 @@ function Switch:ActOn ()
 
 			if band(waiting, flag) == 0 then
 				if commands then
-					commands("set_dirction", forward)
+					commands("set_direction", forward)
 				end
 
 				if event() ~= "failed" then
