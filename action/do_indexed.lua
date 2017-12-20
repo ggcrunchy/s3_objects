@@ -49,6 +49,10 @@ local function LinkDoIndexed (indexed, other, isub, other_sub)
 	return helper("commit")
 end
 
+local function CleanupDoIndexed (indexed)
+	indexed.named_labels = nil
+end
+
 local function EditorEvent (what, arg1, arg2, arg3)
 	-- Build Instances --
 	-- arg1: Built
@@ -86,7 +90,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- Prep Action Link --
 	elseif what == "prep_link:action" then
-		return LinkDoIndexed
+		return LinkDoIndexed, CleanupDoIndexed
 
 	-- Verify --
 	-- arg1: Verify block

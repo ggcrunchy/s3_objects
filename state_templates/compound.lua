@@ -47,6 +47,10 @@ local function LinkCompound (cvalue, other, csub, other_sub)
 	return helper("commit")
 end
 
+local function CleanupCompound (cvalue)
+	cvalue.named_labels = nil
+end
+
 local BindingPolicy = { value_name = "binding_policy", "none", "check_match", "check_no_extra_args", "check_no_unbound_vars" }
 
 --- DOCME
@@ -111,7 +115,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 
 		-- Prep Value Link --
 		elseif what == "prep_link:value" then
-			return LinkCompound
+			return LinkCompound, CleanupCompound
 
 		-- Verify --
 		-- arg1: Verify block

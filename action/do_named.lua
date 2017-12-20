@@ -47,6 +47,10 @@ local function LinkDoNamed (named, other, nsub, other_sub)
 	return helper("commit")
 end
 
+local function CleanupDoNamed (named)
+	named.named_labels = nil
+end
+
 local function EditorEvent (what, arg1, arg2, arg3)
 	-- Build Instances --
 	-- arg1: Built
@@ -84,7 +88,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- Prep Action Link --
 	elseif what == "prep_link:action" then
-		return LinkDoNamed
+		return LinkDoNamed, CleanupDoNamed
 	
 	-- Verify --
 	-- arg1: Verify block
