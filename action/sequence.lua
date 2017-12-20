@@ -44,6 +44,10 @@ local function LinkSequence (sequence, other, ssub, other_sub)
 	return helper("commit")
 end
 
+local function CleanupSequence (sequence)
+	sequence.named_labels = nil
+end
+
 local function EditorEvent (what, arg1, arg2, arg3)
 	-- Build Instances --
 	-- arg1: Built
@@ -72,7 +76,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- Prep Action Link --
 	elseif what == "prep_link:action" then
-		return LinkSequence
+		return LinkSequence, CleanupSequence
 	end
 end
 

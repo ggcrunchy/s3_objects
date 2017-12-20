@@ -57,6 +57,11 @@ function M.Make (vtype, def, add_constant, fix_constant, resolve_text)
 		elseif what == "enum_props" then
 			add_constant(arg1)
 
+		-- Get Link Info --
+		-- arg1: Info to populate
+		elseif what == "get_link_info" then
+			arg1.get = { friendly_name = "Constant value", is_source = true }
+
 		-- Get Tag --
 		elseif what == "get_tag" then
 			return vtype .. "_constant"
