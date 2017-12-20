@@ -73,7 +73,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1["choices*"] = { friendly_name = "Map of choices", set_style = "basic" }
+		arg1["choices*"] = { friendly_name = "Map of choices", is_set = true }
 		arg1.fire = "Launch it"
 		arg1.get_name = "Choose action"
 		arg1.on_bad_name = "On(bad name)"

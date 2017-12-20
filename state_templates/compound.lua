@@ -101,7 +101,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
 			arg1.get = state_vars.abbreviations[rtype] .. ": Result"
-			arg1["values*"] = { friendly_name = state_vars.abbreviations[vtype] .. "S: Source values", set_style = "basic" }
+			arg1["values*"] = { friendly_name = state_vars.abbreviations[vtype] .. "S: Source values", is_set = true }
 
 		-- Get Tag --
 		elseif what == "get_tag" then
