@@ -56,6 +56,28 @@ local function CleanupDispatch (dispatch)
 	dispatch.named_labels = nil
 end
 
+local function GetText (what)
+	for k, v in pairs(InProperties) do
+		if v == what then
+			return k
+		end
+	end
+end
+
+local Choices = {}
+
+for _, v in pairs(InProperties) do
+	Choices[#Choices + 1] = GetText(v)
+end
+
+table.sort(Choices)
+
+local function AddChoices (choice)
+	for _, v in ipairs(Choices) do
+		choice:Append(InProperties[v])
+	end
+end
+
 local function EditorEvent (what, arg1, arg2, arg3)
 	-- Build --
 	-- arg1: Level
@@ -91,10 +113,10 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.fire = "Dispatch"
-		arg1["get_bools*"] = { friendly_name = "BOOL:", group = "values" }
-		arg1["get_nums*"] = { friendly_name = "NUM:", group = "values" }
-		arg1["get_strs*"] = { friendly_name = "STR:", group = "values" }
-		arg1.inputs = "Inputs"
+		arg1["get_bools*"] = { friendly_name = "BOOL:", group = "inputs" }
+		arg1["get_nums*"] = { friendly_name = "NUM:", group = "inputs" }
+		arg1["get_strs*"] = { friendly_name = "STR:", group = "inputs" }
+		arg1.inputs = {	friendly_name = "Inputs", choice_text = "Type to add:", add_choices = AddChoices, get_text = GetText }
 
 	-- Get Tag --
 	elseif what == "get_tag" then
