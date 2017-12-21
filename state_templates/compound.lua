@@ -67,13 +67,12 @@ function M.Make (vtype, gdef, suffix, rtype)
 
 		-- Build Instances --
 		-- arg1: Built
-		-- arg2: Instances
-		-- arg3: Labels
+		-- arg2: Info
 		elseif what == "build_instances" then
 			arg1.named_labels = {}
 
-			for _, instance in ipairs(arg2) do
-				arg1.named_labels[instance] = arg3[instance]
+			for _, instance in ipairs(arg2.instances) do
+				arg1.named_labels[instance] = arg2.labels[instance]
 			end
 
 		-- Enumerate Defaults --

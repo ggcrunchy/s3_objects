@@ -56,13 +56,12 @@ end
 local function EditorEvent (what, arg1, arg2, arg3)
 	-- Build Instances --
 	-- arg1: Built
-	-- arg2: Instances
-	-- arg3: Labels
+	-- arg2: Info
 	if what == "build_instances" then
 		arg1.named_labels = {}
 
-		for _, instance in ipairs(arg2) do
-			arg1.named_labels[instance] = arg3[instance]
+		for _, instance in ipairs(arg2.instances) do
+			arg1.named_labels[instance] = arg2.labels[instance]
 		end
 
 	-- Get Link Grouping --
