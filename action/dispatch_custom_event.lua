@@ -43,17 +43,21 @@ local Runtime = Runtime
 local InProperties = { boolean = "get_bools*", number = "get_nums*", string = "get_strs*" }
 
 local function LinkDispatch (dispatch, other, dsub, other_sub)
-	local helper = bind.PrepLink(dispatch.inputs, other, dsub, other_sub)
-
 	for k, v in pairs(InProperties) do
-		helper("try_in_instances", v, k)
-	end
+		local helper = bind.PrepLink(dispatch, other, dsub, other_sub)
 
-	return helper("commit")
+		helper("try_in_instances", v, k)
+
+		if helper("commit") then
+			return true
+		end
+	end
 end
 
 local function CleanupDispatch (dispatch)
-	dispatch.named_labels = nil
+	for _, v in pairs(InProperties) do
+		dispatch[v] = nil
+	end
 end
 
 local function GetText (what)
@@ -90,18 +94,14 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg1: Built
 	-- arg2: Info
 	elseif what == "build_instances" then
-		local tag_db, named_labels = arg2.links:GetTagDatabase()
+		local tag_db = arg2.links:GetTagDatabase()
 
 		for _, instance in ipairs(arg2.instances) do
-			named_labels = named_labels or {}
-
 			local template = tag_db:GetTemplate("dispatch_custom_event", instance)
-			local into = named_labels[template] or {}
+			local into = arg1[template] or {}
 
-			into[instance], named_labels[template] = arg2.labels[instance], into
+			into[instance], arg1[template] = arg2.labels[instance], into
 		end
-
-		arg1.named_labels, arg1.inputs = named_labels, named_labels and {}
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
@@ -181,6 +181,7 @@ return function(info, wlist)
 				inputs = inputs or {}
 				inputs[vtype] = inputs[vtype] or {}
 				inputs[vtype][label] = comp
+
 			else
 				Event.name = name -- sanity check, since event is user code
 
@@ -189,7 +190,7 @@ return function(info, wlist)
 						local t = AddSubtable(vtype)
 
 						for label, func in pairs(funcs) do
-							t[label] = func
+							t[label] = func()
 						end
 					end
 				end
@@ -207,15 +208,13 @@ return function(info, wlist)
 		end
 
 		for itype in pairs(InProperties) do
-			local inputs = info.inputs
+			local inputs = info[itype]
 
-			if inputs and inputs[itype] then
-				for vtype, vset in pairs(inputs[itype]) do
-					for label, id in adaptive.IterSet(vset) do
-						bind.Subscribe(wlist, id, dispatch, function()
-							return vtype, label
-						end)
-					end
+			if inputs then
+				for label, id in pairs(inputs) do
+					bind.Subscribe(wlist, id, dispatch, function()
+						return itype, label
+					end)
 				end
 			end
 		end
