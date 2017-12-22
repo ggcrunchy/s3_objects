@@ -43,7 +43,7 @@ local Runtime = Runtime
 local InProperties = { boolean = "get_bools*", number = "get_nums*", string = "get_strs*" }
 
 local function LinkDispatch (dispatch, other, dsub, other_sub)
-	local helper = bind.PrepLink(dispatch.named_labels, other, dsub, other_sub)
+	local helper = bind.PrepLink(dispatch.inputs, other, dsub, other_sub)
 
 	for k, v in pairs(InProperties) do
 		helper("try_in_instances", v, k)
@@ -90,16 +90,18 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg1: Built
 	-- arg2: Info
 	elseif what == "build_instances" then
-		local named_labels, tag_db = {}, arg2.links:GetTagDatabase()
+		local tag_db, named_labels = arg2.links:GetTagDatabase()
 
 		for _, instance in ipairs(arg2.instances) do
+			named_labels = named_labels or {}
+
 			local template = tag_db:GetTemplate("dispatch_custom_event", instance)
 			local into = named_labels[template] or {}
 
 			into[instance], named_labels[template] = arg2.labels[instance], into
 		end
 
-		arg1.named_labels = named_labels
+		arg1.named_labels, arg1.inputs = named_labels, named_labels and {}
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
@@ -135,7 +137,20 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg2: Values
 	-- arg3: Representative object
 	elseif what == "verify" then
-		-- TODO: check that names not duped within same type
+		local tag_db, instances, names = arg1.links:GetTagDatabase(), arg1.get_instances(arg3)
+		local tag = arg1.links:GetTag(arg3)
+
+		for i = 1, #(instances or "") do
+			names = names or {}
+
+			local template, label = tag_db:GetTemplate(tag, instances[i]), arg1.get_label(instances[i])
+
+			if adaptive.InSet(names[template], label) then
+				arg1[#arg1 + 1] = "Name `" .. label .. "`has shown up more than once for template `" .. template .. "`"
+			else
+				names[template] = adaptive.AddToSet(names[template], label)
+			end
+		end
 	end
 end
 
@@ -149,6 +164,8 @@ local function AddSubtable (key)
 	end
 
 	Event[key] = t
+
+	return t
 end
 
 return function(info, wlist)
@@ -159,15 +176,21 @@ return function(info, wlist)
 
 		local function dispatch (comp, arg)
 			if comp then
+				local vtype, label = arg()
+
 				inputs = inputs or {}
-				inputs[arg] = adaptive.AddToSet(inputs[arg], comp)
+				inputs[vtype] = inputs[vtype] or {}
+				inputs[vtype][label] = comp
 			else
 				Event.name = name -- sanity check, since event is user code
 
 				if inputs then
-					for k, v in pairs(inputs) do
-						-- subtable
-						-- iterate, evaluate, load
+					for vtype, funcs in pairs(inputs) do
+						local t = AddSubtable(vtype)
+
+						for label, func in pairs(funcs) do
+							t[label] = func
+						end
 					end
 				end
 
@@ -183,9 +206,18 @@ return function(info, wlist)
 			end
 		end
 
-		for k, v in pairs(InProperties) do
---			adaptive.IterSet(...)
-				-- add...
+		for itype in pairs(InProperties) do
+			local inputs = info.inputs
+
+			if inputs and inputs[itype] then
+				for vtype, vset in pairs(inputs[itype]) do
+					for label, id in adaptive.IterSet(vset) do
+						bind.Subscribe(wlist, id, dispatch, function()
+							return vtype, label
+						end)
+					end
+				end
+			end
 		end
 
 		return dispatch
