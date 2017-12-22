@@ -450,6 +450,10 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	elseif what == "enum_props" then
 		arg1:AddCheckbox{ text = "Starts on?", value_name = "starts_on" }
 
+	-- Get Thumb Filename --
+	elseif what == "get_thumb_filename" then
+		return "s3_objects/event_block/thumb/maze.png"
+
 	-- Verify --
 	-- arg1: Verify block
 	-- arg2: Maze values

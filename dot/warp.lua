@@ -623,6 +623,10 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	elseif what == "get_tag" then
 		return "warp"
 
+	-- Get Thumb Filename --
+	elseif what == "get_thumb_filename" then
+		return "s3_objects/dot/thumb/warp.png"
+
 	-- New Tag --
 	elseif what == "new_tag" then
 		--
