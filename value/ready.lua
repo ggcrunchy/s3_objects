@@ -28,7 +28,7 @@ local max = math.max
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 
 -- Corona globals --
 local system = system
@@ -148,7 +148,7 @@ return function(info, wlist)
 	elseif info == "value_type" then
 		return "boolean"
 	else
-		local is_stale = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 		local amount, getters, ready, threshold = info.amount
 
 		if info.as_count then

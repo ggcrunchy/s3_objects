@@ -29,7 +29,7 @@ local pairs = pairs
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local bind = require("corona_utils.bind")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 
 -- Corona globals --
 local native = native
@@ -226,7 +226,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
+		return "extend", Events, Actions, object_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 	-- Prep Action Link --
 	elseif what == "prep_link:action" then
@@ -298,7 +298,7 @@ return function(info, wlist)
 			bind.Publish(wlist, Actions[k](cue), info.uid, k)
 		end
 
-		state_vars.PublishProperties(info.props, OutProperties, info.uid, cue)
+		object_vars.PublishProperties(info.props, OutProperties, info.uid, cue)
 
 		return cue
 	end

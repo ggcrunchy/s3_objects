@@ -23,6 +23,12 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local running = coroutine.running
+
+-- Modules --
+local coroutine_ops = require("coroutine_ops.flow")
+
 --
 --
 --

@@ -35,7 +35,7 @@ local sort = table.sort
 local adaptive = require("tektite_core.table.adaptive")
 local args = require("iterator_ops.args")
 local bind = require("corona_utils.bind")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
@@ -379,14 +379,14 @@ function M.Make (vtype, def, has_order, has_tolerance)
 			arg1.do_remove_last = "Remove last value"
 			arg1.empty = "BOOL: Is array empty?"
 			arg1.find = "UINT: Index of value (if absent, 0)"
-			arg1.first = state_vars.abbreviations[vtype] .. ": Get first value"
-			arg1.get = state_vars.abbreviations[vtype] .. ": Get value at index"
+			arg1.first = object_vars.abbreviations[vtype] .. ": Get first value"
+			arg1.get = object_vars.abbreviations[vtype] .. ": Get value at index"
 			arg1.get_insert_pos = "UINT: Slot in which to place value"
-			arg1.get_limit = state_vars.abbreviations[vtype] .. ": Pending value"
+			arg1.get_limit = object_vars.abbreviations[vtype] .. ": Pending value"
 			arg1.get_pos = "UINT: Slot of value to get"
 			arg1.get_remove_pos = "UINT: Slot of value to remove"
-			arg1.get_value = state_vars.abbreviations[vtype] .. ": Value to add / compare"
-			arg1.last = state_vars.abbreviations[vtype] .. ": Get last value"
+			arg1.get_value = object_vars.abbreviations[vtype] .. ": Value to add / compare"
+			arg1.last = object_vars.abbreviations[vtype] .. ": Get last value"
 			arg1.on_add = "On(add)"
 			arg1.on_add_when_full = "On(tried adding when full)"
 			arg1.on_bad_get_pos = "On(bad get position)"
@@ -405,7 +405,7 @@ function M.Make (vtype, def, has_order, has_tolerance)
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
+			return "extend", Events, Actions, object_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 		-- Prep Value Link --
 		elseif what == "prep_link:value" then
@@ -440,7 +440,7 @@ function M.Make (vtype, def, has_order, has_tolerance)
 		elseif info == "value_type" then
 			return vtype
 		else
-			local is_stale = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+			local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 			local op, limit, tolerance, arr = Ops[info.method], info.limit, info.tolerance
 			local get_limit, get_value, get_pos, get_insert_pos, get_remove_pos
 
@@ -505,7 +505,7 @@ function M.Make (vtype, def, has_order, has_tolerance)
 				bind.Publish(wlist, Actions[k](array), info.uid, k)
 			end
 
-			state_vars.PublishProperties(info.props, OutProperties, info.uid, array)
+			object_vars.PublishProperties(info.props, OutProperties, info.uid, array)
 
 			return array
 		end

@@ -30,7 +30,7 @@ local pairs = pairs
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local bind = require("corona_utils.bind")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 
 --
 --
@@ -205,7 +205,7 @@ return function(info, wlist)
 	elseif info == "value_type" then
 		return "uint"
 	else
-		local is_stale = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 		local limit, count, get_count, get_limit = info.limit or (not info.get_limit and huge)
 
 		local function counter (what, getter)

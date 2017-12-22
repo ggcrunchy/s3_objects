@@ -25,8 +25,8 @@
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local expression = require("s3_utils.state.expression")
-local state_vars = require("config.StateVariables")
+local expression = require("s3_utils.expression")
+local object_vars = require("config.ObjectVariables")
 
 -- Exports --
 local M = {}
@@ -117,10 +117,10 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = state_vars.abbreviations[rtype] .. ": Result"
+			arg1.get = object_vars.abbreviations[rtype] .. ": Result"
 			arg1.pick_first = "BOOL: Pick the first value?"
-			arg1.value1 = state_vars.abbreviations[vtype] .. ": Source value #1"
-			arg1.value2 = state_vars.abbreviations[vtype] .. ": Source value #2"
+			arg1.value1 = object_vars.abbreviations[vtype] .. ": Source value #1"
+			arg1.value2 = object_vars.abbreviations[vtype] .. ": Source value #2"
 
 		-- Get Tag --
 		elseif what == "get_tag" then

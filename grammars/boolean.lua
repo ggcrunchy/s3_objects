@@ -24,7 +24,7 @@
 --
 
 -- Modules --
-local expression = require("s3_utils.state.expression")
+local expression = require("s3_utils.expression")
 
 --
 --

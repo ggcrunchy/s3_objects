@@ -29,7 +29,7 @@ local pairs = pairs
 -- Modules --
 local bind = require("corona_utils.bind")
 local mwc_rng = require("number_sequences.mwc_rng")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 
 --
 --
@@ -137,7 +137,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "extend_properties", state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
+		return "extend_properties", object_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 	-- Prep Value Link --
 	elseif what == "prep_link:value" then
@@ -199,7 +199,7 @@ return function(info, wlist)
 	elseif info == "value_type" then
 		return "number"
 	else
-		local is_stale, gen, getters, rng = state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+		local is_stale, gen, getters, rng = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 		local bound1, seed1 = info.ibound1 or info.nbound1, info.seed1
 		local bound2, seed2 = info.ibound2 or info.nbound2, info.seed2
 
@@ -252,7 +252,7 @@ return function(info, wlist)
 		bind.Subscribe(wlist, info.get_seed1, rng, "get_seed1")
 		bind.Subscribe(wlist, info.get_seed2, rng, "get_seed2")
 
-		state_vars.PublishProperties(info.props, OutProperties, info.uid, rng)
+		object_vars.PublishProperties(info.props, OutProperties, info.uid, rng)
 
 		return rng, "no_before" -- using own Before
 	end

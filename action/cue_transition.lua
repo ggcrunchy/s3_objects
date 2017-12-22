@@ -1,4 +1,4 @@
---- Yield the running coroutine, if any.
+--- Cue a Corona transition.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -25,7 +25,9 @@
 
 -- Standard library imports --
 local running = coroutine.running
-local yield = coroutine.yield
+
+-- Modules --
+local coroutine_ops = require("coroutine_ops.flow")
 
 --
 --
@@ -64,7 +66,8 @@ end
 return function(info, _)
 	if info == "editor_event" then
 		return EditorEvent
-		-- TODO: do_yield, on_yield, on_none_running
+		-- TODO: on_yield
+		-- predicate(s), time
 	else
 		return nil -- No body
 	end

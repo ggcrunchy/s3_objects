@@ -24,7 +24,7 @@
 --
 
 -- Modules --
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 
 --
 --
@@ -32,7 +32,7 @@ local state_vars = require("config.StateVariables")
 
 local FamilyFuncs = {}
 
-for _, name in ipairs(state_vars.families) do
+for _, name in ipairs(object_vars.families) do
 	FamilyFuncs[name] = function()
 		return name
 	end
@@ -42,7 +42,7 @@ local function EditorEvent (what, arg1)
 	-- Enumerate Defaults --
 	-- arg1: Defaults
 	if what == "enum_defs" then
-		arg1.family = state_vars.families[#state_vars.families]
+		arg1.family = object_vars.families[#object_vars.families]
 		
 	-- Enumerate Properties --
 	-- arg1: Dialog

@@ -29,8 +29,8 @@ local pairs = pairs
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local expression = require("s3_utils.state.expression")
-local state_vars = require("config.StateVariables")
+local expression = require("s3_utils.expression")
+local object_vars = require("config.ObjectVariables")
 
 -- Exports --
 local M = {}
@@ -99,8 +99,8 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = state_vars.abbreviations[rtype] .. ": Result"
-			arg1["values*"] = { friendly_name = state_vars.abbreviations[vtype] .. "S: Source values", is_set = true }
+			arg1.get = object_vars.abbreviations[rtype] .. ": Result"
+			arg1["values*"] = { friendly_name = object_vars.abbreviations[vtype] .. "S: Source values", is_set = true }
 
 		-- Get Tag --
 		elseif what == "get_tag" then

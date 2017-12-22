@@ -25,8 +25,8 @@
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local expression = require("s3_utils.state.expression")
-local state_vars = require("config.StateVariables")
+local expression = require("s3_utils.expression")
+local object_vars = require("config.ObjectVariables")
 
 -- Exports --
 local M = {}

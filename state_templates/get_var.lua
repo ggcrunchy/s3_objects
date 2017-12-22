@@ -26,7 +26,7 @@
 -- Modules --
 local bind = require("corona_utils.bind")
 local frames = require("corona_utils.frames")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 local store = require("s3_utils.state.store")
 
 -- Exports --
@@ -74,7 +74,7 @@ function M.Make (vtype, def)
 		-- Enumerate Defaults --
 		-- arg1: Defaults
 		elseif what == "enum_defs" then
-			arg1.family = state_vars.families[#state_vars.families]
+			arg1.family = object_vars.families[#object_vars.families]
 			arg1.update_policy = "cached"
 			arg1.var_name = ""
 	
@@ -105,7 +105,7 @@ function M.Make (vtype, def)
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = state_vars.abbreviations[vtype] .. ": Get value"
+			arg1.get = object_vars.abbreviations[vtype] .. ": Get value"
 			arg1.get_family = "FAM: Variable family"
 
 		-- Get Tag --
@@ -154,7 +154,7 @@ function M.Make (vtype, def)
 						family = comp
 					else
 						if can_go_stale then
-							local id = state_vars.GetSessionID()
+							local id = object_vars.GetSessionID()
 
 							if id ~= session_id then
 								session_id, value = id

@@ -30,8 +30,8 @@ local pairs = pairs
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local bind = require("corona_utils.bind")
+local object_vars = require("config.ObjectVariables")
 local ring_buffer = require("tektite_core.array.ring_buffer")
-local state_vars = require("config.StateVariables")
 local table_funcs = require("tektite_core.table.funcs")
 
 -- Exports --
@@ -221,7 +221,7 @@ function M.Make (vtype, def)
 			arg1.do_add = "Add it"
 			arg1.do_remove = "Remove pending value"
 			arg1.empty = "BOOL: Is container empty?"
-			arg1.get = state_vars.abbreviations[vtype] .. ": Get pending value, removing it"
+			arg1.get = object_vars.abbreviations[vtype] .. ": Get pending value, removing it"
 			arg1.on_add = "On(add)"
 			arg1.on_add_when_full = "On(tried adding when full)"
 			arg1.on_became_empty = "On(became empty)"
@@ -229,8 +229,8 @@ function M.Make (vtype, def)
 			arg1.on_get_when_empty = "On(tried to get when empty)"
 			arg1.on_remove = "On(remove)"
 			arg1.on_remove_when_empty = "On(tried removing when empty)"
-			arg1.peek = state_vars.abbreviations[vtype] .. ": Pending value"
-			arg1.value = state_vars.abbreviations[vtype] .. ": Value to add"
+			arg1.peek = object_vars.abbreviations[vtype] .. ": Pending value"
+			arg1.value = object_vars.abbreviations[vtype] .. ": Value to add"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
@@ -238,7 +238,7 @@ function M.Make (vtype, def)
 
 		-- New Tag --
 		elseif what == "new_tag" then
-			return "extend", Events, Actions, state_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
+			return "extend", Events, Actions, object_vars.UnfoldPropertyFunctionsAsTagReadyList(OutProperties), InProperties
 
 		-- Prep Value Link --
 		elseif what == "prep_link:value" then
@@ -261,7 +261,7 @@ function M.Make (vtype, def)
 		elseif info == "value_type" then
 			return vtype
 		else
-			local kind, is_stale = info.kind, state_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+			local kind, is_stale = info.kind, object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 			local adt, limit, n, t, value = ADT[kind], info.limit, 0
 
 			local function container (comp)
@@ -322,7 +322,7 @@ function M.Make (vtype, def)
 				bind.Publish(wlist, Actions[k](container), info.uid, k)
 			end
 
-			state_vars.PublishProperties(info.props, OutProperties, info.uid, container)
+			object_vars.PublishProperties(info.props, OutProperties, info.uid, container)
 
 			return container
 		end

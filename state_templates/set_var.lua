@@ -25,7 +25,7 @@
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 local store = require("s3_utils.state.store")
 
 -- Exports --
@@ -58,7 +58,7 @@ function M.Make (vtype)
 		-- Enumerate Defaults --
 		-- arg1: Defaults
 		elseif what == "enum_defs" then
-			arg1.family = state_vars.families[#state_vars.families]
+			arg1.family = object_vars.families[#object_vars.families]
 			arg1.var_name = ""
 			
 		-- Enumerate Properties --
@@ -81,7 +81,7 @@ function M.Make (vtype)
 		elseif what == "get_link_info" then
 			arg1.fire = "Set it"
 			arg1.get_family = "FAM: Variable family"
-			arg1.value = state_vars.abbreviations[vtype] .. ": Value to set"
+			arg1.value = object_vars.abbreviations[vtype] .. ": Value to set"
 
 		-- Get Tag --
 		elseif what == "get_tag" then

@@ -26,7 +26,7 @@
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local bind = require("corona_utils.bind")
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 
 -- Exports --
 local M = {}
@@ -79,8 +79,8 @@ function M.Make (vtype, suffix, choice_pairs, def_choice, defs, rtype)
 		-- Get Link Info --
 		-- arg1: Info to populate
 		elseif what == "get_link_info" then
-			arg1.get = state_vars.abbreviations[rtype] .. ": Result"
-			arg1.values = state_vars.abbreviations[vtype] .. "S: Source values"
+			arg1.get = object_vars.abbreviations[rtype] .. ": Result"
+			arg1.values = object_vars.abbreviations[vtype] .. "S: Source values"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
