@@ -92,7 +92,7 @@ local Actions = {
 						Events.on_became_full(array)
 					end
 				else
-					Events.on_bad_remove_pos(array)
+					Events.on_bad_insert_pos(array)
 				end
 			else
 				Events.on_add_when_full(array)
@@ -297,6 +297,11 @@ function M.Make (vtype, def, has_order, has_tolerance)
 	local function LinkArray (array, other, asub, other_sub)
 		local helper = bind.PrepLink(array, other, asub, other_sub)
 
+		helper("try_events", Events)
+		helper("try_actions", Actions)
+		helper("try_in_properties", InProperties)
+		helper("try_out_properties", OutProperties)
+
 		return helper("commit")
 	end
 
@@ -446,7 +451,7 @@ function M.Make (vtype, def, has_order, has_tolerance)
 
 			local function array (what, arg)
 				if is_stale() then
-					arr = {}
+					arr = nil
 
 					if get_limit then
 						limit = nil
@@ -454,6 +459,8 @@ function M.Make (vtype, def, has_order, has_tolerance)
 				end
 
 				if what then
+					arr = arr or {}
+
 					if what == "get" then
 						local value = op(arr, "get", arg)
 

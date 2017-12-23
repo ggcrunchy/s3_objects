@@ -27,6 +27,8 @@
 local abs = math.abs
 local frexp = math.frexp
 local ldexp = math.ldexp
+local max = math.max
+local min = math.min
 
 -- Modules --
 local bind = require("corona_utils.bind")
@@ -36,35 +38,6 @@ local bind = require("corona_utils.bind")
 --
 
 local Before = bind.BroadcastBuilder_Helper(nil)
-
-local OutProperties = {
-	-- T --
-	get_t = function(interval)
-		return function()
-			--
-		end
-	end,
-
-	-- Within --
-	within = function(interval)
-		return function()
-			-- get bounds
-			-- check interval()
-		end
-	end
-}
-
-local function LinkInterval (interval, other, isub, other_sub)
-	local helper = bind.PrepLink(interval, other, isub, other_sub)
-
-	-- TODO!
-
-	return helper("commit")
-end
-
-local function EditorEvent (what, arg1, arg2, arg3)
-	--
-end
 
 local NextBefore, NextAfter
 
@@ -90,6 +63,102 @@ function NextBefore  (x)
 	return ldexp(m - 2^-53, e)
 end
 
+local OutProperties = {
+	-- T --
+	get_t = function(interval)
+		return function()
+			return interval("t")
+		end
+	end,
+
+	-- Within --
+	within = function(interval)
+		return function()
+			-- get bounds
+			-- check interval()
+		end
+	end
+}
+
+local function LinkInterval (interval, other, isub, other_sub)
+	local helper = bind.PrepLink(interval, other, isub, other_sub)
+
+	helper("try_out_properties", OutProperties)
+
+	return helper("commit")
+end
+
+local function EditorEvent (what, arg1, arg2, arg3)
+		-- Build --
+		-- arg1: Level
+		-- arg2: Original entry
+		-- arg3: Item to build
+		if what == "build" then
+--[[
+			if not (arg2.contains or arg2.find) then
+				arg3.tolerance = nil
+			end
+
+			if arg2.method ~= "append" or not arg2.do_insert then
+				arg3.do_insert, arg3.get_insert_pos = nil
+			end
+
+			if not arg2.do_remove then
+				arg3.get_remove_pos = nil
+			end
+
+			if not arg2.get then
+				arg3.get_pos = nil
+			end
+
+			if arg2.get_limit then
+				arg2.limit = nil
+			end
+--]]
+			if not arg2.get_t then
+				arg3.t = arg2.can_extrapolate and arg2.extrapolate_t or arg2.interpolate_t
+			end
+
+			arg3.can_extrapolate, arg3.extrapolate_t, arg3.interpolate_t = nil
+
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	elseif what == "enum_defs" then
+		arg1.interpolate_t = 0
+		
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	elseif what == "enum_props" then
+		arg1:AddString{ text = "Interpolation:", is_static = true }
+		arg1:AddHorizontalSlider{ value_name = "interpolate_t" }
+
+	-- Get Link Grouping --
+	elseif what == "get_link_grouping" then
+	--[[
+		return {
+			{ text = "ACTIONS", font = "bold", color = "actions" },
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }
+			-- ^^ Filled in automatically
+		}]]
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		--
+
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "interval"
+
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		--
+	end
+end
+
 return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
@@ -110,8 +179,12 @@ return function(info, wlist)
 		return "number"
 	else
 		-- TODO
-		local function interval ()
-			--
+		local function interval (comp, arg)
+			if comp then
+				--
+			else
+				--
+			end
 		end
 
 		return interval, "no_before" -- using own Before
