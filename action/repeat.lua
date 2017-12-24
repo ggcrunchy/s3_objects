@@ -64,7 +64,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
-		--
+		arg1:AddStepperWithEditable{ before = "Count:", value_name = "count", min = 1 }
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then

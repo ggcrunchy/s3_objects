@@ -156,8 +156,8 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
-		arg1:AddStepperWithEditable{ text = "Upper limit:", value_name = "limit", min = 1 }
-		arg1:AddStepperWithEditable{ text = "Count to assign:", value_name = "count" }
+		arg1:AddStepperWithEditable{ before = "Upper limit:", value_name = "limit", min = 1 }
+		arg1:AddStepperWithEditable{ before = "Count to assign:", value_name = "count" }
 		arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 
 	-- Get Link Grouping --

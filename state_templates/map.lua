@@ -239,8 +239,10 @@ function M.Make (vtype, def, has_tolerance)
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
+			arg1:AddStepperWithEditable{ before = "Limit:", value_name = "limit", min = 1, max = MaxLimit }
+
 			if has_tolerance then
-				--
+				arg1:AddStepperWithEditable{ before = "Tolerance:", value_name = "tolerance", min = 1, scale = 1e-6 }
 			end
 
 			arg1:AddCheckbox{ value_name = "allow_replacement", text = "Can overwrite values?" }

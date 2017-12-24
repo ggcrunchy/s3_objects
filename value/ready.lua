@@ -73,6 +73,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
+		arg1:AddStepperWithEditable{ before = "Amount:", value_name = "amount", min = 1 }
 		arg1:AddCheckbox{ value_name = "as_count", text = "Interpret amount as times fetched?" }
 		arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 

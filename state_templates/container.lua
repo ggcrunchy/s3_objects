@@ -24,6 +24,7 @@
 --
 
 -- Standard library imports --
+local min = math.min
 local next = next
 local pairs = pairs
 
@@ -159,6 +160,8 @@ local function Remove (adt, container, t, n)
 	return n
 end
 
+local MaxLimit = 100
+
 --- DOCME
 function M.Make (vtype, def)
 	local InProperties, OutProperties = { [vtype] = "value" }, table_funcs.Copy(OutPropertiesBase)
@@ -202,7 +205,7 @@ function M.Make (vtype, def)
 		elseif what == "enum_props" then
 			arg1:AddString{ text = "Kind of container:", is_static = true }
 			arg1:AddListbox{ value_name = "kind", "queue", "stack", "singleton" }
-			-- limit spinner?
+			arg1:AddStepperWithEditable{ before = "Limit:", value_name = "limit", min = 1, max = MaxLimit }
 			arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 
 		-- Get Link Grouping --

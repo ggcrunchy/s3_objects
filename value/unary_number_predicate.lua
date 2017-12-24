@@ -39,8 +39,8 @@ return require("s3_objects.state_templates.unary").Make("boolean", nil, "number_
 	"is_non_positive", function(a) return a <= 0 end,
 	"is_number", function(a) return a == a end,
 	"is_positive", function(a) return a > 0 end,
-	"is_finite", function(a) return a / 0 ~= 0 end, -- TODO: wild guess!
-	"is_infinite", function(a) return a / 0 == 0 end,
+	"is_finite", function(a) return 1 / a ~= 0 end,
+	"is_infinite", function(a) return 1 / a == 0 end,
 	"is_integer", function(a) return a % 1 == 0 end,
 	"is_non_integer", function(a) return a % 1 ~= 0 end,
 	"is_zero", function(a) return a == 0 end,

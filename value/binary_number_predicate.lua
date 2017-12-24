@@ -30,7 +30,7 @@ local abs = math.abs
 --
 --
 
-local maker = require("s3_objects.state_templates.binary").Make("number", nil, "number_predicate", {
+return require("s3_objects.state_templates.binary").Make("number", nil, "number_predicate", {
 	"<", function(a, b) return a < b end,
 	">", function(a, b) return a > b end,
 	"==", function(a, b) return a == b end,
@@ -41,29 +41,10 @@ local maker = require("s3_objects.state_templates.binary").Make("number", nil, "
 	"approximately", function(a, b, tolerance)
 		return abs(a - b) <= tolerance
 	end
-}, "+", "boolean")
+}, "<", {
+	arg_def = 1e-6, rtype = "boolean",
 
-local editor_event = maker("editor_event")
-
-return function()
-	local function EditorEvent (what, arg1, arg2, arg3)
-		-- Enumerate Properties --
-		-- arg1: Dialog
-		if what == "enum_props" then
-			editor_event("enum_props", what, arg1)
-
-			-- arg = tolerance
-		-- Stock --
-		else
-			return editor_event(what, arg1, arg2, arg3)
-		end
+	add_arg = function(dialog)
+		dialog:AddStepperWithEditable{ before = "Tolerance:", value_name = "arg", min = 1, scale = 1e-6 }
 	end
-
-	return function(info)
-		if info == "editor_event" then
-			return EditorEvent
-		else
-			return maker(info)
-		end
-	end
-end
+})

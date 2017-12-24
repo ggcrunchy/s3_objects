@@ -23,6 +23,9 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local type = type
+
 -- Modules --
 local bind = require("corona_utils.bind")
 local expression = require("s3_utils.expression")
@@ -46,8 +49,14 @@ end
 local Args = { x = false, y = false }
 
 --- DOCME
-function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
-	rtype = rtype or vtype
+function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, opts)
+	local has_opts, arg_def, add_arg, rtype = type(opts) == "table"
+
+	if has_opts then
+		arg_def, add_arg, rtype = opts.arg_def, opts.add_arg, opts.rtype
+	end
+
+	rtype = rtype or opts or vtype
 
 	local list_opts, ops = { value_name = "choice" }, {}
 
@@ -82,23 +91,30 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 			arg1.choice = def_choice
 			arg1.expression = ""
 			arg1.use_expression = false
-		
+
+			if arg_def ~= nil then
+				arg1.arg = arg_def
+			end
+
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
-			arg1:AddCheckbox{ text = "Use expression?", value_name = "use_expression" }
-
 			local expression_section = arg1:BeginSection()
 
 				arg1:AddString{ before = "Expression:", value_name = "expression" }
 
 			arg1:EndSection()
 
+			arg1:AddCheckbox{ text = "Use expression?", value_name = "use_expression" }
+
 			local ops_section = arg1:BeginSection()
 
 				arg1:AddString{ text = "Choices", is_static = true }
 				arg1:AddListbox(list_opts)
-				-- TODO: on-demand way to extend with arg
+
+				if add_arg then
+					add_arg(arg1)
+				end
 
 			arg1:EndSection()
 

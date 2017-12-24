@@ -194,8 +194,8 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
-		-- numeric textfield?
-		-- spinner for iterations?
+		arg1:AddStepperWithEditable{ before = "Delay:", value_name = "delay", min = 1 }
+		arg1:AddStepperWithEditable{ before = "Iterations:", value_name = "iterations", min = 0 }
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then

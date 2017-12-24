@@ -43,4 +43,6 @@ return require("s3_objects.state_templates.constant").Make("number", 0, function
 			cvalue:UseRawText(defer_cb:IsChecked())
 		end
 	end)
+
+	-- TODO? Could add stepper but need to account for deferred evaluation, and step size
 end, number.fix_constant, number.resolve_text)
