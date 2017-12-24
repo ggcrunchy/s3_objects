@@ -94,7 +94,6 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 
 				arg1:AddString{ text = "Choices", is_static = true }
 				arg1:AddListbox(list_opts)
-				-- TODO: on-demand way to extend with arg
 
 			arg1:EndSection()
 

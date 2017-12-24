@@ -24,8 +24,6 @@
 --
 
 -- Standard library imports --
-local min = math.min
-local next = next
 local pairs = pairs
 
 -- Modules --
@@ -189,6 +187,8 @@ function M.Make (vtype, def)
 		if what == "build" then
 			if arg2.kind == "singleton" then
 				arg3.limit, arg3.get_limit = nil
+			elseif arg2.get_limit then
+				arg3.limit = nil
 			end
 
 			arg3.persist_across_reset = arg2.persist_across_reset or nil
@@ -211,7 +211,7 @@ function M.Make (vtype, def)
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then
 			return {
-				{ text = "ADD", font = "bold", color = "unary_action" }, "value", "do_add",
+				{ text = "ADD", font = "bold", color = "unary_action" }, "get_value", "do_add",
 				{ text = "ACTIONS", font = "bold", color = "actions" }, "do_remove",
 				{ text = "OUT-PROPERTIES", font = "bold", color = "props", is_source = true }, "get", "peek", "count", "empty",
 				{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "before", "on_add", "on_remove", "on_became_empty", "on_became_full", "on_add_when_full", "on_remove_when_empty", "on_get_when_empty"
@@ -225,6 +225,7 @@ function M.Make (vtype, def)
 			arg1.do_remove = "Remove pending value"
 			arg1.empty = "BOOL: Is container empty?"
 			arg1.get = object_vars.abbreviations[vtype] .. ": Get pending value, removing it"
+			arg1.get_value = object_vars.abbreviations[vtype] .. ": Value to add"
 			arg1.on_add = "On(add)"
 			arg1.on_add_when_full = "On(tried adding when full)"
 			arg1.on_became_empty = "On(became empty)"
@@ -233,7 +234,6 @@ function M.Make (vtype, def)
 			arg1.on_remove = "On(remove)"
 			arg1.on_remove_when_empty = "On(tried removing when empty)"
 			arg1.peek = object_vars.abbreviations[vtype] .. ": Pending value"
-			arg1.value = object_vars.abbreviations[vtype] .. ": Value to add"
 
 		-- Get Tag --
 		elseif what == "get_tag" then
@@ -252,8 +252,8 @@ function M.Make (vtype, def)
 		-- arg2: Values
 		-- arg3: Representative object
 		elseif what == "verify" then
-			if not arg1.links:HasLinks(arg3, "value") then
-				arg1[#arg1 + 1] = "Containers require `value` link"
+			if not arg1.links:HasLinks(arg3, "get_value") then
+				arg1[#arg1 + 1] = "Containers require `get_value` link"
 			end
 		end
 	end
@@ -265,57 +265,68 @@ function M.Make (vtype, def)
 			return vtype
 		else
 			local kind, is_stale = info.kind, object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-			local adt, limit, n, t, value = ADT[kind], info.limit, 0
+			local adt, limit, n, t, get_limit, get_value = ADT[kind], info.limit, 0
 
-			local function container (comp)
-				if is_stale() then
-					t, Singletons[container] = nil -- use container as key in weak table
-				end
-
-				if t == nil then
-					if kind == "queue" then
-						t = { limit = limit }
-					elseif kind ~= "singleton" then
-						t = {}
-					else
-						t = container -- see note in is_stale() block
+			local function container (comp, arg)
+				if arg then
+					if arg == "get_limit" then
+						get_limit = comp
+					elseif arg == "get_value" then
+						get_value = comp
 					end
-				end
+				else
+					if is_stale() then
+						t, Singletons[container] = nil -- use container as key in weak table
 
-				local remove
+						if get_limit then
+							limit = nil
+						end
+					end
 
-				if comp and comp ~= "remove" then
-					if value then
+					if t == nil then
+						limit = limit or get_limit()
+
+						if kind == "queue" then
+							t = { limit = limit }
+						elseif kind ~= "singleton" then
+							t = {}
+						else
+							t = container -- see note in is_stale() block
+						end
+					end
+
+					local remove
+
+					if comp and comp ~= "remove" then
 						if comp == "count" then
 							return n
 						elseif comp == "add" then
-							n = Add(adt, container, t, n, limit, value) -- fall through to result below
+							n = Add(adt, container, t, n, limit, get_value()) -- fall through to result below
 						end
 					else
-						value = comp
+						remove = true -- "get" or comp == "remove"
 					end
-				else
-					remove = true -- "get" or comp == "remove"
+
+					local result
+
+					if n > 0 then
+						result = adt(t, "peek")
+					else
+						result = def
+
+						Events.on_get_when_empty(container)
+					end
+
+					if remove then
+						n = Remove(adt, container, t, n)
+					end
+
+					return result
 				end
-
-				local result
-
-				if n > 0 then
-					result = adt(t, "peek")
-				else
-					result = def
-
-					Events.on_get_when_empty(container)
-				end
-
-				if remove then
-					n = Remove(adt, container, t, n)
-				end
-
-				return result
 			end
 
-			bind.Subscribe(wlist, info.get_value, container)
+			bind.Subscribe(wlist, info.get_limit, container, "get_limit")
+			bind.Subscribe(wlist, info.get_value, container, "get_value")
 
 			for k, event in pairs(Events) do
 				event.Subscribe(container, info[k], wlist)

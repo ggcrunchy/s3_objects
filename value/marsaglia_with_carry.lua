@@ -38,8 +38,9 @@ local object_vars = require("config.ObjectVariables")
 local Before = bind.BroadcastBuilder_Helper(nil)
 
 local InProperties = {
-	integer = { get_ibound1 = "ibound1", get_ibound2 = "ibound2", get_seed1 = "seed1", get_seed2 = "seed2" },
-	number = { get_nbound1 = "nbound1", get_nbound2 = "nbound2" }
+	integer = { get_ibound1 = "ibound1", get_ibound2 = "ibound2" },
+	number = { get_nbound1 = "nbound1", get_nbound2 = "nbound2" },
+	uint = { get_seed1 = "seed1", get_seed2 = "seed2" }
 }
 
 local OutProperties = {
@@ -99,6 +100,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- arg1: Defaults
 	elseif what == "enum_defs" then
 		arg1.persist_across_reset = false
+		arg1.use_integers = false
 		arg1.ibound1, arg1.ibound2 = 1, 1
 		arg1.nbound1, arg1.nbound2 = 0, 1
 		arg1.seed1, arg1.seed2 = Seed1, Seed2
@@ -106,10 +108,28 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
+		local number_section = arg1:BeginSection()
+
+			arg1:AddStepperWithEditable{ before = "Number bound #1:", value_name = "nbound1", min = -1 / 0, scale = .05 }
+			arg1:AddStepperWithEditable{ before = "Number bound #2:", value_name = "nbound2", min = -1 / 0, scale = .05 }
+
+		arg1:EndSection()
+
+		arg1:AddCheckbox{ text = "Use integers?", value_name = "use_integers" }
+
+		local integer_section = arg1:BeginSection()
+
+			arg1:AddStepperWithEditable{ before = "Integer bound #1:", value_name = "ibound1", min = 1 - 2^32, max = 2^32 - 1 }
+			arg1:AddStepperWithEditable{ before = "Integer bound #2:", value_name = "ibound2", min = 1 - 2^32, max = 2^32 - 1 }
+
+		arg1:EndSection()
+
+		arg1:AddStepperWithEditable{ before = "Seed #1:", value_name = "seed1", max = 2^32 - 1 }
+		arg1:AddStepperWithEditable{ before = "Seed #2:", value_name = "seed2", max = 2^32 - 1 }
 		arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
-		-- use integers
-		-- various bounds...
-		-- seeds
+
+		arg1:SetStateFromValue_Watch(number_section, "use_integers", "use_false")
+		arg1:SetStateFromValue_Watch(integer_section, "use_integers")
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
