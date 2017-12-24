@@ -29,6 +29,7 @@ local frexp = math.frexp
 local ldexp = math.ldexp
 local max = math.max
 local min = math.min
+local pairs = pairs
 
 -- Modules --
 local bind = require("corona_utils.bind")
@@ -243,7 +244,11 @@ return function(info, wlist)
 		local function interval (comp, arg)
 			if comp ~= "t" then
 				if arg then
-					if arg == "get_t" then
+					if arg == "get_bound1" then
+						get_bound1 = comp
+					elseif arg == "get_bound2" then
+						get_bound2 = comp
+					elseif arg == "get_t" then
 						get_t = comp
 					elseif arg == "get_value" then
 						get_value = comp
@@ -282,6 +287,16 @@ return function(info, wlist)
 				return (1 - t) * bound1 + t * bound2
 			end
 		end
+
+		for name, event in pairs(Events) do
+			event.Subscribe(interval, info[name], wlist)
+		end
+
+		for name in pairs(InProperties.number) do
+			bind.Subscribe(wlist, info[name], interval, name)
+		end
+
+		object_vars.PublishProperties(info.props, OutProperties, info.uid, interval)
 
 		return interval
 	end

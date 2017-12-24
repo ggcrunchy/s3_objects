@@ -109,6 +109,9 @@ return function(info, wlist)
 		return "integer"
 	else
 		local method, value = Methods[info.method]
+		-- TODO: to_uint?
+			-- If so, policy for negatives: abs, clamp-to-0, mask-and-reinterpret (2s complement)
+			-- Would also use Before...
 
 		local function to_integer (comp)
 			if value then

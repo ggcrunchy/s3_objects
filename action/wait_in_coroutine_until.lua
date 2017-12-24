@@ -1,4 +1,4 @@
---- Yield the running coroutine, if any.
+--- Wait for a condition in a coroutine, possibly timing out.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -24,78 +24,51 @@
 --
 
 -- Standard library imports --
-local pairs = pairs
 local running = coroutine.running
-local yield = coroutine.yield
 
 -- Modules --
-local bind = require("corona_utils.bind")
+local flow = require("coroutine_ops.flow")
 
 --
 --
 --
-
-local Events = {}
-
-for _, name in ipairs{ "on_not_in_coroutine", "on_yielding" } do
-	Events[name] = bind.BroadcastBuilder_Helper(nil)
-end
-
-local function LinkYield (coro_yield, other, cysub, osub)
-	local helper = bind.PrepLink(coro_yield, other, cysub, osub)
-
-	helper("try_events", Events)
-
-	return helper("commit")
-end
 
 local function EditorEvent (what, arg1, _, arg3)
 	-- Get Link Grouping --
 	if what == "get_link_grouping" then
 		return {
-			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "on_yielding", "on_not_in_coroutine"
+			{ text = "ACTIONS", font = "bold", color = "actions" },
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }
+			-- ^^ Filled in automatically
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.fire = "Yield"
-		arg1.on_not_in_coroutine = "On(not in coroutine)"
-		arg1.on_yielding = "On(about to yield)"
+		arg1.fire = "From"
+		arg1.next = "Tether to"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
-		return "yield_running_coroutine"
+		return "tether"
 
-	-- New Tag --
-	elseif what == "new_tag" then
-		return "extend", Events
-
-	-- Prep Action Link --
-	elseif what == "prep_link:action" then
-		return LinkYield
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		if not arg1.links:HasLinks(arg3, "next") then
+			arg1[#arg1 + 1] = "Tether must have target"
+		end
 	end
 end
 
-return function(info, wlist)
+return function(info, _)
 	if info == "editor_event" then
 		return EditorEvent
+		-- TODO: on_yield
+		-- predicate(s), time
 	else
-		local function yield_coro ()
-			if running() then
-				Events.on_yielding(yield_coro)
-
-				yield() -- TODO: okay to tail-call?
-			else
-				return Events.on_not_in_coroutine(yield_coro)
-			end
-		end
-
-		for k, v in pairs(Events) do
-			v.Subscribe(wlist, info[k], yield_coro)
-		end
-
-		return yield_coro
+		return nil -- No body
 	end
 end

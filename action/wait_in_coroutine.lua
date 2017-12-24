@@ -24,51 +24,96 @@
 --
 
 -- Standard library imports --
+local max = math.max
 local running = coroutine.running
 
 -- Modules --
-local coroutine_ops = require("coroutine_ops.flow")
+local bind = require("corona_utils.bind")
+local flow = require("coroutine_ops.flow")
 
 --
 --
 --
 
-local function EditorEvent (what, arg1, _, arg3)
+local NotInCoroutine = bind.BroadcastBuilder_Helper(nil)
+
+local function LinkWait (wait, other, wsub, osub)
+	if wsub == "get_ms" or wsub == "on_not_in_coroutine" then
+		bind.AddId(wait, wsub, other.uid, osub)
+
+		return true
+	end
+end
+
+local function EditorEvent (what, arg1, arg2, arg3)
+	-- Build --
+	-- arg1: Level
+	-- arg2: Original entry
+	-- arg3: Item to build
+	if what == "build" then
+		if arg2.get_ms then
+			arg3.ms = nil
+		end
+
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	elseif what == "enum_defs" then
+		arg1.ms = 500
+
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	elseif what == "enum_props" then
+		arg1:AddStepperWithEditable{ before = "Wait, in milliseconds:", value_name = "ms", min = 1 }
+
 	-- Get Link Grouping --
-	if what == "get_link_grouping" then
+	elseif what == "get_link_grouping" then
 		return {
-			{ text = "ACTIONS", font = "bold", color = "actions" },
-			{ text = "EVENTS", font = "bold", color = "events", is_source = true }
-			-- ^^ Filled in automatically
+			{ text = "ACTIONS", font = "bold", color = "actions" }, "fire",
+			{ text = "IN-PROPERTIES", font = "bold", color = "props" }, "get_ms",
+			{ text = "EVENTS", font = "bold", color = "events", is_source = true }, "next", "on_not_in_coroutine"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
-		arg1.fire = "From"
-		arg1.next = "Tether to"
+		arg1.fire = "Wait"
+		arg1.get_ms = "UINT: Milliseconds to wait"
+		arg1.on_not_in_coroutine = "On(not in coroutine)"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
-		return "tether"
+		return "wait_in_coroutine"
 
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Values
-	-- arg3: Representative object
-	elseif what == "verify" then
-		if not arg1.links:HasLinks(arg3, "next") then
-			arg1[#arg1 + 1] = "Tether must have target"
-		end
+	-- New Tag --
+	elseif what == "new_tag" then
+		return "extend", "on_not_in_coroutine", nil, nil, { uint = "get_ms" }
+
+	-- Prep Action Link --
+	elseif what == "prep_link:action" then
+		return LinkWait
 	end
 end
 
-return function(info, _)
+return function(info, wlist)
 	if info == "editor_event" then
 		return EditorEvent
-		-- TODO: on_yield
-		-- predicate(s), time
 	else
-		return nil -- No body
+		local ms, get_ms = info.ms
+
+		local function wait (comp)
+			if comp then
+				get_ms = comp
+			elseif running() then
+				flow.Wait(ms or max(1, get_ms()))
+			else
+				NotInCoroutine(wait)
+			end
+		end
+
+		NotInCoroutine.Subscribe(info.not_in_coroutine, wait, wlist)
+
+		bind.Subscribe(wlist, info.get_ms, wait)
+
+		return wait
 	end
 end
