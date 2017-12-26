@@ -54,7 +54,7 @@ local function LinkGetter (getter, other, gsub, other_sub)
 	end
 end
 
-local UpdatePolicy = { value_name = "update_policy", "cached", "uncached", "bake" }
+local UpdatePolicy = { value_name = "update_policy", column = { "cached", "uncached", "bake" }, before = "Update policy:" }
 
 local function WillBake (policy)
 	return policy == "bake"
@@ -81,11 +81,9 @@ function M.Make (vtype, def)
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
-			arg1:AddString{ text = "Family", is_static = true }
-			arg1:AddFamilyList{ value_name = "family" }
-			arg1:AddString{ before = "Variable name", value_name = "var_name" }
-			arg1:AddString{ text = "Update policy", is_static = true }
-			arg1:AddListbox(UpdatePolicy)
+			arg1:AddFamilyList{ value_name = "family", before = "Family:" }
+			arg1:AddString{ before = "Variable name:", value_name = "var_name" }
+			arg1:AddDropdown(UpdatePolicy)
 
 			local fresh_section = arg1:BeginSection()
 

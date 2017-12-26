@@ -31,6 +31,7 @@ local pairs = pairs
 local bind = require("corona_utils.bind")
 local expression = require("s3_utils.expression")
 local object_vars = require("config.ObjectVariables")
+local strings = require("tektite_core.var.strings")
 
 -- Exports --
 local M = {}
@@ -51,7 +52,15 @@ local function CleanupCompound (cvalue)
 	cvalue.named_labels = nil
 end
 
-local BindingPolicy = { value_name = "binding_policy", "none", "check_match", "check_no_extra_args", "check_no_unbound_vars" }
+local BindingPolicy = {
+	value_name = "binding_policy", column = {
+		"none", "check_match", "check_no_extra_args", "check_no_unbound_vars"
+	}, before = "Binding policy:", column_width = 185,
+
+	get_text = function(name)
+		return strings.SplitIntoWords(name, "on_pattern")
+	end
+}
 
 --- DOCME
 function M.Make (vtype, gdef, suffix, rtype)
@@ -85,8 +94,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 		-- arg1: Dialog
 		elseif what == "enum_props" then
 			arg1:AddString{ before = "Expression:", value_name = "expression" }
-			arg1:AddString{ text = "Binding policy", is_static = true }
-			arg1:AddListbox(BindingPolicy)
+			arg1:AddDropdown(BindingPolicy)
 
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then

@@ -64,9 +64,8 @@ function M.Make (vtype)
 		-- Enumerate Properties --
 		-- arg1: Dialog
 		elseif what == "enum_props" then
-			arg1:AddString{ text = "Family", is_static = true }
-			arg1:AddFamilyList{ value_name = "family" }
-			arg1:AddString{ before = "Variable name", value_name = "var_name" }
+			arg1:AddFamilyList{ value_name = "family", before = "Family:" }
+			arg1:AddString{ before = "Variable name:", value_name = "var_name" }
 
 		-- Get Link Grouping --
 		elseif what == "get_link_grouping" then

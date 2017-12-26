@@ -47,7 +47,7 @@ local function EditorEvent (what, arg1)
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
-		arg1:AddFamilyList{ value_name = "family" }
+		arg1:AddFamilyList{ value_name = "family", before = "Family:" }
 
 	-- Get Link Info --
 	-- arg1: Info to populate
