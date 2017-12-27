@@ -25,7 +25,6 @@
 
 -- Standard library imports --
 local ipairs = ipairs
-local pairs = pairs
 
 -- Modules --
 local args = require("iterator_ops.args")
@@ -33,6 +32,7 @@ local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
 local file = require("corona_utils.file")
+local meta = require("tektite_core.table.meta")
 
 -- Plugins --
 local bit = require("plugin.bit")
@@ -344,9 +344,7 @@ return function (group, info)
 
 	switch:scale(.5, .5)
 
-	for k, v in pairs(Switch) do
-		switch[k] = v
-	end
+	meta.Augment(switch, Switch)
 
 	Sounds:Load()
 

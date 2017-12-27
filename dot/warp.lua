@@ -39,6 +39,7 @@ local frames = require("corona_utils.frames")
 local fx = require("s3_utils.fx")
 local length = require("tektite_core.number.length")
 local markers = require("s3_utils.effect.markers")
+local meta = require("tektite_core.table.meta")
 local positions = require("s3_utils.positions")
 local tile_maps = require("s3_utils.tile_maps")
 
@@ -717,9 +718,7 @@ return function (group, info)
 
 	Scale(warp, 1)
 
-	for k, v in pairs(Warp) do
-		warp[k] = v
-	end
+	meta.Augment(warp, Warp)
 
 	Sounds:Load()
 
