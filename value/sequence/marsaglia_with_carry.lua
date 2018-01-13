@@ -128,8 +128,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		arg1:AddStepperWithEditable{ before = "Seed #2:", value_name = "seed2", max = 2^32 - 1 }
 		arg1:AddCheckbox{ value_name = "persist_across_reset", text = "Persist across reset?" }
 
-		arg1:SetStateFromValue_Watch(number_section, "use_integers", "use_false")
-		arg1:SetStateFromValue_Watch(integer_section, "use_integers")
+		arg1:SetStateFromValue_Watch({ integer_section, number_section }, "use_integers", "on_and_off")
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then

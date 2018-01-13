@@ -77,12 +77,6 @@ end
 function Switch:ActOn ()
 	local forward, any_successes, no_failures = self.m_forward, false, true
 
-	-- If there is state around to restore the initial "forward" state of the switch,
-	-- we do what it anticipated: reverse the switch's forward-ness.
-	if self.m_forward_saved ~= nil then
-		self.m_forward = not forward
-	end
-
 	-- Fire the event and stop showing its hint, and wait for it to finish.
 	local n = 0
 
@@ -106,7 +100,7 @@ function Switch:ActOn ()
 				n = n + 1
 
 				if commands then
-					commands("show", self, false)
+					commands("show", false)
 				end
 			end
 
@@ -118,6 +112,12 @@ function Switch:ActOn ()
 
 	bind.AddCalls(n)
 
+	-- If there is state around to restore the initial "forward" state of the switch,
+	-- we do what it anticipated: reverse the switch's forward-ness.
+	if self.m_forward_saved ~= nil and any_successes then
+		self.m_forward = not forward
+	end
+
 	--
 	if no_failures or any_successes then
 		Sounds:RandomSound()
@@ -128,7 +128,6 @@ function Switch:ActOn ()
 
 	--
 	else
-		self.m_forward = forward
 		-- Fail sound
 	end
 end
@@ -170,7 +169,7 @@ end
 
 --- Dot method: update switch state.
 function Switch:Update ()
-	local touched = self.m_touched
+	local forward, touched = self.m_forward, self.m_touched
 
 	for _, targets in TargetsLoop(self, self[true], self[false]) do
 		local flag, waiting = 1, targets.m_waiting
@@ -182,7 +181,8 @@ function Switch:Update ()
 				waiting = waiting - flag
 
 				if touched and commands then
-					commands("show", self, true)
+					commands("set_direction", forward)
+					commands("show", true)
 				end
 			end
 
@@ -200,7 +200,7 @@ local TouchEvent = { name = "touching_dot" }
 collision.AddHandler("switch", function(phase, switch, other, other_type)
 	-- Player touched switch: signal it as the dot of interest.
 	if other_type == "player" then
-		local is_touched = phase == "began"
+		local forward, is_touched = switch.m_forward, phase == "began"
 
 		TouchEvent.dot, TouchEvent.is_touching, switch.m_touched = switch, is_touched, is_touched
 
@@ -216,7 +216,8 @@ collision.AddHandler("switch", function(phase, switch, other, other_type)
 				local commands = bind.GetActionCommands(event)
 
 				if commands and band(waiting, flag) == 0 then
-					commands("show", switch, is_touched)
+					commands("set_direction", forward)
+					commands("show", is_touched)
 				end
 
 				flag = 2 * flag

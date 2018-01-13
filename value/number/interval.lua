@@ -195,8 +195,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 		arg1:AddCheckbox{ text = "Should sort bounds?", value_name = "should_sort" }
 		arg1:AddCheckbox{ text = "Should sort open-ness?", value_name = "should_sort_open" }
 
-		arg1:SetStateFromValue_Watch(interpolate_section, "can_extrapolate", "use_false")
-		arg1:SetStateFromValue_Watch(extrapolate_section, "can_extrapolate")
+		arg1:SetStateFromValue_Watch({ extrapolate_section, interpolate_section }, "can_extrapolate", "on_and_off")
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then

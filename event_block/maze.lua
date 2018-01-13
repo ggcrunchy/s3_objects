@@ -691,7 +691,7 @@ return function(info, block)
 	-- to sequence the unfurl)
 	local mgroup, i1, i2, maxt
 
-	local function Show (_, show)
+	local function Show (show)
 		-- Show...
 		if show then
 			--
