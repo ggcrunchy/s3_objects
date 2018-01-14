@@ -432,14 +432,25 @@ local Body = { radius = 25 }
 -- Touch image --
 local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "WarpTouch.png"
 
+--
+local WarpBlockFunc
+
 --- Dot method: get property.
 -- @string name Property name.
 -- @return Property value, or **nil** if absent.
-function Warp:GetProperty (name)
+function Warp:GetProperty (name, arg)
 	if name == "body" then
 		return Body
 	elseif name == "touch_image" then
 		return TouchImage
+	elseif name == "block_func" then
+		WarpBlockFunc = WarpBlockFunc or function(what, warp, arg1, arg2)
+			if what ~= "set_angle" then
+				return arg(what, warp, arg1, arg2)
+			end
+		end
+
+		return WarpBlockFunc
 	end
 end
 
