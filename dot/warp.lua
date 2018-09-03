@@ -26,7 +26,6 @@
 -- Standard library imports --
 local ipairs = ipairs
 local pairs = pairs
-local remove = table.remove
 local sin = math.sin
 local type = type
 
@@ -43,16 +42,12 @@ local meta = require("tektite_core.table.meta")
 local positions = require("s3_utils.positions")
 local tile_maps = require("s3_utils.tile_maps")
 
--- Plugins --
-local animation = ANIMATION
-
 -- Kernels --
 require("s3_objects.dot.kernel.warp")
 
 -- Corona globals --
 local display = display
 local easing = easing
-local graphics = graphics
 local Runtime = Runtime
 local transition = transition
 
@@ -76,218 +71,6 @@ local function DefWarp () end
 
 -- Groups of warp transition handles, to allow cancelling --
 local HandleGroups
-
-
-
-
-
-
-
-local InCache, OutCache = {}, {}
-
--- Mask clearing onComplete
-local function ClearMask (object)
-	object.target:setMask(nil)
-end
-
--- Scales an object's mask relative to its body to get a decent warp look
-local function ScaleObject (body, object)
-	object = object or body
-
-	object.maskScaleX = body.width / 4
-	object.maskScaleY = body.height / 2
-end
-
--- Mask-in transition --
-local MaskIn = { time = 900, easing = easing.inQuad }
-
---- Performs a "warp in" effect on an object (using its mask, probably set by @{WarpOut}).
--- @pobject object Object to warp in.
--- @callable on_complete Optional **onComplete** handler for the transition. If absent,
--- a default clears the object's mask; otherwise, the handler should also do this.
--- @treturn TransitionHandle A handle for pausing or cancelling the transition.
-local function WarpIn (object, on_complete)
-	ScaleObject(object, MaskIn)
-
-	MaskIn.onComplete = on_complete or ClearMask
-
-	local handle = transition.to(object, MaskIn)
-
-	MaskIn.onComplete = nil
-
-	return handle
-end
-
--- Mask-out transition --
-local MaskOut = { maskScaleX = 0, maskScaleY = 0, time = 900, easing = easing.outQuad }
-
---- Performs a "warp out" effect on an object, via masking.
--- @pobject object Object to warp out.
--- @callable on_complete Optional **onComplete** handler for the transition.
--- @treturn TransitionHandle A handle for pausing or cancelling the transition.
--- @see WarpIn
-local function WarpOut (object, on_complete)
-	object:setMask(graphics.newMask("s3_utils/assets/fx/WarpMask.png"))
-
-	ScaleObject(object)
-
-	MaskOut.onComplete = on_complete or nil
-
-	local handle = transition.to(object, MaskOut)
-
-	MaskOut.onComplete = nil
-
-	return handle
-end
-
-
-
-
-
-
--- --
-local Cushion = 1
-
--- --
-local MaskOutProperties = { maskScaleX = 0, maskScaleY = 0 }
-
--- --
-local MaskOutParams = { time = 900, easing = easing.outQuad }
-
--- --
-local MaskInParams = { time = 900, easing = easing.inQuad, onComplete = ClearMask }
-
--- --
-local BeganMovingTime = MaskOutParams.time + 2 * Cushion
-
--- --
-local Timeline = {
-	autoPlay = true,
-
-	-- --
-	tag = "warp_timeline",
-
-	--
-	onComplete = function(self)
-		self.m_func("move_done", self.m_warp, self.m_target, self.m_ttype)
-	end,
-
-	--
-	onMarkerPass = function(event)
-		local name, self, what, sound = event.name, event.timeline
-
-		if name == "began_moving" then
-			what, sound = "move_began_moving", "whiz"
-	--	elseif name == "done_moving" then
-		--	what, sound = "move_done_moving", "warp"
-	--	end
-
-		self.m_func(what, self.m_warp, self.m_target, self.m_ttype)
-
-		Sounds:PlaySound(sound)
-		end
-	end,
-
-	--
-	onStart = function()
-		Sounds:PlaySound("warp")
-	end,
-
-	--
-	markers = {
-		{ name = "began_moving", time = BeganMovingTime },
-		{ name = "done_moving" }
-	},
-
-	--
-	tweens = {
-		{
-			startTime = BeganMovingTime + Cushion,
-			tween = {
-				nil, {}, { easing = easing.inOutQuad, onComplete = function(e)
-							local self = e._parent
-								self.m_func("move_done_moving", self.m_warp, self.m_target, self.m_ttype)
-
-		Sounds:PlaySound("warp")
-						end }
-			}
-		}
-	}
-}
-
--- --
-local Mask
-
---
-local function DoTimeline (items, func, warp, target, ttype)
-	local tweens = Timeline.tweens
-
-	--
-	Mask = Mask or graphics.newMask("s3_utils/assets/fx/WarpMask.png")
-
-	for _, item in ipairs(items) do
-		local ot = remove(OutCache) or {
-			startTime = Cushion,
-			tween = { nil, MaskOutProperties, MaskOutParams }
-		}
-
-		item:setMask(Mask)
-
-		ScaleObject(item)
-
-		tweens[#tweens + 1], ot.tween[1] = ot, item
-	end
-
-	--
-	local mt, tx, ty = tweens[1].tween, target.x, target.y
-	local object = items[1] 
-
-	mt[1] = object
-	mt[2].x = tx
-	mt[2].y = ty
-	mt[3].time = length.ToBin(object.x - tx, object.y - ty, 200, 5) * 100
-
-	--
-	local after = BeganMovingTime + mt[3].time + Cushion
-
-	for _, item in ipairs(items) do
-		local it = remove(InCache) or {
-			tween = { nil, {}, MaskInParams }
-		}
-
-		ScaleObject(item, it.tween[2])
-
-		tweens[#tweens + 1], it.startTime, it.tween[1] = it, after, item
-	end
-
-	Timeline.markers[2].time = after + Cushion
-
-	--
-	local timeline = animation.newTimeline(Timeline)
-
-	timeline.m_func = func
-	timeline.m_warp = warp
-	timeline.m_target = target
-	timeline.m_ttype = ttype
-
-	--
-	tweens[1].tween[1] = nil
-
-	local cache, nitems = InCache, #items
-
-	for _ = 1, 2 do
-		for _ = 1, nitems do
-			local v = remove(tweens)
-
-			v.tween[1] = nil
-
-			cache[#cache + 1] = v
-		end
-
-		cache = OutCache
-	end
-end
-
 
 -- Helper to resolve a warp's target
 local function GetTarget (warp)
@@ -314,7 +97,7 @@ local function DoWarp (warp, func)
 
 		if items then
 			warp.m_items = nil
---[[
+
 			-- Make a list for tracking transition handles and add it to a free slot.
 			local hindex, handles = 1, {}
 
@@ -386,8 +169,6 @@ local function DoWarp (warp, func)
 			end
 
 			Sounds:PlaySound("warp")
---]]
-			DoTimeline(items, func, warp, target, ttype)
 
 			return true
 		end
@@ -432,12 +213,19 @@ local Body = { radius = 25 }
 -- Touch image --
 local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "WarpTouch.png"
 
+--
+local function Rotate (warp, angle)
+	-- TODO: polarity, etc.
+end
+
 --- Dot method: get property.
 -- @string name Property name.
 -- @return Property value, or **nil** if absent.
 function Warp:GetProperty (name)
 	if name == "body" then
 		return Body
+	elseif name == "on_rotate_block" then
+		return Rotate
 	elseif name == "touch_image" then
 		return TouchImage
 	end
@@ -540,18 +328,12 @@ for k, v in pairs{
 
 	-- Leave Level --
 	leave_level = function()
-		animation.cancel("warp_timeline")
-
-		Mask = nil
-
 		HandleGroups, MarkersLayer, WarpList = nil
 		WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
 	end,
 
 	-- Pre-Reset --
 	pre_reset = function()
-		animation.cancel("warp_timeline")
---[[
 		for i, hgroup in ipairs(HandleGroups) do
 			if hgroup then
 				for _, t in ipairs(hgroup) do
@@ -565,7 +347,6 @@ for k, v in pairs{
 				HandleGroups[i] = false
 			end
 		end
-]]
 	end,
 
 	-- Set Canvas --
