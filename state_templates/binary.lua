@@ -178,12 +178,13 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, opts)
 		end
 	end
 
-	return function(info, wlist)
+	return function(info, params)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
 			return vtype
 		else
+			local pubsub = params.pubsub
 			local getter, value1, value2
 
 			if info.expression then
@@ -219,7 +220,7 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, opts)
 					end
 				end
 
-				bind.Subscribe(wlist, info.pick_first, getter)
+				bind.Subscribe(pubsub, info.pick_first, getter)
 			else
 				local op, arg = ops[info.choice], info.arg
 
@@ -235,8 +236,8 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, opts)
 			end
 
 			--
-			bind.Subscribe(wlist, info.value1, getter)
-			bind.Subscribe(wlist, info.value2, getter)
+			bind.Subscribe(pubsub, info.value1, getter)
+			bind.Subscribe(pubsub, info.value2, getter)
 
 			return getter
 		end

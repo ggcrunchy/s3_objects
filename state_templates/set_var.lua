@@ -105,7 +105,7 @@ function M.Make (vtype)
 		end
 	end
 
-	return function(info, wlist)
+	return function(info, params)
 		if info == "editor_event" then
 			return EditorEvent
 		else
@@ -123,10 +123,12 @@ function M.Make (vtype)
 				end
 			end
 
-			bind.Subscribe(wlist, info.value, setter)
+			local pubsub = params.pubsub
+
+			bind.Subscribe(pubsub, info.value, setter)
 
 			if info.get_family then
-				bind.Subscribe(wlist, info.get_family, setter, true)
+				bind.Subscribe(pubsub, info.get_family, setter, true)
 			else
 				family = info.family
 			end

@@ -143,7 +143,7 @@ local function Update (is_stale, amount, threshold, getters)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	elseif info == "value_type" then
@@ -192,9 +192,11 @@ return function(info, wlist)
 			end
 		end
 
-		bind.Subscribe(wlist, info.get_amount, ready, "get_amount")
-		bind.Subscribe(wlist, info.should_disable, ready, "should_disable")
-		bind.Subscribe(wlist, info.starts_ready, ready, "starts_ready")
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.get_amount, ready, "get_amount")
+		bind.Subscribe(pubsub, info.should_disable, ready, "should_disable")
+		bind.Subscribe(pubsub, info.starts_ready, ready, "starts_ready")
 
 		return ready
 	end

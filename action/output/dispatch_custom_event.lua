@@ -168,7 +168,7 @@ local function AddSubtable (key)
 	return t
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -207,12 +207,14 @@ return function(info, wlist)
 			end
 		end
 
+		local pubsub = params.pubsub
+
 		for itype in pairs(InProperties) do
 			local inputs = info[itype]
 
 			if inputs then
 				for label, id in pairs(inputs) do
-					bind.Subscribe(wlist, id, dispatch, function()
+					bind.Subscribe(pubsub, id, dispatch, function()
 						return itype, label
 					end)
 				end

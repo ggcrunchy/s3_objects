@@ -106,7 +106,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -128,10 +128,12 @@ return function(info, wlist)
 			end
 		end
 
-		bind.Subscribe(wlist, info.get_count, rep)
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.get_count, rep)
 
 		for k, v in pairs(Events) do
-			v.Subscribe(rep, info[k], wlist)
+			v.Subscribe(rep, info[k], pubsub)
 		end
 
 		return rep, "no_next" -- using own next, so suppress stock version

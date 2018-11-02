@@ -259,7 +259,7 @@ function M.Make (vtype, def)
 		end
 	end
 
-	return function(info, wlist)
+	return function(info, params)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
@@ -326,18 +326,20 @@ function M.Make (vtype, def)
 				end
 			end
 
-			bind.Subscribe(wlist, info.get_limit, container, "get_limit")
-			bind.Subscribe(wlist, info.get_value, container, "get_value")
+			local pubsub = params.pubsub
+
+			bind.Subscribe(pubsub, info.get_limit, container, "get_limit")
+			bind.Subscribe(pubsub, info.get_value, container, "get_value")
 
 			for k, event in pairs(Events) do
-				event.Subscribe(container, info[k], wlist)
+				event.Subscribe(container, info[k], pubsub)
 			end
 
 			for k in adaptive.IterSet(info.actions) do
-				bind.Publish(wlist, Actions[k](container), info.uid, k)
+				bind.Publish(pubsub, Actions[k](container), info.uid, k)
 			end
 
-			object_vars.PublishProperties(info.props, OutProperties, info.uid, container)
+			object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, container)
 
 			return container
 		end

@@ -206,7 +206,7 @@ local function Update (is_stale, gen, getters, bound1, bound2, seed1, seed2)
 	return gen, bound1 or getters.get_bound1(), bound2 or getters.get_bound2()
 end
 
-return function(info, wlist)
+return function(info, params)
 	if not Seed1 then
 		local _, get_zw = mwc_rng.MakeGenerator{ get_zw = true }
 
@@ -264,14 +264,16 @@ return function(info, wlist)
 			end
 		end
 
-		Before.Subscribe(rng, info.get_integer, wlist)
+		local pubsub = params.pubsub
 
-		bind.Subscribe(wlist, info.get_ibound1 or info.get_nbound1, rng, "get_bound1")
-		bind.Subscribe(wlist, info.get_ibound2 or info.get_nbound2, rng, "get_bound2")
-		bind.Subscribe(wlist, info.get_seed1, rng, "get_seed1")
-		bind.Subscribe(wlist, info.get_seed2, rng, "get_seed2")
+		Before.Subscribe(rng, info.get_integer, pubsub)
 
-		object_vars.PublishProperties(info.props, OutProperties, info.uid, rng)
+		bind.Subscribe(pubsub, info.get_ibound1 or info.get_nbound1, rng, "get_bound1")
+		bind.Subscribe(pubsub, info.get_ibound2 or info.get_nbound2, rng, "get_bound2")
+		bind.Subscribe(pubsub, info.get_seed1, rng, "get_seed1")
+		bind.Subscribe(pubsub, info.get_seed2, rng, "get_seed2")
+
+		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, rng)
 
 		return rng, "no_before" -- using own Before
 	end

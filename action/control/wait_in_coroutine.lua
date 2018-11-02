@@ -94,7 +94,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -110,9 +110,11 @@ return function(info, wlist)
 			end
 		end
 
-		NotInCoroutine.Subscribe(info.not_in_coroutine, wait, wlist)
+		local pubsub = params.pubsub
 
-		bind.Subscribe(wlist, info.get_ms, wait)
+		NotInCoroutine.Subscribe(info.not_in_coroutine, wait, pubsub)
+
+		bind.Subscribe(pubsub, info.get_ms, wait)
 
 		return wait
 	end

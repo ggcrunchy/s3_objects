@@ -120,7 +120,7 @@ function M.Make (vtype, def)
 		end
 	end
 
-	return function(info, wlist)
+	return function(info, params)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
@@ -176,8 +176,10 @@ function M.Make (vtype, def)
 				end
 			end
 
+			local pubsub = params.pubsub
+
 			if info.get_family then
-				bind.Subscribe(wlist, info.get_family, getter)
+				bind.Subscribe(pubsub, info.get_family, getter)
 			else
 				family = info.family
 			end

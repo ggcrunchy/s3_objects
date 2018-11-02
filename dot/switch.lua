@@ -48,7 +48,7 @@ local band = bit.band
 local Switch = {}
 
 -- Switch <-> events binding --
-local Events = bind.BroadcastBuilder_Helper("loading_level")
+local Events = bind.BroadcastBuilder_Helper()
 
 -- Sounds played by switch --
 local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", "Switch1.wav", "Switch2.mp3" }
@@ -329,7 +329,7 @@ local function ExclusiveTarget (id)
 end
 
 -- Export the switch factory.
-return function (group, info)
+return function (group, info, params)
 	if group == "editor_event" then
 		return OnEditorEvent
 	end
@@ -349,7 +349,7 @@ return function (group, info)
 
 	Sounds:Load()
 
-	Events.Subscribe(switch, info.target)
+	Events.Subscribe(switch, info.target, params.pubsub)
 
 	switch[true] = ExclusiveTarget(info.ftarget)
 	switch[false] = ExclusiveTarget(info.rtarget)

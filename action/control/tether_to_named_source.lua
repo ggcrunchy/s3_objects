@@ -90,7 +90,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -108,7 +108,9 @@ return function(info, wlist)
 			end
 		end
 
-		bind.Subscribe(wlist, info.get_name, tether_to)
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.get_name, tether_to)
 
 		return tether_to
 	end

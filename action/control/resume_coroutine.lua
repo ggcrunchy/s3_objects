@@ -182,7 +182,7 @@ local function EditorEvent (what, arg1, _, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -231,11 +231,13 @@ return function(info, wlist)
 			end
 		end
 
+		local pubsub = params.pubsub
+
 		for k, v in pairs(Events) do
-			v.Subscribe(resume_coro, info[k], wlist)
+			v.Subscribe(resume_coro, info[k], pubsub)
 		end
 
-		object_vars.PublishProperties(info.props, OutProperties, info.uid, container)
+		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, resume_coro)
 
 		return resume_coro
 	end

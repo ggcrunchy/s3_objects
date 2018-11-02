@@ -116,15 +116,16 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
+		local pubsub = params.pubsub
 		local builder, object_to_broadcaster = bind.BroadcastBuilder()
 
 		if info.choices then
 			for name, id in pairs(info.choices) do
-				bind.Subscribe(wlist, id, builder, name)
+				bind.Subscribe(pubsub, id, builder, name)
 			end
 		end
 
@@ -153,9 +154,9 @@ return function(info, wlist)
 			end
 		end
 
-		Events.on_bad_name.Subscribe(do_named, info.on_bad_name, wlist)
+		Events.on_bad_name.Subscribe(do_named, info.on_bad_name, pubsub)
 
-		bind.Publish(wlist, info.get_name, do_named)
+		bind.Publish(pubsub, info.get_name, do_named)
 
 		return do_named
 	end

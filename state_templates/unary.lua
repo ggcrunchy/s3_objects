@@ -148,7 +148,7 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 		end
 	end
 
-	return function(info, wlist)
+	return function(info, params)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
@@ -181,7 +181,9 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 			end
 
 			--
-			bind.Subscribe(wlist, info.value, getter)
+			local pubsub = params.pubsub
+
+			bind.Subscribe(pubsub, info.value, getter)
 
 			return getter
 		end

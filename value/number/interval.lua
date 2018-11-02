@@ -230,7 +230,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	elseif info == "value_type" then
@@ -287,15 +287,17 @@ return function(info, wlist)
 			end
 		end
 
+		local pubsub = params.pubsub
+
 		for name, event in pairs(Events) do
-			event.Subscribe(interval, info[name], wlist)
+			event.Subscribe(interval, info[name], pubsub)
 		end
 
 		for name in pairs(InProperties.number) do
-			bind.Subscribe(wlist, info[name], interval, name)
+			bind.Subscribe(pubsub, info[name], interval, name)
 		end
 
-		object_vars.PublishProperties(info.props, OutProperties, info.uid, interval)
+		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, interval)
 
 		return interval
 	end

@@ -45,7 +45,7 @@ local function EditorEvent (what, arg1)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	elseif info == "value_type" then

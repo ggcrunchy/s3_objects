@@ -90,7 +90,7 @@ function NextBefore  (x)
 	return ldexp(m - 2^-53, e)
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 		-- TODO!

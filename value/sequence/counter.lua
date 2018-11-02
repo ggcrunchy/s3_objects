@@ -200,7 +200,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	elseif info == "value_type" then
@@ -238,15 +238,17 @@ return function(info, wlist)
 			end
 		end
 
-		bind.Subscribe(wlist, info.get_count, counter, "get_count") -- see notes in counter()
-		bind.Subscribe(wlist, info.get_limit, counter, "get_limit")
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.get_count, counter, "get_count") -- see notes in counter()
+		bind.Subscribe(pubsub, info.get_limit, counter, "get_limit")
 
 		for k, event in pairs(Events) do
-			event.Subscribe(counter, info[k], wlist)
+			event.Subscribe(counter, info[k], pubsub)
 		end
 
 		for k in adaptive.IterSet(info.actions) do
-			bind.Publish(wlist, Actions[k](counter), info.uid, k)
+			bind.Publish(pubsub, Actions[k](counter), info.uid, k)
 		end
 
 		return counter

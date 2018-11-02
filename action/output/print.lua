@@ -197,7 +197,7 @@ Runtime:addEventListener("leave_level", function()
 	end
 end)
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -232,10 +232,12 @@ return function(info, wlist)
 			end
 		end
 
-		bind.Publish(wlist, get_string, info.uid, "get_string")
+		local pubsub = params.pubsub
+
+		bind.Publish(pubsub, get_string, info.uid, "get_string")
 
 		for _, name in pairs(InProperties) do
-			bind.Subscribe(wlist, info[name], get_string, name)
+			bind.Subscribe(pubsub, info[name], get_string, name)
 		end
 
 		local pfunc = info.to_console and print or Print

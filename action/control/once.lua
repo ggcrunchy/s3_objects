@@ -82,7 +82,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -101,7 +101,9 @@ return function(info, wlist)
 			end
 		end
 
-		Next.Subscribe(once, info.next, wlist)
+		local pubsub = params.pubsub
+
+		Next.Subscribe(once, info.next, pubsub)
 
 		return once, "no_next" -- using own next, so suppress stock version
 	end

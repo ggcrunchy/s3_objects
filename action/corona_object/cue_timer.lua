@@ -243,10 +243,11 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
+		local pubsub = params.pubsub
 		local iterations, continue = info.iterations
 
 		if info.wants_to_quit then
@@ -272,7 +273,7 @@ return function(info, wlist)
 				end
 			end
 
-			bind.Subscribe(wlist, info.wants_to_quit, continue, "add")
+			bind.Subscribe(pubsub, info.wants_to_quit, continue, "add")
 		elseif iterations then
 			function continue (event)
 				return event.count <= iterations
@@ -288,17 +289,17 @@ return function(info, wlist)
 		Timers[#Timers + 1] = list
 		Timers[#Timers + 1] = info.persist_across_reset and "persist" or "normal"
 
-		bind.Subscribe(wlist, info.get_cancel_id, cue) -- see "special commands" in MakeCue()
+		bind.Subscribe(pubsub, info.get_cancel_id, cue) -- see "special commands" in MakeCue()
 
 		for k, event in pairs(Events) do
-			event.Subscribe(cue, info[k], wlist)
+			event.Subscribe(cue, info[k], pubsub)
 		end
 
 		for k in adaptive.IterSet(info.actions) do
-			bind.Publish(wlist, Actions[k](cue), info.uid, k)
+			bind.Publish(pubsub, Actions[k](cue), info.uid, k)
 		end
 
-		object_vars.PublishProperties(info.props, OutProperties, info.uid, cue)
+		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, cue)
 
 		return cue
 	end

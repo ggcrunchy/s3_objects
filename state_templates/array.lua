@@ -441,7 +441,7 @@ function M.Make (vtype, def, has_order, has_tolerance)
 		end
 	end
 
-	return function(info, wlist)
+	return function(info, params)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
@@ -502,19 +502,21 @@ function M.Make (vtype, def, has_order, has_tolerance)
 				end
 			end
 
+			local pubsub = params.pubsub
+
 			for _, name in args.Args("insert_pos", "limit", "pos", "remove_pos", "value") do 
-				bind.Subscribe(wlist, info["get_" .. name], array, name)
+				bind.Subscribe(pubsub, info["get_" .. name], array, name)
 			end
 
 			for k, event in pairs(Events) do
-				event.Subscribe(array, info[k], wlist)
+				event.Subscribe(array, info[k], pubsub)
 			end
 
 			for k in adaptive.IterSet(info.actions) do
-				bind.Publish(wlist, Actions[k](array), info.uid, k)
+				bind.Publish(pubsub, Actions[k](array), info.uid, k)
 			end
 
-			object_vars.PublishProperties(info.props, OutProperties, info.uid, array)
+			object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, array)
 
 			return array
 		end

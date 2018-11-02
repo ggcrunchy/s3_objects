@@ -160,7 +160,7 @@ function M.Make (vtype, gdef, suffix, rtype)
 		end
 	end
 
-	return function(info, wlist)
+	return function(info, params)
 		if info == "editor_event" then
 			return EditorEvent
 		elseif info == "value_type" then
@@ -177,11 +177,13 @@ function M.Make (vtype, gdef, suffix, rtype)
 			end
 
 			--
+			local pubsub = params.pubsub
+
 			if info.values then
 				args = {}
 
 				for label, target in pairs(info.values) do
-					bind.Subscribe(wlist, target, getter, label)
+					bind.Subscribe(pubsub, target, getter, label)
 				end
 			end
 

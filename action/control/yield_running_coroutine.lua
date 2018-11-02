@@ -78,7 +78,7 @@ local function EditorEvent (what, arg1, _, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
@@ -92,8 +92,10 @@ return function(info, wlist)
 			end
 		end
 
+		local pubsub = params.pubsub
+
 		for k, v in pairs(Events) do
-			v.Subscribe(wlist, info[k], yield_coro)
+			v.Subscribe(pubsub, info[k], yield_coro)
 		end
 
 		return yield_coro

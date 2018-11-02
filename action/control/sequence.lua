@@ -79,10 +79,11 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, wlist)
+return function(info, params)
 	if info == "editor_event" then
 		return EditorEvent
 	else
+		local pubsub = params.pubsub
 		local n, builder, object_to_broadcaster = 0, bind.BroadcastBuilder()
 
 		if info.stages then
@@ -90,7 +91,7 @@ return function(info, wlist)
 				index = tonumber(index)
 				n = max(index, n)
 
-				bind.Subscribe(wlist, id, builder, index)
+				bind.Subscribe(pubsub, id, builder, index)
 			end
 		end
 
