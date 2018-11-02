@@ -318,11 +318,11 @@ end
 local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
 
 --
-local function ExclusiveTarget (id)
+local function ExclusiveTarget (id, pubsub)
 	if id then
 		local into = { m_waiting = 0 }
 
-		Events.Subscribe(into, id)
+		Events.Subscribe(into, id, pubsub)
 
 		return into
 	end
@@ -349,10 +349,12 @@ return function (group, info, params)
 
 	Sounds:Load()
 
-	Events.Subscribe(switch, info.target, params.pubsub)
+	local pubsub = params.pubsub
 
-	switch[true] = ExclusiveTarget(info.ftarget)
-	switch[false] = ExclusiveTarget(info.rtarget)
+	Events.Subscribe(switch, info.target, pubsub)
+
+	switch[true] = ExclusiveTarget(info.ftarget, pubsub)
+	switch[false] = ExclusiveTarget(info.rtarget, pubsub)
 
 	switch.m_forward = not not info.forward
 	switch.m_waiting = 0
