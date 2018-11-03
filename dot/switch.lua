@@ -30,7 +30,9 @@ local ipairs = ipairs
 local args = require("iterator_ops.args")
 local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
+local call = require("corona_utils.call")
 local collision = require("corona_utils.collision")
+local entity = require("corona_utils.entity")
 local file = require("corona_utils.file")
 local meta = require("tektite_core.table.meta")
 
@@ -45,10 +47,10 @@ local Runtime = Runtime
 local band = bit.band
 
 -- Dot methods --
-local Switch = {}
+local Switch = entity.NewMethods()--{}
 
 -- Switch <-> events binding --
-local Events = bind.BroadcastBuilder_Helper()
+local Events = call.NewDispatcher()--bind.BroadcastBuilder_Helper()
 
 -- Sounds played by switch --
 local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", "Switch1.wav", "Switch2.mp3" }
@@ -83,12 +85,13 @@ function Switch:ActOn ()
 	for _, targets in TargetsLoop(self, self[forward]) do
 		local flag, waiting = 1, targets.m_waiting
 
-		for _, event in Events.Iter(targets) do
+		for _, event in Events:IterateFunctionForObject(targets) do--Events.Iter(targets) do
 			local commands = bind.GetActionCommands(event)
 
 			if band(waiting, flag) == 0 then
 				if commands then
 					commands("set_direction", forward)
+					-- TODO: entity.SendMessageTo(...)
 				end
 
 				if event() ~= "failed" then
@@ -101,6 +104,7 @@ function Switch:ActOn ()
 
 				if commands then
 					commands("show", false)
+					-- TODO: entity.SendMessageTo(...)
 				end
 			end
 
@@ -110,7 +114,8 @@ function Switch:ActOn ()
 		targets.m_waiting = waiting
 	end
 
-	bind.AddCalls(n)
+	--bind.AddCalls(n)
+	call.AddCalls(n)
 
 	-- If there is state around to restore the initial "forward" state of the switch,
 	-- we do what it anticipated: reverse the switch's forward-ness.
@@ -174,7 +179,7 @@ function Switch:Update ()
 	for _, targets in TargetsLoop(self, self[true], self[false]) do
 		local flag, waiting = 1, targets.m_waiting
 
-		for _, event in Events.Iter(targets) do
+		for _, event in Events:IterateFunctionsForObject(targets) do--Events.Iter(targets) do
 			local commands = bind.GetActionCommands(event)
 
 			if band(waiting, flag) ~= 0 and (not commands or commands("is_done")) then
@@ -183,6 +188,7 @@ function Switch:Update ()
 				if touched and commands then
 					commands("set_direction", forward)
 					commands("show", true)
+					-- ^^ TODO: entity.SendMessageTo(...)
 				end
 			end
 
@@ -212,12 +218,13 @@ collision.AddHandler("switch", function(phase, switch, other, other_type)
 		for _, targets in TargetsLoop(switch, switch[true], switch[false]) do
 			local flag, waiting = 1, targets.m_waiting
 
-			for _, event in Events.Iter(targets) do
+			for _, event in Events:IterateFunctionsForObject(targets) do--Events.Iter(targets) do
 				local commands = bind.GetActionCommands(event)
 
 				if commands and band(waiting, flag) == 0 then
 					commands("set_direction", forward)
 					commands("show", is_touched)
+					-- TODO: entity.SendMessageTo(...)
 				end
 
 				flag = 2 * flag
@@ -318,11 +325,12 @@ end
 local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
 
 --
-local function ExclusiveTarget (id, pubsub)
-	if id then
+local function ExclusiveTarget (endpoint, ps_list)
+	if endpoint then
 		local into = { m_waiting = 0 }
 
-		Events.Subscribe(into, id, pubsub)
+		--Events.Subscribe(into, endpoint, ps_list)
+		ps_list:Subscribe(endpoint, Events:GetAdder(), into)
 
 		return into
 	end
@@ -345,16 +353,18 @@ return function (group, info, params)
 
 	switch:scale(.5, .5)
 
-	meta.Augment(switch, Switch)
+	--meta.Augment(switch, Switch)
+	entity.Make(switch, Switch)
 
 	Sounds:Load()
 
-	local pubsub = params.pubsub
+	local ps_list = params.ps_list
 
-	Events.Subscribe(switch, info.target, pubsub)
+	--Events.Subscribe(switch, info.target, ps_list)
+	ps_list:Subscribe(info.target, Events:GetAdder(), switch)
 
-	switch[true] = ExclusiveTarget(info.ftarget, pubsub)
-	switch[false] = ExclusiveTarget(info.rtarget, pubsub)
+	switch[true] = ExclusiveTarget(info.ftarget, ps_list)
+	switch[false] = ExclusiveTarget(info.rtarget, ps_list)
 
 	switch.m_forward = not not info.forward
 	switch.m_waiting = 0
@@ -362,6 +372,7 @@ return function (group, info, params)
 	if info.reverses then
 		switch.m_forward_saved = switch.m_forward
 	end
+	-- ^^^ TODO: targets and direction bound to be rare (also hard to maintain!), consider manual tracking
 
 	return switch
 end

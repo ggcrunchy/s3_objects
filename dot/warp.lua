@@ -33,6 +33,7 @@ local type = type
 local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
+local entity = require("corona_utils.entity")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
 local fx = require("s3_utils.fx")
@@ -40,6 +41,7 @@ local length = require("tektite_core.number.length")
 local markers = require("s3_utils.effect.markers")
 local meta = require("tektite_core.table.meta")
 local positions = require("s3_utils.positions")
+local pubsub = require("corona_utils.pubsub")
 local tile_maps = require("s3_utils.tile_maps")
 
 -- Kernels --
@@ -52,7 +54,7 @@ local Runtime = Runtime
 local transition = transition
 
 -- Dot methods --
-local Warp = {}
+local Warp = entity.NewMethods()--{}
 
 -- Layer used to draw hints --
 local MarkersLayer
@@ -509,12 +511,13 @@ return function (group, info)
 
 	Scale(warp, 1)
 
-	meta.Augment(warp, Warp)
+	--meta.Augment(warp, Warp)
+	entity.Make(warp, Warp)
 
 	Sounds:Load()
 
 	--
-	local _, id = bind.IsCompositeId(info.to, true)
+	local _, id = pubsub.IsEndpoint(info.to, true)--bind.IsCompositeId(info.to, true)
 
 	if id then
 		warp.m_to = positions.GetPosition(id)
