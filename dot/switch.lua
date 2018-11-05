@@ -85,7 +85,7 @@ function Switch:ActOn ()
 	for _, targets in TargetsLoop(self, self[forward]) do
 		local flag, waiting = 1, targets.m_waiting
 
-		for _, event in Events:IterateFunctionForObject(targets) do--Events.Iter(targets) do
+		for _, event in Events:IterateFunctionsForObject(targets) do--Events.Iter(targets) do
 			local commands = bind.GetActionCommands(event)
 
 			if band(waiting, flag) == 0 then
@@ -325,12 +325,12 @@ end
 local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
 
 --
-local function ExclusiveTarget (endpoint, ps_list)
+local function ExclusiveTarget (endpoint, psl)
 	if endpoint then
 		local into = { m_waiting = 0 }
 
-		--Events.Subscribe(into, endpoint, ps_list)
-		ps_list:Subscribe(endpoint, Events:GetAdder(), into)
+		--Events.Subscribe(into, endpoint, psl)
+		psl:Subscribe(endpoint, Events:GetAdder(), into)
 
 		return into
 	end
@@ -358,13 +358,13 @@ return function (group, info, params)
 
 	Sounds:Load()
 
-	local ps_list = params.ps_list
+	local psl = params.pub_sub_list
 
-	--Events.Subscribe(switch, info.target, ps_list)
-	ps_list:Subscribe(info.target, Events:GetAdder(), switch)
+	--Events.Subscribe(switch, info.target, psl)
+	psl:Subscribe(info.target, Events:GetAdder(), switch)
 
-	switch[true] = ExclusiveTarget(info.ftarget, ps_list)
-	switch[false] = ExclusiveTarget(info.rtarget, ps_list)
+	switch[true] = ExclusiveTarget(info.ftarget, psl)
+	switch[false] = ExclusiveTarget(info.rtarget, psl)
 
 	switch.m_forward = not not info.forward
 	switch.m_waiting = 0
