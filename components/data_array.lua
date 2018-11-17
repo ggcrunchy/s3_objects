@@ -23,8 +23,25 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local assert = assert
+local pairs = pairs
+local rawequal = rawequal
+local remove = table.remove
 
+-- Modules --
+local component = require("tektite_core.component")
 
+-- Unique member keys --
+local _dynamic_list = {}
+local _item_size = {}
+local _list = {}
+
+--
+--
+--
+
+local Component = {}
 
 --
 local function AuxAddToList (list, top, item, func, arg1, arg2)
@@ -38,12 +55,12 @@ end
 -- @callable func Commands to use on _item_, according to the type of event block.
 -- @param[opt] arg1 Argument #1 to _func_ (default **false**)...
 -- @param[opt] arg2 ...and #2 (ditto).
-function EventBlock:AddToList (item, func, arg1, arg2)
-	local list = self.m_list or { top = 0 }
+function Component:DataArray_AddToList (item, func, arg1, arg2)
+	local list = self[_list] or { top = 0 }
 
 	list.top = AuxAddToList(list, list.top, item, func, arg1, arg2)
 
-	self.m_list, self.m_new = list
+	self[_list] = list
 end
 
 -- --
@@ -53,8 +70,8 @@ local Dynamic
 -- @param item Item to add.
 -- @callable func Commands to use on _item_, according to the type of event block.
 -- @treturn function X
-function EventBlock:AddToList_Dynamic (item, func, arg1, arg2)
-	local list = self.m_dynamic_list or {}
+function Component:DataArray_AddToList_Dynamic (item, func, arg1, arg2)
+	local list = self[_dynamic_list] or {}
 
 	Dynamic = Dynamic or {}
 
@@ -80,7 +97,7 @@ function EventBlock:AddToList_Dynamic (item, func, arg1, arg2)
 		end
 	end
 
-	self.m_dynamic_list, list[dfunc] = list, true
+	self[_dynamic_list], list[dfunc] = list, true
 
 	return dfunc
 end
@@ -88,15 +105,15 @@ end
 
 
 
-
-
-
-
+--- DOCME
+function Component:DataArray_GetItemSize ()
+	return self[_item_size] or 1
+end
 
 --- Getters.
 -- @treturn boolean List has items?
-function EventBlock:HasItems ()
-	return self.m_list ~= nil
+function Component:DataArray_HasItems ()
+	return self[_list] ~= nil
 end
 
 
@@ -130,18 +147,16 @@ local function AddDynamicItems (block, dlist, list)
 	end
 
 	if list then
-		block.m_list, list.n = list, n
+		block[_list], list.n = list, n
 	end
 
 	return list
 end
 
 --- Performs some operation on each item in the list.
--- @callable visit Visitor function, called as `visit(item, func, arg1, arg2)`, with inputs
--- as assigned by @{EventBlock:AddToList}.
 -- @treturn iterator Supplies tile index, item, commands function, argument #1, argument #2.
-function EventBlock:IterList (visit)
-	local list, dlist = self.m_list, self.m_dynamic_list
+function Component:DataArray_IterList ()
+	local list, dlist = self[_list], self[_dynamic_list]
 
 	if dlist then
 		list = AddDynamicItems(self, dlist, list)
@@ -151,3 +166,83 @@ function EventBlock:IterList (visit)
 
 	return AuxIterList, list, -3
 end
+
+--- DOCME
+function Component:DataArray_RemoveList ()
+	local list = self[_list]
+
+	self[_list] = nil
+
+	return list
+end
+
+--- DOCME
+function Component:DataArray_SetItemSize (size)
+	assert(size > 0, "Non-positive size")
+	assert(not self[_item_size], "Already set")
+
+	-- choose stuff...
+
+	self[_item_size] = size
+end
+
+
+-- Sprint:
+--[[
+function Spring:Reset ()
+	self.m_cargo = {}
+	self.m_items = nil
+end
+
+--- Dot method: update spring state.
+function Spring:Update ()
+	local cargo = self.m_cargo
+
+	for i = #cargo, 1, -1 do
+		if cargo[i]() then
+			array_funcs.Backfill(cargo, i)
+		end
+	end
+end
+]]
+
+
+-- Warp:
+--[[
+		local items = warp.m_items
+
+		if items then
+			warp.m_items = nil
+]]
+
+-- AddItem: (spring, warp)
+--[[
+	local items = self.m_items or {}
+
+	items[#items + 1] = item
+
+	self.m_items = items
+]]
+
+-- Reset:
+-- self.m_items = nil
+
+-- TODO: various move_done_* etc. events
+
+local Actions = { allow_add = "is_table" }
+
+function Actions:add ()
+	for k, v in pairs(Component) do
+		self[k] = v
+	end
+end
+
+function Actions:remove ()
+	self[_dynamic_list], self[_list], self[_item_size] = nil
+
+	for k, v in pairs(Component) do
+		self[k] = v
+	end
+end
+
+return component.RegisterType{ name = "data_array", actions = Actions }
