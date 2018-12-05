@@ -27,7 +27,10 @@
 local loader = require("corona_shader.loader")
 local unit_pair = require("corona_shader.encode.vars.unit_pair")
 
--- Kernel --
+--
+--
+--
+
 local kernel = { category = "filter", group = "event_block_maze", name = "unfurl" }
 
 kernel.vertexData = {
@@ -90,3 +93,5 @@ kernel.fragment = loader.FragmentShader[[
 ]]
 
 graphics.defineEffect(kernel)
+
+return "filter.event_block_maze.unfurl"

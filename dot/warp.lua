@@ -45,7 +45,7 @@ local pubsub = require("corona_utils.pubsub")
 local tile_maps = require("s3_utils.tile_maps")
 
 -- Kernels --
-require("s3_objects.dot.kernel.warp")
+local warp_kernel = require("s3_objects.dot.kernel.warp")
 
 -- Corona globals --
 local display = display
@@ -499,15 +499,10 @@ end
 -- Warp image --
 WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
 
--- Export the warp factory.
-return function (group, info)
-	if group == "editor_event" then
-		return OnEditorEvent
-	end
-
+local function NewWarp (group, info)
 	local warp = display.newCircle(group, 0, 0, WarpRadius)
 
-	fx.DistortionBindCanvasEffect(warp, WarpFill, "composite.dot.warp")
+	fx.DistortionBindCanvasEffect(warp, WarpFill, warp_kernel)
 
 	Scale(warp, 1)
 
@@ -530,3 +525,5 @@ return function (group, info)
 
 	return warp
 end
+
+return { game = NewWarp, editor = OnEditorEvent }

@@ -336,12 +336,7 @@ local function ExclusiveTarget (endpoint, psl)
 	end
 end
 
--- Export the switch factory.
-return function (group, info, params)
-	if group == "editor_event" then
-		return OnEditorEvent
-	end
-
+local function NewSwitch (group, info, params)
 	local switch = display.newGroup()
 
 	group:insert(switch)
@@ -376,3 +371,5 @@ return function (group, info, params)
 
 	return switch
 end
+
+return { game = NewSwitch, editor = OnEditorEvent }

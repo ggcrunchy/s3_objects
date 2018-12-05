@@ -50,9 +50,9 @@ local timers = require("corona_utils.timers")
 local memoryBitmap = require("plugin.memoryBitmap")
 
 -- Kernels --
-require("s3_objects.event_block.kernel.preview")
-require("s3_objects.event_block.kernel.stipple")
-require("s3_objects.event_block.kernel.unfurl")
+local preview_kernel = require("s3_objects.event_block.kernel.preview")
+local stipple_kernel = require("s3_objects.event_block.kernel.stipple")
+local unfurl_kernel = require("s3_objects.event_block.kernel.unfurl")
 
 -- Corona globals --
 local display = display
@@ -76,21 +76,22 @@ local IsMultiPass
 
 --
 local function NewKernel (name, tile_shader)
-	local kname = ("%s_%s"):format(name, tile_shader:gsub("%.", "__"))
-	local kernel = { category = "filter", group = "event_block_maze", name = kname }
+	local category, group, sname = name:match("(%a+)%.([_%a][_%w]*)%.([_%a][_%w]*)")
+	local kname = ("%s_%s"):format(sname, tile_shader:gsub("%.", "__"))
+	local kernel = { category = category, group = group, name = kname }
 
 	kernel.graph = {
 		nodes = {
 			tile = { effect = tile_shader, input1 = "paint1" },
-			[name] =  { effect = "filter.event_block_maze." .. name, input1 = "tile" },
+			[sname] =  { effect = name, input1 = "tile" },
 		},
-		output = name
+		output = sname
 	}
 
 	graphics.defineEffect(kernel)
 	effect_props.AddMultiPassEffect(kernel)
 
-	return "filter.event_block_maze." .. kname
+	return category .. "." .. group .. "." .. kname
 end
 
 -- --
@@ -130,8 +131,8 @@ for k, v in pairs{
 
 			if not effect then
 				effect = {
-					stipple = NewKernel("stipple", tile_shader),
-					unfurl = NewKernel("unfurl", tile_shader)
+					stipple = NewKernel(stipple_kernel, tile_shader),
+					unfurl = NewKernel(unfurl_kernel, tile_shader)
 				}
 
 				Effects[tile_shader] = effect
@@ -150,7 +151,7 @@ for k, v in pairs{
 				Holding[i] = nil
 			end
 		else
-			Names.stipple, Names.unfurl = "filter.event_block_maze.stipple", "filter.event_block_maze.unfurl"
+			Names.stipple, Names.unfurl = stipple_kernel, unfurl_kernel
 		end
 	end
 } do
@@ -502,12 +503,7 @@ end
 -- Event dispatched on change --
 local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
 
--- Export the maze factory.
-return function(info, block)
-	if info == "editor_event" then
-		return OnEditorEvent
-	end
-
+local function NewMaze (info, block)
 	-- Shaking block transition and state --
 	local shaking, gx, gy
 
@@ -792,7 +788,7 @@ return function(info, block)
 			local total = 2 * maxt + hold -- rise, hold, fall
 
 			mhint.fill = Time[block].fill
-			mhint.fill.effect = "filter.event_block_maze.preview"
+			mhint.fill.effect = preview_kernel
 			mhint.fill.effect.rise = maxt
 			mhint.fill.effect.hold = hold
 			mhint.fill.effect.total = total
@@ -841,3 +837,5 @@ return function(info, block)
 		end
 	end
 end
+
+return { game = NewMaze, editor = OnEditorEvent }

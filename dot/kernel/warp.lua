@@ -28,7 +28,10 @@ local fx = require("s3_utils.fx")
 local loader = require("corona_shader.loader")
 local screen_fx = require("corona_shader.screen_fx")
 
--- Kernel --
+--
+--
+--
+
 local kernel = { language = "glsl", category = "composite", group = "dot", name = "warp" }
 
 kernel.vertexData = fx.DistortionKernelParams()
@@ -47,3 +50,5 @@ kernel.fragment = loader.FragmentShader[[
 ]]
 
 graphics.defineEffect(kernel)
+
+return "composite.dot.warp"
