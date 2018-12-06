@@ -45,12 +45,4 @@ local function EditorEvent (what, arg1)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "string"
-	else
-		return strings.NewName
-	end
-end
+return { game = strings.NewName, editor = EditorEvent, value_type = "string" }

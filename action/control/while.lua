@@ -86,36 +86,34 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local continue
+local function NewWhile (info, params)
+	local continue
 
-		local function wloop (comp)
-			if comp then
-				continue = comp
-			else
-				while continue() do
-					local at_limit = bind.AtLimit() -- will the next call fail?
+	local function wloop (comp)
+		if comp then
+			continue = comp
+		else
+			while continue() do
+				local at_limit = bind.AtLimit() -- will the next call fail?
 
-					Events.next(wloop)
+				Events.next(wloop)
 
-					if at_limit then
-						return Events.cancelled(wloop)					
-					end
+				if at_limit then
+					return Events.cancelled(wloop)					
 				end
 			end
 		end
-
-		local pubsub = params.pubsub
-
-		bind.Subscribe(pubsub, info.continue, wloop)
-
-		for k, v in pairs(Events) do
-			v.Subscribe(wloop, info[k], pubsub)
-		end
-
-		return wloop, "no_next" -- using own next, so suppress stock version
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Subscribe(pubsub, info.continue, wloop)
+
+	for k, v in pairs(Events) do
+		v.Subscribe(wloop, info[k], pubsub)
+	end
+
+	return wloop, "no_next" -- using own next, so suppress stock version
 end
+
+return { game = NewWhile, editor = EditorEvent }

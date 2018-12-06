@@ -79,30 +79,28 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local pubsub = params.pubsub
-		local n, builder, object_to_broadcaster = 0, bind.BroadcastBuilder()
+local function NewSequence (info, params)
+	local pubsub = params.pubsub
+	local n, builder, object_to_broadcaster = 0, bind.BroadcastBuilder()
 
-		if info.stages then
-			for index, id in pairs(info.stages) do
-				index = tonumber(index)
-				n = max(index, n)
+	if info.stages then
+		for index, id in pairs(info.stages) do
+			index = tonumber(index)
+			n = max(index, n)
 
-				bind.Subscribe(pubsub, id, builder, index)
-			end
+			bind.Subscribe(pubsub, id, builder, index)
 		end
+	end
 
-		return function()
-			for i = 1, n do
-				local func = object_to_broadcaster[i]
+	return function()
+		for i = 1, n do
+			local func = object_to_broadcaster[i]
 
-				if func then
-					func()
-				end
+			if func then
+				func()
 			end
 		end
 	end
 end
+
+return { game = NewSequence, editor = EditorEvent }

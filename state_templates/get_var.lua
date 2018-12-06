@@ -120,73 +120,69 @@ function M.Make (vtype, def)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
+	local function NewGetVar (info, params)
+		local name, family, getter = info.var_name
+
+		if info.update_policy == "cached" then
+			local id, value
+
+			function getter (comp)
+				if comp then
+					family = comp
+				else
+					local fid = frames.GetFrameID()
+
+					if fid ~= id then
+						id, value = fid, GetValue(family, vtype, name, def)
+					end
+
+					return value
+				end
+			end
+		elseif info.update_policy == "bake" then
+			local can_go_stale, session_id, value = info.stale_on_reset
+
+			function getter (comp)
+				if comp then
+					family = comp
+				else
+					if can_go_stale then
+						local id = object_vars.GetSessionID()
+
+						if id ~= session_id then
+							session_id, value = id
+						end
+					end
+
+					if value == nil then
+						value = GetValue(family, vtype, name, def)
+					end
+
+					return value
+				end
+			end
 		else
-			local name, family, getter = info.var_name
-
-			if info.update_policy == "cached" then
-				local id, value
-
-				function getter (comp)
-					if comp then
-						family = comp
-					else
-						local fid = frames.GetFrameID()
-
-						if fid ~= id then
-							id, value = fid, GetValue(family, vtype, name, def)
-						end
-
-						return value
-					end
-				end
-			elseif info.update_policy == "bake" then
-				local can_go_stale, session_id, value = info.stale_on_reset
-
-				function getter (comp)
-					if comp then
-						family = comp
-					else
-						if can_go_stale then
-							local id = object_vars.GetSessionID()
-
-							if id ~= session_id then
-								session_id, value = id
-							end
-						end
-
-						if value == nil then
-							value = GetValue(family, vtype, name, def)
-						end
-
-						return value
-					end
-				end
-			else
-				function getter (comp)
-					if comp then
-						family = comp
-					else
-						return GetValue(family, vtype, name, def)
-					end
+			function getter (comp)
+				if comp then
+					family = comp
+				else
+					return GetValue(family, vtype, name, def)
 				end
 			end
-
-			local pubsub = params.pubsub
-
-			if info.get_family then
-				bind.Subscribe(pubsub, info.get_family, getter)
-			else
-				family = info.family
-			end
-
-			return getter
 		end
+
+		local pubsub = params.pubsub
+
+		if info.get_family then
+			bind.Subscribe(pubsub, info.get_family, getter)
+		else
+			family = info.family
+		end
+
+		return getter
 	end
+
+	return { game = NewGetVar, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

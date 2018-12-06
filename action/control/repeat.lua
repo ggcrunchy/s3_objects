@@ -107,35 +107,33 @@ local function EditorEvent (what, arg1, arg2, arg3)
 end
 
 return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local count, get_count = info.count
+	local count, get_count = info.count
 
-		local function rep (comp)
-			if comp then
-				get_count = comp
-			else
-				for _ = 1, count or get_count() do
-					local at_limit = bind.AtLimit() -- will the next call fail?
+	local function rep (comp)
+		if comp then
+			get_count = comp
+		else
+			for _ = 1, count or get_count() do
+				local at_limit = bind.AtLimit() -- will the next call fail?
 
-					Events.next(rep)
+				Events.next(rep)
 
-					if at_limit then
-						return Events.cancelled(rep)					
-					end
+				if at_limit then
+					return Events.cancelled(rep)					
 				end
 			end
 		end
-
-		local pubsub = params.pubsub
-
-		bind.Subscribe(pubsub, info.get_count, rep)
-
-		for k, v in pairs(Events) do
-			v.Subscribe(rep, info[k], pubsub)
-		end
-
-		return rep, "no_next" -- using own next, so suppress stock version
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Subscribe(pubsub, info.get_count, rep)
+
+	for k, v in pairs(Events) do
+		v.Subscribe(rep, info[k], pubsub)
+	end
+
+	return rep, "no_next" -- using own next, so suppress stock version
 end
+
+return { game = NewRepeat, editor = EditorEvent }

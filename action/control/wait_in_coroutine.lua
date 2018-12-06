@@ -94,28 +94,26 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local ms, get_ms = info.ms
+local function NewWaitInCoroutine (info, params)
+	local ms, get_ms = info.ms
 
-		local function wait (comp)
-			if comp then
-				get_ms = comp
-			elseif running() then
-				flow.Wait(ms or max(1, get_ms()))
-			else
-				NotInCoroutine(wait)
-			end
+	local function wait (comp)
+		if comp then
+			get_ms = comp
+		elseif running() then
+			flow.Wait(ms or max(1, get_ms()))
+		else
+			NotInCoroutine(wait)
 		end
-
-		local pubsub = params.pubsub
-
-		NotInCoroutine.Subscribe(info.not_in_coroutine, wait, pubsub)
-
-		bind.Subscribe(pubsub, info.get_ms, wait)
-
-		return wait
 	end
+
+	local pubsub = params.pubsub
+
+	NotInCoroutine.Subscribe(info.not_in_coroutine, wait, pubsub)
+
+	bind.Subscribe(pubsub, info.get_ms, wait)
+
+	return wait
 end
+
+return { game = NewWaitInCoroutine, editor = EditorEvent }

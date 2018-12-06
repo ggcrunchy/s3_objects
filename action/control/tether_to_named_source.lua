@@ -90,28 +90,26 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local name, get_name = info.source_name
+local function NewTetherToNamedSource (info, params)
+	local name, get_name = info.source_name
 
-		local function tether_to (comp)
-			if comp then
-				get_name = comp
-			else
-				if get_name then
-					name = get_name()
-				end
-
-				return actions.CallNamedSource(name)
+	local function tether_to (comp)
+		if comp then
+			get_name = comp
+		else
+			if get_name then
+				name = get_name()
 			end
+
+			return actions.CallNamedSource(name)
 		end
-
-		local pubsub = params.pubsub
-
-		bind.Subscribe(pubsub, info.get_name, tether_to)
-
-		return tether_to
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Subscribe(pubsub, info.get_name, tether_to)
+
+	return tether_to
 end
+
+return { game = NewTetherToNamedSource, editor = EditorEvent }

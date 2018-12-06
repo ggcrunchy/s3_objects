@@ -82,29 +82,27 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-		local done
+local function NewOnce (info, params)
+	local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+	local done
 
-		local function once ()
-			if is_stale() then
-				done = nil
-			end
-
-			if not done then
-				done = not bind.AtLimit() -- will the next call fail?
-
-				Next(once)
-			end
+	local function once ()
+		if is_stale() then
+			done = nil
 		end
 
-		local pubsub = params.pubsub
+		if not done then
+			done = not bind.AtLimit() -- will the next call fail?
 
-		Next.Subscribe(once, info.next, pubsub)
-
-		return once, "no_next" -- using own next, so suppress stock version
+			Next(once)
+		end
 	end
+
+	local pubsub = params.pubsub
+
+	Next.Subscribe(once, info.next, pubsub)
+
+	return once, "no_next" -- using own next, so suppress stock version
 end
+
+return { game = NewOnce, editor = EditorEvent }

@@ -441,86 +441,82 @@ function M.Make (vtype, def, has_order, has_tolerance)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
-		else
-			local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-			local op, limit, tolerance, arr = Ops[info.method], info.limit, info.tolerance
-			local get_limit, get_value, get_pos, get_insert_pos, get_remove_pos
+	local function NewArray (info, params)
+		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+		local op, limit, tolerance, arr = Ops[info.method], info.limit, info.tolerance
+		local get_limit, get_value, get_pos, get_insert_pos, get_remove_pos
 
-			local function array (what, arg)
-				if is_stale() then
-					arr = nil
+		local function array (what, arg)
+			if is_stale() then
+				arr = nil
 
-					if get_limit then
-						limit = nil
-					end
-				end
-
-				if what then
-					arr = arr or {}
-
-					if what == "get" then
-						local value = op(arr, "get", arg)
-
-						if value ~= nil then
-							return value
-						else
-							Events.on_bad_get_pos(array)
-
-							return def
-						end
-					elseif what == "array" then
-						return arr, op, has_tolerance and Approx or Equal, tolerance
-					elseif what == "value" then -- does double duty in bind and later calls
-						get_value = get_value or arg
-
-						return get_value()
-					elseif what == "limit" then -- ditto
-						if not limit then -- absence implies get_limit is available
-							get_limit = get_limit or arg
-							limit = min(get_limit(), MaxLimit)
-						end
-
-						return limit
-					elseif what == "insert_pos" then -- ditto
-						get_insert_pos = get_insert_pos or arg
-
-						return get_insert_pos()
-					elseif what == "remove_pos" then -- ditto
-						get_remove_pos = get_remove_pos or arg
-
-						return get_remove_pos
-					elseif what == "pos" then
-						get_pos = arg
-					end
-				else
-					return array("get", get_pos()) -- verified to exist
+				if get_limit then
+					limit = nil
 				end
 			end
 
-			local pubsub = params.pubsub
+			if what then
+				arr = arr or {}
 
-			for _, name in args.Args("insert_pos", "limit", "pos", "remove_pos", "value") do 
-				bind.Subscribe(pubsub, info["get_" .. name], array, name)
+				if what == "get" then
+					local value = op(arr, "get", arg)
+
+					if value ~= nil then
+						return value
+					else
+						Events.on_bad_get_pos(array)
+
+						return def
+					end
+				elseif what == "array" then
+					return arr, op, has_tolerance and Approx or Equal, tolerance
+				elseif what == "value" then -- does double duty in bind and later calls
+					get_value = get_value or arg
+
+					return get_value()
+				elseif what == "limit" then -- ditto
+					if not limit then -- absence implies get_limit is available
+						get_limit = get_limit or arg
+						limit = min(get_limit(), MaxLimit)
+					end
+
+					return limit
+				elseif what == "insert_pos" then -- ditto
+					get_insert_pos = get_insert_pos or arg
+
+					return get_insert_pos()
+				elseif what == "remove_pos" then -- ditto
+					get_remove_pos = get_remove_pos or arg
+
+					return get_remove_pos
+				elseif what == "pos" then
+					get_pos = arg
+				end
+			else
+				return array("get", get_pos()) -- verified to exist
 			end
-
-			for k, event in pairs(Events) do
-				event.Subscribe(array, info[k], pubsub)
-			end
-
-			for k in adaptive.IterSet(info.actions) do
-				bind.Publish(pubsub, Actions[k](array), info.uid, k)
-			end
-
-			object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, array)
-
-			return array
 		end
+
+		local pubsub = params.pubsub
+
+		for _, name in args.Args("insert_pos", "limit", "pos", "remove_pos", "value") do 
+			bind.Subscribe(pubsub, info["get_" .. name], array, name)
+		end
+
+		for k, event in pairs(Events) do
+			event.Subscribe(array, info[k], pubsub)
+		end
+
+		for k in adaptive.IterSet(info.actions) do
+			bind.Publish(pubsub, Actions[k](array), info.uid, k)
+		end
+
+		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, array)
+
+		return array
 	end
+
+	return { game = NewArray, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

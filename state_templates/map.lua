@@ -321,90 +321,86 @@ function M.Make (vtype, def, has_tolerance)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
-		else
-			local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-			local can_replace, limit, tolerance, n, t = info.allow_replacement, info.limit, info.tolerance, 0
-			local get_limit, get_value, get_key, get_insert_key, get_remove_key
+	local function NewMap (info, params)
+		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+		local can_replace, limit, tolerance, n, t = info.allow_replacement, info.limit, info.tolerance, 0
+		local get_limit, get_value, get_key, get_insert_key, get_remove_key
 
-			local function map (what, arg)
-				if is_stale() then
-					n, t = 0
+		local function map (what, arg)
+			if is_stale() then
+				n, t = 0
 
-					if get_limit then
-						limit = nil
-					end
+				if get_limit then
+					limit = nil
 				end
+			end
 
-				t = t or {}
+			t = t or {}
 
-				if what then
-					if what == "n" then
-						if arg then
-							n = arg
-						else
-							return n
-						end
-					elseif what == "table" then
-						return t, has_tolerance and Approx or Equal, tolerance
-					elseif what == "value" then -- does double duty in bind and later calls
-						get_value = get_value or arg
-
-						return get_value()
-					elseif what == "limit" then -- ditto
-						if not limit then -- absence implies get_limit is available
-							get_limit = get_limit or arg
-							limit = min(get_limit(), MaxLimit)
-						end
-
-						return limit
-					elseif what == "insert_key" then -- ditto
-						get_insert_key = get_insert_key or arg
-
-						return get_insert_key(), can_replace
-					elseif what == "remove_key" then -- ditto
-						get_remove_key = get_remove_key or arg
-
-						return get_remove_key
-					elseif what == "key" then
-						get_key = arg
-					end
-				else
-					local value = t[get_key()] -- verified to exist
-
-					if value ~= nil then
-						return value
+			if what then
+				if what == "n" then
+					if arg then
+						n = arg
 					else
-						Events.on_bad_get_key(map)
-
-						return def
+						return n
 					end
+				elseif what == "table" then
+					return t, has_tolerance and Approx or Equal, tolerance
+				elseif what == "value" then -- does double duty in bind and later calls
+					get_value = get_value or arg
+
+					return get_value()
+				elseif what == "limit" then -- ditto
+					if not limit then -- absence implies get_limit is available
+						get_limit = get_limit or arg
+						limit = min(get_limit(), MaxLimit)
+					end
+
+					return limit
+				elseif what == "insert_key" then -- ditto
+					get_insert_key = get_insert_key or arg
+
+					return get_insert_key(), can_replace
+				elseif what == "remove_key" then -- ditto
+					get_remove_key = get_remove_key or arg
+
+					return get_remove_key
+				elseif what == "key" then
+					get_key = arg
+				end
+			else
+				local value = t[get_key()] -- verified to exist
+
+				if value ~= nil then
+					return value
+				else
+					Events.on_bad_get_key(map)
+
+					return def
 				end
 			end
-
-			local pubsub = params.pubsub
-
-			for _, name in args.Args("insert_key", "limit", "key", "remove_key", "value") do 
-				bind.Subscribe(pubsub, info["get_" .. name], map, name)
-			end
-
-			for k, event in pairs(Events) do
-				event.Subscribe(map, info[k], pubsub)
-			end
-
-			for k in adaptive.IterSet(info.actions) do
-				bind.Publish(pubsub, Actions[k](map), info.uid, k)
-			end
-
-			object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, map)
-
-			return map
 		end
+
+		local pubsub = params.pubsub
+
+		for _, name in args.Args("insert_key", "limit", "key", "remove_key", "value") do 
+			bind.Subscribe(pubsub, info["get_" .. name], map, name)
+		end
+
+		for k, event in pairs(Events) do
+			event.Subscribe(map, info[k], pubsub)
+		end
+
+		for k in adaptive.IterSet(info.actions) do
+			bind.Publish(pubsub, Actions[k](map), info.uid, k)
+		end
+
+		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, map)
+
+		return map
 	end
+
+	return { game = NewMap, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

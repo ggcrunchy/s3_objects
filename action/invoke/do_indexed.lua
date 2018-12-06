@@ -102,46 +102,44 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local pubsub = params.pubsub
-		local n, builder, object_to_broadcaster = 0, bind.BroadcastBuilder()
+local function NewDoIndexed (info, params)
+	local pubsub = params.pubsub
+	local n, builder, object_to_broadcaster = 0, bind.BroadcastBuilder()
 
-		if info.stages then
-			for index, id in pairs(info.choices) do
-				index = tonumber(index)
-				n = max(index, n)
+	if info.stages then
+		for index, id in pairs(info.choices) do
+			index = tonumber(index)
+			n = max(index, n)
 
-				bind.Subscribe(pubsub, id, builder, index)
-			end
+			bind.Subscribe(pubsub, id, builder, index)
 		end
-
-		local get_index
-
-		local function do_indexed (comp)
-			if comp then
-				get_index = comp
-			else
-				local index = get_index()
-
-				if index >= 1 and index <= n then
-					local func = object_to_broadcaster[index]
-
-					if func then
-						func()
-					end
-				else
-					Events.on_bad_index(do_indexed)
-				end
-			end
-		end
-
-		Events.on_bad_index.Subscribe(do_indexed, info.on_bad_index, pubsub)
-
-		bind.Publish(pubsub, info.get_index, do_indexed)
-
-		return do_indexed
 	end
+
+	local get_index
+
+	local function do_indexed (comp)
+		if comp then
+			get_index = comp
+		else
+			local index = get_index()
+
+			if index >= 1 and index <= n then
+				local func = object_to_broadcaster[index]
+
+				if func then
+					func()
+				end
+			else
+				Events.on_bad_index(do_indexed)
+			end
+		end
+	end
+
+	Events.on_bad_index.Subscribe(do_indexed, info.on_bad_index, pubsub)
+
+	bind.Publish(pubsub, info.get_index, do_indexed)
+
+	return do_indexed
 end
+
+return { game = NewDoIndexed, editor = EditorEvent }

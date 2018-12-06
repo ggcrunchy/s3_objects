@@ -243,64 +243,62 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local pubsub = params.pubsub
-		local iterations, continue = info.iterations
+local function NewCueTimer (info, params)
+	local pubsub = params.pubsub
+	local iterations, continue = info.iterations
 
-		if info.wants_to_quit then
-			local wants_to_quit
+	if info.wants_to_quit then
+		local wants_to_quit
 
-			if iterations then
-				function continue (event, arg)
-					if arg == "add" then -- bind
-						wants_to_quit = event
-					elseif wants_to_quit() then
-						return "quit"
-					else
-						return event.count <= iterations
-					end
+		if iterations then
+			function continue (event, arg)
+				if arg == "add" then -- bind
+					wants_to_quit = event
+				elseif wants_to_quit() then
+					return "quit"
+				else
+					return event.count <= iterations
 				end
-			else
-				function continue (what, arg)
-					if arg == "add" then -- bind
-						wants_to_quit = what
-					else
-						return wants_to_quit() and "quit"
-					end
-				end
-			end
-
-			bind.Subscribe(pubsub, info.wants_to_quit, continue, "add")
-		elseif iterations then
-			function continue (event)
-				return event.count <= iterations
 			end
 		else
-			continue = DefContinue
+			function continue (what, arg)
+				if arg == "add" then -- bind
+					wants_to_quit = what
+				else
+					return wants_to_quit() and "quit"
+				end
+			end
 		end
 
-		Timers = Timers or { n = 0 }
-
-		local cue, list = MakeCue(info.delay, continue)
-
-		Timers[#Timers + 1] = list
-		Timers[#Timers + 1] = info.persist_across_reset and "persist" or "normal"
-
-		bind.Subscribe(pubsub, info.get_cancel_id, cue) -- see "special commands" in MakeCue()
-
-		for k, event in pairs(Events) do
-			event.Subscribe(cue, info[k], pubsub)
+		bind.Subscribe(pubsub, info.wants_to_quit, continue, "add")
+	elseif iterations then
+		function continue (event)
+			return event.count <= iterations
 		end
-
-		for k in adaptive.IterSet(info.actions) do
-			bind.Publish(pubsub, Actions[k](cue), info.uid, k)
-		end
-
-		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, cue)
-
-		return cue
+	else
+		continue = DefContinue
 	end
+
+	Timers = Timers or { n = 0 }
+
+	local cue, list = MakeCue(info.delay, continue)
+
+	Timers[#Timers + 1] = list
+	Timers[#Timers + 1] = info.persist_across_reset and "persist" or "normal"
+
+	bind.Subscribe(pubsub, info.get_cancel_id, cue) -- see "special commands" in MakeCue()
+
+	for k, event in pairs(Events) do
+		event.Subscribe(cue, info[k], pubsub)
+	end
+
+	for k in adaptive.IterSet(info.actions) do
+		bind.Publish(pubsub, Actions[k](cue), info.uid, k)
+	end
+
+	object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, cue)
+
+	return cue
 end
+
+return { game = NewCueTimer, editor = EditorEvent }

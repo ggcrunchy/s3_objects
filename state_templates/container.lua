@@ -259,91 +259,87 @@ function M.Make (vtype, def)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
-		else
-			local kind, is_stale = info.kind, object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-			local adt, limit, n, t, get_limit, get_value = ADT[kind], info.limit, 0
+	local function NewContainer (info, params)
+		local kind, is_stale = info.kind, object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+		local adt, limit, n, t, get_limit, get_value = ADT[kind], info.limit, 0
 
-			local function container (comp, arg)
-				if arg then
-					if arg == "get_limit" then
-						get_limit = comp
-					elseif arg == "get_value" then
-						get_value = comp
+		local function container (comp, arg)
+			if arg then
+				if arg == "get_limit" then
+					get_limit = comp
+				elseif arg == "get_value" then
+					get_value = comp
+				end
+			else
+				if is_stale() then
+					t, Singletons[container] = nil -- use container as key in weak table
+
+					if get_limit then
+						limit = nil
+					end
+				end
+
+				if t == nil then
+					limit = limit or get_limit()
+
+					if kind == "queue" then
+						t = { limit = limit }
+					elseif kind ~= "singleton" then
+						t = {}
+					else
+						t = container -- see note in is_stale() block
+					end
+				end
+
+				local remove
+
+				if comp and comp ~= "remove" then
+					if comp == "count" then
+						return n
+					elseif comp == "add" then
+						n = Add(adt, container, t, n, limit, get_value()) -- fall through to result below
 					end
 				else
-					if is_stale() then
-						t, Singletons[container] = nil -- use container as key in weak table
-
-						if get_limit then
-							limit = nil
-						end
-					end
-
-					if t == nil then
-						limit = limit or get_limit()
-
-						if kind == "queue" then
-							t = { limit = limit }
-						elseif kind ~= "singleton" then
-							t = {}
-						else
-							t = container -- see note in is_stale() block
-						end
-					end
-
-					local remove
-
-					if comp and comp ~= "remove" then
-						if comp == "count" then
-							return n
-						elseif comp == "add" then
-							n = Add(adt, container, t, n, limit, get_value()) -- fall through to result below
-						end
-					else
-						remove = true -- "get" or comp == "remove"
-					end
-
-					local result
-
-					if n > 0 then
-						result = adt(t, "peek")
-					else
-						result = def
-
-						Events.on_get_when_empty(container)
-					end
-
-					if remove then
-						n = Remove(adt, container, t, n)
-					end
-
-					return result
+					remove = true -- "get" or comp == "remove"
 				end
+
+				local result
+
+				if n > 0 then
+					result = adt(t, "peek")
+				else
+					result = def
+
+					Events.on_get_when_empty(container)
+				end
+
+				if remove then
+					n = Remove(adt, container, t, n)
+				end
+
+				return result
 			end
-
-			local pubsub = params.pubsub
-
-			bind.Subscribe(pubsub, info.get_limit, container, "get_limit")
-			bind.Subscribe(pubsub, info.get_value, container, "get_value")
-
-			for k, event in pairs(Events) do
-				event.Subscribe(container, info[k], pubsub)
-			end
-
-			for k in adaptive.IterSet(info.actions) do
-				bind.Publish(pubsub, Actions[k](container), info.uid, k)
-			end
-
-			object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, container)
-
-			return container
 		end
+
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.get_limit, container, "get_limit")
+		bind.Subscribe(pubsub, info.get_value, container, "get_value")
+
+		for k, event in pairs(Events) do
+			event.Subscribe(container, info[k], pubsub)
+		end
+
+		for k in adaptive.IterSet(info.actions) do
+			bind.Publish(pubsub, Actions[k](container), info.uid, k)
+		end
+
+		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, container)
+
+		return container
 	end
+
+	return { game = NewContainer, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

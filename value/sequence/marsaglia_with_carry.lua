@@ -206,75 +206,71 @@ local function Update (is_stale, gen, getters, bound1, bound2, seed1, seed2)
 	return gen, bound1 or getters.get_bound1(), bound2 or getters.get_bound2()
 end
 
-return function(info, params)
+local function NewMWC (info, params)
 	if not Seed1 then
 		local _, get_zw = mwc_rng.MakeGenerator{ get_zw = true }
 
 		Seed1, Seed2 = get_zw()
 	end
 	
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "number"
-	else
-		local is_stale, gen, getters, rng = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-		local bound1, seed1 = info.ibound1 or info.nbound1, info.seed1
-		local bound2, seed2 = info.ibound2 or info.nbound2, info.seed2
+	local is_stale, gen, getters, rng = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+	local bound1, seed1 = info.ibound1 or info.nbound1, info.seed1
+	local bound2, seed2 = info.ibound2 or info.nbound2, info.seed2
 
-		if info.ibound1 or info.ibound2 or info.get_ibound1 or info.get_ibound2 then
-			function rng (comp, arg)
-				if comp then
-					getters = AddGetter(getters, arg, comp)
-				else
-					Before(rng)
+	if info.ibound1 or info.ibound2 or info.get_ibound1 or info.get_ibound2 then
+		function rng (comp, arg)
+			if comp then
+				getters = AddGetter(getters, arg, comp)
+			else
+				Before(rng)
 
-					local i1, i2
+				local i1, i2
 
-					gen, i1, i2 = Update(is_stale, gen, getters, bound1, bound2, seed1, seed2)
+				gen, i1, i2 = Update(is_stale, gen, getters, bound1, bound2, seed1, seed2)
 
-					if i2 <= i1 then
-						if i1 == i2 then
-							return i1
-						end
-
-						i1, i2 = i2, i1
+				if i2 <= i1 then
+					if i1 == i2 then
+						return i1
 					end
 
-					return gen(i1, i2)
-				end
-			end
-		else
-			function rng (comp, arg)
-				if is_stale() then
-					gen = nil
+					i1, i2 = i2, i1
 				end
 
-				if comp then
-					getters = AddGetter(getters, arg, comp)
-				else
-					Before(rng)
-
-					local n1, n2
-
-					gen, n1, n2 = Update(is_stale, gen, getters, bound1, bound2, seed1, seed2)
-
-					return n1 + gen() * (n2 - n1)
-				end
+				return gen(i1, i2)
 			end
 		end
+	else
+		function rng (comp, arg)
+			if is_stale() then
+				gen = nil
+			end
 
-		local pubsub = params.pubsub
+			if comp then
+				getters = AddGetter(getters, arg, comp)
+			else
+				Before(rng)
 
-		Before.Subscribe(rng, info.get_integer, pubsub)
+				local n1, n2
 
-		bind.Subscribe(pubsub, info.get_ibound1 or info.get_nbound1, rng, "get_bound1")
-		bind.Subscribe(pubsub, info.get_ibound2 or info.get_nbound2, rng, "get_bound2")
-		bind.Subscribe(pubsub, info.get_seed1, rng, "get_seed1")
-		bind.Subscribe(pubsub, info.get_seed2, rng, "get_seed2")
+				gen, n1, n2 = Update(is_stale, gen, getters, bound1, bound2, seed1, seed2)
 
-		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, rng)
-
-		return rng, "no_before" -- using own Before
+				return n1 + gen() * (n2 - n1)
+			end
+		end
 	end
+
+	local pubsub = params.pubsub
+
+	Before.Subscribe(rng, info.get_integer, pubsub)
+
+	bind.Subscribe(pubsub, info.get_ibound1 or info.get_nbound1, rng, "get_bound1")
+	bind.Subscribe(pubsub, info.get_ibound2 or info.get_nbound2, rng, "get_bound2")
+	bind.Subscribe(pubsub, info.get_seed1, rng, "get_seed1")
+	bind.Subscribe(pubsub, info.get_seed2, rng, "get_seed2")
+
+	object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, rng)
+
+	return rng, "no_before" -- using own Before
 end
+
+return { game = NewMWC, editor = EditorEvent, value_type = "number" }

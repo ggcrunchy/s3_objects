@@ -81,23 +81,19 @@ function M.Make (vtype, def, add_constant, fix_constant, resolve_text)
 		end
 	end
 
-	return function(info, _)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
-		else
-			local k = info.constant_value
+	local function NewConstant (info, _)
+		local k = info.constant_value
 
-			if fix_constant then
-				k = fix_constant(k)
-			end
+		if fix_constant then
+			k = fix_constant(k)
+		end
 
-			return function()
-				return k
-			end
+		return function()
+			return k
 		end
 	end
+
+	return { game = NewConstant, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

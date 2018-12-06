@@ -230,75 +230,71 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "number"
-	else
-		local can_extrapolate, t, get_t, value, get_value = info.can_extrapolate, info.t, info.value
-		local bound1, bound2, get_bound1, get_bound2 = info.bound1, info.bound2
-		local should_sort, should_sort_open = info.should_sort, info.should_sort_open
+local function NewInterval (info, params)
+	local can_extrapolate, t, get_t, value, get_value = info.can_extrapolate, info.t, info.value
+	local bound1, bound2, get_bound1, get_bound2 = info.bound1, info.bound2
+	local should_sort, should_sort_open = info.should_sort, info.should_sort_open
 
-		local function interval (comp, arg)
-			if comp ~= "t" then
-				if arg then
-					if arg == "get_bound1" then
-						get_bound1 = comp
-					elseif arg == "get_bound2" then
-						get_bound2 = comp
-					elseif arg == "get_t" then
-						get_t = comp
-					elseif arg == "get_value" then
-						get_value = comp
-					end
-				elseif comp == "bounds" then
-					bound1 = (get_bound1 and get_bound1()) or bound1
-					bound2 = (get_bound2 and get_bound2()) or bound2
-
-					return bound1, bound2
-				elseif comp == "value" then
-					value = (get_value and get_value()) or value
-
-					return value, should_sort, should_sort_open
+	local function interval (comp, arg)
+		if comp ~= "t" then
+			if arg then
+				if arg == "get_bound1" then
+					get_bound1 = comp
+				elseif arg == "get_bound2" then
+					get_bound2 = comp
+				elseif arg == "get_t" then
+					get_t = comp
+				elseif arg == "get_value" then
+					get_value = comp
 				end
-			else
-				if get_t then
-					t = get_t()
+			elseif comp == "bounds" then
+				bound1 = (get_bound1 and get_bound1()) or bound1
+				bound2 = (get_bound2 and get_bound2()) or bound2
 
-					if not can_extrapolate then
-						if t < 0 or t > 1 then
-							t = t < 0 and 0 or 1
+				return bound1, bound2
+			elseif comp == "value" then
+				value = (get_value and get_value()) or value
 
-							Events.on_clamp(interval)
-						end
-					end
-				end
-
-				if comp == "t" then
-					return t
-				end
-
-				local bound1, bound2 = GetBounds(interval, should_sort, should_sort_open)
-
-				Events[(t >= 0 and t <= 1) and "on_interpolate" or "on_extrapolate"](interval)
-
-				return (1 - t) * bound1 + t * bound2
+				return value, should_sort, should_sort_open
 			end
+		else
+			if get_t then
+				t = get_t()
+
+				if not can_extrapolate then
+					if t < 0 or t > 1 then
+						t = t < 0 and 0 or 1
+
+						Events.on_clamp(interval)
+					end
+				end
+			end
+
+			if comp == "t" then
+				return t
+			end
+
+			local bound1, bound2 = GetBounds(interval, should_sort, should_sort_open)
+
+			Events[(t >= 0 and t <= 1) and "on_interpolate" or "on_extrapolate"](interval)
+
+			return (1 - t) * bound1 + t * bound2
 		end
-
-		local pubsub = params.pubsub
-
-		for name, event in pairs(Events) do
-			event.Subscribe(interval, info[name], pubsub)
-		end
-
-		for name in pairs(InProperties.number) do
-			bind.Subscribe(pubsub, info[name], interval, name)
-		end
-
-		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, interval)
-
-		return interval
 	end
+
+	local pubsub = params.pubsub
+
+	for name, event in pairs(Events) do
+		event.Subscribe(interval, info[name], pubsub)
+	end
+
+	for name in pairs(InProperties.number) do
+		bind.Subscribe(pubsub, info[name], interval, name)
+	end
+
+	object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, interval)
+
+	return interval
 end
+
+return { game = NewInterval, editor = EditorEvent, value_type = "number" }

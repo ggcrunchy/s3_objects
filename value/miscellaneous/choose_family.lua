@@ -64,12 +64,8 @@ local function EditorEvent (what, arg1)
 	end
 end
 
-return function(info)
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "family"
-	else
-		return FamilyFuncs[info.family]
-	end
+local function NewFamily (info)
+	return FamilyFuncs[info.family]
 end
+
+return { game = NewFamily, editor = EditorEvent, value_type = "family" }

@@ -189,6 +189,9 @@ function Switch:Update ()
 					commands("set_direction", forward)
 					commands("show", true)
 					-- ^^ TODO: entity.SendMessageTo(...)
+					-- actually, leaning more and more to just eliminating this approach
+					-- few enough use cases to just handle there
+						-- Direction node, OnDone, ShowHint, HideHint, etc.
 				end
 			end
 
@@ -353,7 +356,7 @@ local function NewSwitch (group, info, params)
 
 	Sounds:Load()
 
-	local psl = params.pub_sub_list
+	local psl = params:GetPubSubList()
 
 	--Events.Subscribe(switch, info.target, psl)
 	psl:Subscribe(info.target, Events:GetAdder(), switch)

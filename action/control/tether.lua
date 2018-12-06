@@ -57,10 +57,4 @@ local function EditorEvent (what, arg1, _, arg3)
 	end
 end
 
-return function(info, _)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		return nil -- No body
-	end
-end
+return { --[[ no body ]] editor = EditorEvent }

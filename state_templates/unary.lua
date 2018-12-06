@@ -148,46 +148,42 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return rtype
-		else
-			local getter, value
+	local function NewUnary (info, params)
+		local getter, value
 
-			if info.expression then
-				local expr_object = expression.Process(gdef, info.expression)
+		if info.expression then
+			local expr_object = expression.Process(gdef, info.expression)
 
-				function getter (comp)
-					if value then
-						Args.x = value
+			function getter (comp)
+				if value then
+					Args.x = value
 
-						return expr_object(Args)
-					else
-						value = comp
-					end
-				end
-			else
-				local op, arg = ops[info.choice], info.arg
-
-				function getter (comp)
-					if value then
-						return op(value(), arg)
-					else
-						value = comp
-					end
+					return expr_object(Args)
+				else
+					value = comp
 				end
 			end
+		else
+			local op, arg = ops[info.choice], info.arg
 
-			--
-			local pubsub = params.pubsub
-
-			bind.Subscribe(pubsub, info.value, getter)
-
-			return getter
+			function getter (comp)
+				if value then
+					return op(value(), arg)
+				else
+					value = comp
+				end
+			end
 		end
+
+		--
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.value, getter)
+
+		return getter
 	end
+
+	return { game = NewUnary, editor = EditorEvent, value_type = rtype }
 end
 
 -- Export the module.

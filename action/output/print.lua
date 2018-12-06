@@ -197,53 +197,51 @@ Runtime:addEventListener("leave_level", function()
 	end
 end)
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local message, values = info.message
+local function NewPrint (info, params)
+	local message, values = info.message
 
-		local function get_string (comp, arg)
-			if comp then
-				local specifier = Specifier(arg, #Prefix)
+	local function get_string (comp, arg)
+		if comp then
+			local specifier = Specifier(arg, #Prefix)
 
-				values = values or {}
-				values[specifier] = adaptive.Append(values[specifier], comp)
-			else
-				local resolved = message
+			values = values or {}
+			values[specifier] = adaptive.Append(values[specifier], comp)
+		else
+			local resolved = message
 
-				if values then
-					for specifier, list in pairs(values) do
-						local str
+			if values then
+				for specifier, list in pairs(values) do
+					local str
 
-						for _, getter in adaptive.IterArray(list) do
-							str = adaptive.Append(str, tostring(getter()))
-						end
-
-						if type(str) == "table" then
-							str = "{" .. concat(str, ", ") .. "}"
-						end
-
-						resolved = resolved:gsub(specifier, str)
+					for _, getter in adaptive.IterArray(list) do
+						str = adaptive.Append(str, tostring(getter()))
 					end
+
+					if type(str) == "table" then
+						str = "{" .. concat(str, ", ") .. "}"
+					end
+
+					resolved = resolved:gsub(specifier, str)
 				end
-
-				return resolved
 			end
-		end
 
-		local pubsub = params.pubsub
-
-		bind.Publish(pubsub, get_string, info.uid, "get_string")
-
-		for _, name in pairs(InProperties) do
-			bind.Subscribe(pubsub, info[name], get_string, name)
-		end
-
-		local pfunc = info.to_console and print or Print
-
-		return function()
-			return pfunc(get_string())
+			return resolved
 		end
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Publish(pubsub, get_string, info.uid, "get_string")
+
+	for _, name in pairs(InProperties) do
+		bind.Subscribe(pubsub, info[name], get_string, name)
+	end
+
+	local pfunc = info.to_console and print or Print
+
+	return function()
+		return pfunc(get_string())
+	end
 end
+
+return { game = NewPrint, editor = EditorEvent }

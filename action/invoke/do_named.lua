@@ -116,48 +116,46 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local pubsub = params.pubsub
-		local builder, object_to_broadcaster = bind.BroadcastBuilder()
+local function NewDoNamed (info, params)
+	local pubsub = params.pubsub
+	local builder, object_to_broadcaster = bind.BroadcastBuilder()
 
-		if info.choices then
-			for name, id in pairs(info.choices) do
-				bind.Subscribe(pubsub, id, builder, name)
-			end
+	if info.choices then
+		for name, id in pairs(info.choices) do
+			bind.Subscribe(pubsub, id, builder, name)
 		end
-
-		local missing = info.named_labels and {} -- if this is still present, these labels were unassigned
-
-		if missing then
-			for _, label in pairs(info.named_labels) do
-				missing[label] = true
-			end
-		end
-
-		local get_name
-
-		local function do_named (comp)
-			if comp then
-				get_name = comp
-			else
-				local name = get_name()
-				local func = object_to_broadcaster[name]
-
-				if func then
-					func()
-				elseif missing and missing[name] then
-					Events.on_bad_name(do_named)
-				end
-			end
-		end
-
-		Events.on_bad_name.Subscribe(do_named, info.on_bad_name, pubsub)
-
-		bind.Publish(pubsub, info.get_name, do_named)
-
-		return do_named
 	end
+
+	local missing = info.named_labels and {} -- if this is still present, these labels were unassigned
+
+	if missing then
+		for _, label in pairs(info.named_labels) do
+			missing[label] = true
+		end
+	end
+
+	local get_name
+
+	local function do_named (comp)
+		if comp then
+			get_name = comp
+		else
+			local name = get_name()
+			local func = object_to_broadcaster[name]
+
+			if func then
+				func()
+			elseif missing and missing[name] then
+				Events.on_bad_name(do_named)
+			end
+		end
+	end
+
+	Events.on_bad_name.Subscribe(do_named, info.on_bad_name, pubsub)
+
+	bind.Publish(pubsub, info.get_name, do_named)
+
+	return do_named
 end
+
+return { game = NewDoNamed, editor = EditorEvent }

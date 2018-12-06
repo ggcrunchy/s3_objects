@@ -160,36 +160,32 @@ function M.Make (vtype, gdef, suffix, rtype)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return rtype
-		else
-			local expr_object, args = expression.Process(gdef, info.expression)
+	local function NewCompound (info, params)
+		local expr_object, args = expression.Process(gdef, info.expression)
 
-			local function getter (comp, name)
-				if comp then
-					args[name] = comp
-				else
-					return expr_object(args)
-				end
+		local function getter (comp, name)
+			if comp then
+				args[name] = comp
+			else
+				return expr_object(args)
 			end
-
-			--
-			local pubsub = params.pubsub
-
-			if info.values then
-				args = {}
-
-				for label, target in pairs(info.values) do
-					bind.Subscribe(pubsub, target, getter, label)
-				end
-			end
-
-			return getter
 		end
+
+		--
+		local pubsub = params.pubsub
+
+		if info.values then
+			args = {}
+
+			for label, target in pairs(info.values) do
+				bind.Subscribe(pubsub, target, getter, label)
+			end
+		end
+
+		return getter
 	end
+
+	return { game = NewCompound, editor = EditorEvent, value_type = rtype }
 end
 
 -- Export the module.

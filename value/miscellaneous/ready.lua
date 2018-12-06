@@ -143,61 +143,57 @@ local function Update (is_stale, amount, threshold, getters)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "boolean"
-	else
-		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-		local amount, getters, ready, threshold = info.amount
+local function NewReady (info, params)
+	local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+	local amount, getters, ready, threshold = info.amount
 
-		if info.as_count then
-			function ready (what, getter)
-				if what then
-					getters = AddGetter(what, getter)
+	if info.as_count then
+		function ready (what, getter)
+			if what then
+				getters = AddGetter(what, getter)
+			else
+				local is_ready, result = Update(is_stale, amount, threshold, getters)
+
+				if is_ready or result == "disabled" then
+					threshold = result
 				else
-					local is_ready, result = Update(is_stale, amount, threshold, getters)
-
-					if is_ready or result == "disabled" then
-						threshold = result
-					else
-						threshold = threshold - 1
-					end
-
-					return is_ready
+					threshold = threshold - 1
 				end
-			end
-		else
-			local up_to
 
-			function ready (what, getter)
-				if what then
-					getters = AddGetter(what, getter)
-				else
-					if up_to then
-						threshold = max(0, up_to - system.getTimer())
-					end
-
-					local is_ready, result, is_new = Update(is_stale, amount, threshold, getters)
-
-					if is_ready or result == "disabled" then
-						threshold, up_to = result
-					elseif is_new then
-						up_to = system.getTimer() + result
-					end
-
-					return is_ready
-				end
+				return is_ready
 			end
 		end
+	else
+		local up_to
 
-		local pubsub = params.pubsub
+		function ready (what, getter)
+			if what then
+				getters = AddGetter(what, getter)
+			else
+				if up_to then
+					threshold = max(0, up_to - system.getTimer())
+				end
 
-		bind.Subscribe(pubsub, info.get_amount, ready, "get_amount")
-		bind.Subscribe(pubsub, info.should_disable, ready, "should_disable")
-		bind.Subscribe(pubsub, info.starts_ready, ready, "starts_ready")
+				local is_ready, result, is_new = Update(is_stale, amount, threshold, getters)
 
-		return ready
+				if is_ready or result == "disabled" then
+					threshold, up_to = result
+				elseif is_new then
+					up_to = system.getTimer() + result
+				end
+
+				return is_ready
+			end
+		end
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Subscribe(pubsub, info.get_amount, ready, "get_amount")
+	bind.Subscribe(pubsub, info.should_disable, ready, "should_disable")
+	bind.Subscribe(pubsub, info.starts_ready, ready, "starts_ready")
+
+	return ready
 end
+
+return { game = NewReady, editor = EditorEvent, value_type = "boolean" }

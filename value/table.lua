@@ -90,30 +90,17 @@ function NextBefore  (x)
 	return ldexp(m - 2^-53, e)
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-		-- TODO!
-		-- get: return interpolated value?
-		-- within: is inside?
-			-- can refine for open / closed bounds?
-			-- info.bound1, info.get_bound1, *2
-			-- info.open1, info.get_open1, *2
-		-- t: interpolation time
-			-- info.t (could be slider if no extrapolation), info.get_t
-		-- value: Value "between" bounds -> for t, within
-			-- info.value, info.get_value
-		-- time: Time from [0, 1] (as far as bounds) -> get
-		-- sort bounds? (should probably not sort open, though?)
-		-- On(extrapolate), On(interpolate)?
-	elseif info == "value_type" then
-		return "number"
-	else
+return {
+	game = function(info, params)
 		-- TODO
 		local function interval ()
 			--
 		end
 
 		return interval, "no_before" -- using own Before
-	end
-end
+	end,
+
+	editor = EditorEvent,
+
+	value_type = "number"
+}

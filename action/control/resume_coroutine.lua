@@ -182,63 +182,61 @@ local function EditorEvent (what, arg1, _, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-		local can_restart, coro, last_err = info.can_restart
+local function NewResumeCoroutine (info, params)
+	local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+	local can_restart, coro, last_err = info.can_restart
 
-		local function resume_coro (what)
-			if what == "coro" then
-				return coro, last_err
-			else
-				local went_stale = is_stale()
+	local function resume_coro (what)
+		if what == "coro" then
+			return coro, last_err
+		else
+			local went_stale = is_stale()
 
-				if went_stale or (coro == "dead" and can_restart) then
-					coro, last_err = nil
+			if went_stale or (coro == "dead" and can_restart) then
+				coro, last_err = nil
 
-					if not went_stale then
-						Events.on_restarting(resume_coro)
-					end
-				end
-
-				coro = coro or create(function()
-					return Events.on_start(resume_coro)
-				end)
-
-				local cstatus = status(coro)
-
-				if cstatus == "suspended" then
-					Events.on_resuming(resume_coro)
-
-					local ok, res = resume(coro)
-
-					if status(coro) == "suspended" then
-						return Events.on_suspend(resume_coro)
-					elseif not ok then
-						last_err = res
-					end
-
-					store.RemoveFamily(coro)
-
-					coro = "dead"
-
-					return Events[ok and "on_done" or "on_error"](resume_coro)
-				else
-					return Events[cstatus == "normal" and "on_already_running" or "on_resume_when_dead"](resume_coro)
+				if not went_stale then
+					Events.on_restarting(resume_coro)
 				end
 			end
+
+			coro = coro or create(function()
+				return Events.on_start(resume_coro)
+			end)
+
+			local cstatus = status(coro)
+
+			if cstatus == "suspended" then
+				Events.on_resuming(resume_coro)
+
+				local ok, res = resume(coro)
+
+				if status(coro) == "suspended" then
+					return Events.on_suspend(resume_coro)
+				elseif not ok then
+					last_err = res
+				end
+
+				store.RemoveFamily(coro)
+
+				coro = "dead"
+
+				return Events[ok and "on_done" or "on_error"](resume_coro)
+			else
+				return Events[cstatus == "normal" and "on_already_running" or "on_resume_when_dead"](resume_coro)
+			end
 		end
-
-		local pubsub = params.pubsub
-
-		for k, v in pairs(Events) do
-			v.Subscribe(resume_coro, info[k], pubsub)
-		end
-
-		object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, resume_coro)
-
-		return resume_coro
 	end
+
+	local pubsub = params.pubsub
+
+	for k, v in pairs(Events) do
+		v.Subscribe(resume_coro, info[k], pubsub)
+	end
+
+	object_vars.PublishProperties(pubsub, info.props, OutProperties, info.uid, resume_coro)
+
+	return resume_coro
 end
+
+return { game = NewResumeCoroutine, editor = EditorEvent }

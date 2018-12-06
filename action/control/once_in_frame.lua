@@ -65,30 +65,28 @@ local function EditorEvent (what, arg1, _, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local id
+local function NewOnceInFrame (info, params)
+	local id
 
-		local function once_in_frame ()
-			local fid = frames.GetFrameID()
+	local function once_in_frame ()
+		local fid = frames.GetFrameID()
 
-			if fid ~= id then
-				local at_limit = bind.AtLimit() -- will the next call fail?
+		if fid ~= id then
+			local at_limit = bind.AtLimit() -- will the next call fail?
 
-				Next(once_in_frame)
+			Next(once_in_frame)
 
-				if not at_limit then
-					id = fid
-				end
+			if not at_limit then
+				id = fid
 			end
 		end
-
-		local pubsub = params.pubsub
-
-		Next.Subscribe(once_in_frame, info.next, pubsub)
-
-		return once_in_frame, "no_next" -- using own next, so suppress stock version
 	end
+
+	local pubsub = params.pubsub
+
+	Next.Subscribe(once_in_frame, info.next, pubsub)
+
+	return once_in_frame, "no_next" -- using own next, so suppress stock version
 end
+
+return { game = NewOnceInFrame, editor = EditorEvent }

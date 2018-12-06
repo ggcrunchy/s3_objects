@@ -168,59 +168,57 @@ local function AddSubtable (key)
 	return t
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local name, inputs = "custom:" .. info.name
+local function NewDispatchCustomEvent (info, params)
+	local name, inputs = "custom:" .. info.name
 
-		local function dispatch (comp, arg)
-			if comp then
-				local vtype, label = arg()
+	local function dispatch (comp, arg)
+		if comp then
+			local vtype, label = arg()
 
-				inputs = inputs or {}
-				inputs[vtype] = inputs[vtype] or {}
-				inputs[vtype][label] = comp
+			inputs = inputs or {}
+			inputs[vtype] = inputs[vtype] or {}
+			inputs[vtype][label] = comp
 
-			else
-				Event.name = name -- sanity check, since event is user code
-
-				if inputs then
-					for vtype, funcs in pairs(inputs) do
-						local t = AddSubtable(vtype)
-
-						for label, func in pairs(funcs) do
-							t[label] = func()
-						end
-					end
-				end
-
-				Runtime:dispatchEvent(Event)
-
-				for k, t in pairs(Event) do
-					if type(t) == "table" then -- another sanity check
-						Stash[#Stash + 1] = t
-					end
-
-					Event[k] = nil
-				end
-			end
-		end
-
-		local pubsub = params.pubsub
-
-		for itype in pairs(InProperties) do
-			local inputs = info[itype]
+		else
+			Event.name = name -- sanity check, since event is user code
 
 			if inputs then
-				for label, id in pairs(inputs) do
-					bind.Subscribe(pubsub, id, dispatch, function()
-						return itype, label
-					end)
+				for vtype, funcs in pairs(inputs) do
+					local t = AddSubtable(vtype)
+
+					for label, func in pairs(funcs) do
+						t[label] = func()
+					end
 				end
 			end
-		end
 
-		return dispatch
+			Runtime:dispatchEvent(Event)
+
+			for k, t in pairs(Event) do
+				if type(t) == "table" then -- another sanity check
+					Stash[#Stash + 1] = t
+				end
+
+				Event[k] = nil
+			end
+		end
 	end
+
+	local pubsub = params.pubsub
+
+	for itype in pairs(InProperties) do
+		local inputs = info[itype]
+
+		if inputs then
+			for label, id in pairs(inputs) do
+				bind.Subscribe(pubsub, id, dispatch, function()
+					return itype, label
+				end)
+			end
+		end
+	end
+
+	return dispatch
 end
+
+return { game = NewDispatchCustomEvent, editor = EditorEvent }

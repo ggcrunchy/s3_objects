@@ -105,37 +105,35 @@ function M.Make (vtype)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		else
-			local name, family, value = info.var_name
+	local function NewSetVar (info, params)
+		local name, family, value = info.var_name
 
-			local function setter (comp, get_family)
-				if comp then
-					if get_family then
-						family = comp()
-					else
-						value = comp
-					end
+		local function setter (comp, get_family)
+			if comp then
+				if get_family then
+					family = comp()
 				else
-					store.SetVariable(family, vtype, name, value())
+					value = comp
 				end
-			end
-
-			local pubsub = params.pubsub
-
-			bind.Subscribe(pubsub, info.value, setter)
-
-			if info.get_family then
-				bind.Subscribe(pubsub, info.get_family, setter, true)
 			else
-				family = info.family
+				store.SetVariable(family, vtype, name, value())
 			end
-
-			return setter
 		end
+
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.value, setter)
+
+		if info.get_family then
+			bind.Subscribe(pubsub, info.get_family, setter, true)
+		else
+			family = info.family
+		end
+
+		return setter
 	end
+
+	return { game = NewSetVar, editor = EditorEvent }
 end
 
 -- Export the module.

@@ -102,29 +102,25 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "integer"
-	else
-		local method, value = Methods[info.method]
-		-- TODO: to_uint?
-			-- If so, policy for negatives: abs, clamp-to-0, mask-and-reinterpret (2s complement)
-			-- Would also use Before...
+local function NewToInteger (info, params)
+	local method, value = Methods[info.method]
+	-- TODO: to_uint?
+		-- If so, policy for negatives: abs, clamp-to-0, mask-and-reinterpret (2s complement)
+		-- Would also use Before...
 
-		local function to_integer (comp)
-			if value then
-				return method(value())
-			else
-				value = comp
-			end
+	local function to_integer (comp)
+		if value then
+			return method(value())
+		else
+			value = comp
 		end
-
-		local pubsub = params.pubsub
-
-		bind.Subscribe(pubsub, info.value, to_integer)
-
-		return to_integer
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Subscribe(pubsub, info.value, to_integer)
+
+	return to_integer
 end
+
+return { game = NewToInteger, editor = EditorEvent, value_type = "integer" }

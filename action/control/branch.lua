@@ -90,28 +90,26 @@ local function EditorEvent (what, arg1, _, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local should_do_next
+local function NewBranch (info, params)
+	local should_do_next
 
-		local function branch (comp)
-			if comp then
-				should_do_next = comp
-			else
-				Events[should_do_next() and "next" or "instead"](branch)
-			end
+	local function branch (comp)
+		if comp then
+			should_do_next = comp
+		else
+			Events[should_do_next() and "next" or "instead"](branch)
 		end
-
-		local pubsub = params.pubsub
-
-		bind.Subscribe(pubsub, info.should_go_next, branch)
-
-		for k, event in pairs(Events) do
-			event.Subscribe(branch, info[k], pubsub)
-		end
-
-		return branch, "no_next" -- using own next, so suppress stock version
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Subscribe(pubsub, info.should_go_next, branch)
+
+	for k, event in pairs(Events) do
+		event.Subscribe(branch, info[k], pubsub)
+	end
+
+	return branch, "no_next" -- using own next, so suppress stock version
 end
+
+return { game = NewBranch, editor = EditorEvent }

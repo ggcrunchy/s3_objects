@@ -201,56 +201,52 @@ local function EditorEvent (what, arg1, arg2, arg3)
 end
 
 return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	elseif info == "value_type" then
-		return "uint"
-	else
-		local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
-		local limit, count, get_count, get_limit = info.limit or (not info.get_limit and huge)
+	local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
+	local limit, count, get_count, get_limit = info.limit or (not info.get_limit and huge)
 
-		local function counter (what, getter)
-			if is_stale() then
-				count = nil
+	local function counter (what, getter)
+		if is_stale() then
+			count = nil
 
-				if get_limit then
-					limit = nil
-				end
-			end
-
-			if what then
-				if what == "get_count" then -- does double duty in bind and later calls
-					get_count = get_count or getter
-
-					return get_count and get_count() or (count or 0)
-				elseif what == "get_limit" then -- ditto
-					if not limit then -- absence implies get_limit is available
-						get_limit = get_limit or getter
-						limit = get_limit()
-					end
-
-					return limit
-				elseif what == "set" then
-					count = what
-				end
-			else
-				return count or 0
+			if get_limit then
+				limit = nil
 			end
 		end
 
-		local pubsub = params.pubsub
+		if what then
+			if what == "get_count" then -- does double duty in bind and later calls
+				get_count = get_count or getter
 
-		bind.Subscribe(pubsub, info.get_count, counter, "get_count") -- see notes in counter()
-		bind.Subscribe(pubsub, info.get_limit, counter, "get_limit")
+				return get_count and get_count() or (count or 0)
+			elseif what == "get_limit" then -- ditto
+				if not limit then -- absence implies get_limit is available
+					get_limit = get_limit or getter
+					limit = get_limit()
+				end
 
-		for k, event in pairs(Events) do
-			event.Subscribe(counter, info[k], pubsub)
+				return limit
+			elseif what == "set" then
+				count = what
+			end
+		else
+			return count or 0
 		end
-
-		for k in adaptive.IterSet(info.actions) do
-			bind.Publish(pubsub, Actions[k](counter), info.uid, k)
-		end
-
-		return counter
 	end
+
+	local pubsub = params.pubsub
+
+	bind.Subscribe(pubsub, info.get_count, counter, "get_count") -- see notes in counter()
+	bind.Subscribe(pubsub, info.get_limit, counter, "get_limit")
+
+	for k, event in pairs(Events) do
+		event.Subscribe(counter, info[k], pubsub)
+	end
+
+	for k in adaptive.IterSet(info.actions) do
+		bind.Publish(pubsub, Actions[k](counter), info.uid, k)
+	end
+
+	return counter
 end
+
+return { game = NewCounter, editor = EditorEvent, value_type = "uint" }

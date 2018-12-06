@@ -103,39 +103,35 @@ function M.Make (vtype, suffix, choice_pairs, def_choice, defs, rtype)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return rtype
-		else
-			local def, op, getter, values = defs[info.choice], ops[info.choice]
+	local function NewReduce (info, params)
+		local def, op, getter, values = defs[info.choice], ops[info.choice]
 
-			if def == nil then
-				def = defs.default
-			end
-
-			function getter (comp)
-				if comp then
-					values = adaptive.Append(values, comp)
-				else
-					local result = def
-
-					for _, value in adaptive.IterArray(values) do
-						result = op(result, value())
-					end
-
-					return result
-				end
-			end
-
-			local pubsub = params.pubsub
-
-			bind.Subscribe(pubsub, info.value, getter)
-
-			return getter
+		if def == nil then
+			def = defs.default
 		end
+
+		function getter (comp)
+			if comp then
+				values = adaptive.Append(values, comp)
+			else
+				local result = def
+
+				for _, value in adaptive.IterArray(values) do
+					result = op(result, value())
+				end
+
+				return result
+			end
+		end
+
+		local pubsub = params.pubsub
+
+		bind.Subscribe(pubsub, info.value, getter)
+
+		return getter
 	end
+
+	return { game = NewReduce, editor = EditorEvent, value_type = rtype }
 end
 
 -- Export the module.

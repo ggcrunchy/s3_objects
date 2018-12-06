@@ -178,70 +178,66 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, opts)
 		end
 	end
 
-	return function(info, params)
-		if info == "editor_event" then
-			return EditorEvent
-		elseif info == "value_type" then
-			return vtype
-		else
-			local pubsub = params.pubsub
-			local getter, value1, value2
+	local function NewBinary (info, params)
+		local pubsub = params.pubsub
+		local getter, value1, value2
 
-			if info.expression then
-				local expr_object = expression.Process(gdef, info.expression)
+		if info.expression then
+			local expr_object = expression.Process(gdef, info.expression)
 
-				function getter (comp)
-					if value2 then
-						Args.x, Args.y = value1, value2
+			function getter (comp)
+				if value2 then
+					Args.x, Args.y = value1, value2
 
-						return expr_object(Args)
-					elseif value1 then
-						value2 = comp
-					else
-						value1 = comp
-					end
+					return expr_object(Args)
+				elseif value1 then
+					value2 = comp
+				else
+					value1 = comp
 				end
-			elseif info.pick_first then
-				local pick_first
+			end
+		elseif info.pick_first then
+			local pick_first
 
-				function getter (comp)
-					if pick_first then
-						if pick_first() then
-							return value1()
-						else
-							return value2()
-						end
-					elseif value1 then
-						value2 = comp
-					elseif pick_first then
-						value1 = comp
+			function getter (comp)
+				if pick_first then
+					if pick_first() then
+						return value1()
 					else
-						pick_first = comp
+						return value2()
 					end
-				end
-
-				bind.Subscribe(pubsub, info.pick_first, getter)
-			else
-				local op, arg = ops[info.choice], info.arg
-
-				function getter (comp)
-					if value2 then
-						return op(value1(), value2(), arg)
-					elseif value1 then -- TODO: check order guarantees
-						value2 = comp
-					else
-						value1 = comp
-					end
+				elseif value1 then
+					value2 = comp
+				elseif pick_first then
+					value1 = comp
+				else
+					pick_first = comp
 				end
 			end
 
-			--
-			bind.Subscribe(pubsub, info.value1, getter)
-			bind.Subscribe(pubsub, info.value2, getter)
+			bind.Subscribe(pubsub, info.pick_first, getter)
+		else
+			local op, arg = ops[info.choice], info.arg
 
-			return getter
+			function getter (comp)
+				if value2 then
+					return op(value1(), value2(), arg)
+				elseif value1 then -- TODO: check order guarantees
+					value2 = comp
+				else
+					value1 = comp
+				end
+			end
 		end
+
+		--
+		bind.Subscribe(pubsub, info.value1, getter)
+		bind.Subscribe(pubsub, info.value2, getter)
+
+		return getter
 	end
+
+	return { game = NewBinary, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

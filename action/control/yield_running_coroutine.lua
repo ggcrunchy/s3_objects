@@ -78,26 +78,24 @@ local function EditorEvent (what, arg1, _, arg3)
 	end
 end
 
-return function(info, params)
-	if info == "editor_event" then
-		return EditorEvent
-	else
-		local function yield_coro ()
-			if running() then
-				Events.on_yielding(yield_coro)
+local function NewYieldRunningCoroutine (info, params)
+	local function yield_coro ()
+		if running() then
+			Events.on_yielding(yield_coro)
 
-				yield() -- TODO: okay to tail-call?
-			else
-				return Events.on_not_in_coroutine(yield_coro)
-			end
+			yield() -- TODO: okay to tail-call?
+		else
+			return Events.on_not_in_coroutine(yield_coro)
 		end
-
-		local pubsub = params.pubsub
-
-		for k, v in pairs(Events) do
-			v.Subscribe(pubsub, info[k], yield_coro)
-		end
-
-		return yield_coro
 	end
+
+	local pubsub = params.pubsub
+
+	for k, v in pairs(Events) do
+		v.Subscribe(pubsub, info[k], yield_coro)
+	end
+
+	return yield_coro
 end
+
+return { game = NewYieldRunningCoroutine, editor = EditorEvent }
