@@ -143,16 +143,11 @@ local Body = { radius = 25 }
 -- Touch image --
 local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "SwitchTouch.png"
 
---- Dot method: get property.
--- @string name Property name.
--- @return Property value, or **nil** if absent.
-function Switch:GetProperty (name)
-	if name == "body" then
-		return Body
-	elseif name == "touch_image" then
-		return TouchImage
-	end
+local function Getter (_, what)
+	return what == "body_P" and Body or TouchImage
 end
+
+Switch.__rprops = { body_P = Getter, touch_image_P = Getter }
 
 --- Dot method: reset switch state.
 function Switch:Reset ()

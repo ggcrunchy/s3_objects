@@ -222,26 +222,23 @@ local function Rotate (warp, angle)
 	-- TODO: polarity, etc.
 end
 
---- Dot method: get property.
--- @string name Property name.
--- @return Property value, or **nil** if absent.
-function Warp:GetProperty (name, arg)
-	if name == "body" then
-		return Body
-	elseif name == "on_rotate_block" then
-		return Rotate
-	elseif name == "touch_image" then
-		return TouchImage
-	elseif name == "block_func" then
-		WarpBlockFunc = WarpBlockFunc or function(what, warp, arg1, arg2)
-			if what ~= "set_angle" then
-				return arg(what, warp, arg1, arg2)
-			end
-		end
+local function IgnoreSetAngle (what)
+	return what == "set_angle" and "ignore"
+end
 
-		return WarpBlockFunc
+local function Getter (_, what)
+	if what == "block_func_prep_PROP" then
+		return IgnoreSetAngle
+	elseif what == "body_PROP" then
+		return Body
+	elseif what == "on_rotate_block_PROP" then
+		return Rotate
+	else
+		return TouchImage
 	end
 end
+
+Warp.__rprops = { block_func_prep_P = Getter, body_P = Getter, on_rotate_block_P = Getter, touch_image_P = Getter }
 
 --- Dot method: reset warp state.
 function Warp:Reset ()

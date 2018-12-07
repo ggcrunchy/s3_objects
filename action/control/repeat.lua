@@ -106,7 +106,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
+local function NewRepeat (info, params)
 	local count, get_count = info.count
 
 	local function rep (comp)

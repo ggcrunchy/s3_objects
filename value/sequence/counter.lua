@@ -200,7 +200,7 @@ local function EditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-return function(info, params)
+local function NewCounter (info, params)
 	local is_stale = object_vars.MakeStaleSessionPredicate(info.persist_across_reset)
 	local limit, count, get_count, get_limit = info.limit or (not info.get_limit and huge)
 
