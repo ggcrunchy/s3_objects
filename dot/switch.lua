@@ -370,4 +370,4 @@ local function NewSwitch (group, info, params)
 	return switch
 end
 
-return { game = NewSwitch, editor = OnEditorEvent }
+return { make = NewSwitch, editor = OnEditorEvent }

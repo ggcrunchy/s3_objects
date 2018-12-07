@@ -131,7 +131,7 @@ function M.Make (vtype, suffix, choice_pairs, def_choice, defs, rtype)
 		return getter
 	end
 
-	return { game = NewReduce, editor = EditorEvent, value_type = rtype }
+	return { make = NewReduce, editor = EditorEvent, value_type = rtype }
 end
 
 -- Export the module.

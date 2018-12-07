@@ -339,7 +339,7 @@ function M.Make (vtype, def)
 		return container
 	end
 
-	return { game = NewContainer, editor = EditorEvent, value_type = vtype }
+	return { make = NewContainer, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

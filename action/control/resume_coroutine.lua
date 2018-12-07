@@ -239,4 +239,4 @@ local function NewResumeCoroutine (info, params)
 	return resume_coro
 end
 
-return { game = NewResumeCoroutine, editor = EditorEvent }
+return { make = NewResumeCoroutine, editor = EditorEvent }

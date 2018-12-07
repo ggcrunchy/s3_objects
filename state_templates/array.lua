@@ -516,7 +516,7 @@ function M.Make (vtype, def, has_order, has_tolerance)
 		return array
 	end
 
-	return { game = NewArray, editor = EditorEvent, value_type = vtype }
+	return { make = NewArray, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

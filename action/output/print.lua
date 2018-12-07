@@ -244,4 +244,4 @@ local function NewPrint (info, params)
 	end
 end
 
-return { game = NewPrint, editor = EditorEvent }
+return { make = NewPrint, editor = EditorEvent }

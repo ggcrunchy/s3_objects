@@ -196,4 +196,4 @@ local function NewReady (info, params)
 	return ready
 end
 
-return { game = NewReady, editor = EditorEvent, value_type = "boolean" }
+return { make = NewReady, editor = EditorEvent, value_type = "boolean" }

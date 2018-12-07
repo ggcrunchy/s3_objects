@@ -123,4 +123,4 @@ local function NewToInteger (info, params)
 	return to_integer
 end
 
-return { game = NewToInteger, editor = EditorEvent, value_type = "integer" }
+return { make = NewToInteger, editor = EditorEvent, value_type = "integer" }

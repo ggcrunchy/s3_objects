@@ -112,4 +112,4 @@ local function NewBranch (info, params)
 	return branch, "no_next" -- using own next, so suppress stock version
 end
 
-return { game = NewBranch, editor = EditorEvent }
+return { make = NewBranch, editor = EditorEvent }

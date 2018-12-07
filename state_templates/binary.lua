@@ -237,7 +237,7 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, opts)
 		return getter
 	end
 
-	return { game = NewBinary, editor = EditorEvent, value_type = vtype }
+	return { make = NewBinary, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

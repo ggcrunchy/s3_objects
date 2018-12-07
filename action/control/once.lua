@@ -105,4 +105,4 @@ local function NewOnce (info, params)
 	return once, "no_next" -- using own next, so suppress stock version
 end
 
-return { game = NewOnce, editor = EditorEvent }
+return { make = NewOnce, editor = EditorEvent }

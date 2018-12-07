@@ -89,4 +89,4 @@ local function NewOnceInFrame (info, params)
 	return once_in_frame, "no_next" -- using own next, so suppress stock version
 end
 
-return { game = NewOnceInFrame, editor = EditorEvent }
+return { make = NewOnceInFrame, editor = EditorEvent }

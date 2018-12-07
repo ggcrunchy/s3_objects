@@ -400,7 +400,7 @@ function M.Make (vtype, def, has_tolerance)
 		return map
 	end
 
-	return { game = NewMap, editor = EditorEvent, value_type = vtype }
+	return { make = NewMap, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

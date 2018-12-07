@@ -301,4 +301,4 @@ local function NewCueTimer (info, params)
 	return cue
 end
 
-return { game = NewCueTimer, editor = EditorEvent }
+return { make = NewCueTimer, editor = EditorEvent }

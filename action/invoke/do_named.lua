@@ -158,4 +158,4 @@ local function NewDoNamed (info, params)
 	return do_named
 end
 
-return { game = NewDoNamed, editor = EditorEvent }
+return { make = NewDoNamed, editor = EditorEvent }

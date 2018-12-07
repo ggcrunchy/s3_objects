@@ -136,4 +136,4 @@ local function NewRepeat (info, params)
 	return rep, "no_next" -- using own next, so suppress stock version
 end
 
-return { game = NewRepeat, editor = EditorEvent }
+return { make = NewRepeat, editor = EditorEvent }

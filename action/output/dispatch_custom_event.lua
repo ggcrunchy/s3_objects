@@ -221,4 +221,4 @@ local function NewDispatchCustomEvent (info, params)
 	return dispatch
 end
 
-return { game = NewDispatchCustomEvent, editor = EditorEvent }
+return { make = NewDispatchCustomEvent, editor = EditorEvent }

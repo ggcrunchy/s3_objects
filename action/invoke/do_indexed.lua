@@ -142,4 +142,4 @@ local function NewDoIndexed (info, params)
 	return do_indexed
 end
 
-return { game = NewDoIndexed, editor = EditorEvent }
+return { make = NewDoIndexed, editor = EditorEvent }

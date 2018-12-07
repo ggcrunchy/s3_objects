@@ -112,4 +112,4 @@ local function NewTetherToNamedSource (info, params)
 	return tether_to
 end
 
-return { game = NewTetherToNamedSource, editor = EditorEvent }
+return { make = NewTetherToNamedSource, editor = EditorEvent }

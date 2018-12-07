@@ -523,4 +523,4 @@ local function NewWarp (group, info)
 	return warp
 end
 
-return { game = NewWarp, editor = OnEditorEvent }
+return { make = NewWarp, editor = OnEditorEvent }

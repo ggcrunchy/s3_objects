@@ -182,7 +182,7 @@ function M.Make (vtype, def)
 		return getter
 	end
 
-	return { game = NewGetVar, editor = EditorEvent, value_type = vtype }
+	return { make = NewGetVar, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

@@ -98,4 +98,4 @@ local function NewYieldRunningCoroutine (info, params)
 	return yield_coro
 end
 
-return { game = NewYieldRunningCoroutine, editor = EditorEvent }
+return { make = NewYieldRunningCoroutine, editor = EditorEvent }

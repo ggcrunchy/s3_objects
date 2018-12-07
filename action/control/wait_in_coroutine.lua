@@ -116,4 +116,4 @@ local function NewWaitInCoroutine (info, params)
 	return wait
 end
 
-return { game = NewWaitInCoroutine, editor = EditorEvent }
+return { make = NewWaitInCoroutine, editor = EditorEvent }

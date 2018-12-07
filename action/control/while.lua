@@ -116,4 +116,4 @@ local function NewWhile (info, params)
 	return wloop, "no_next" -- using own next, so suppress stock version
 end
 
-return { game = NewWhile, editor = EditorEvent }
+return { make = NewWhile, editor = EditorEvent }

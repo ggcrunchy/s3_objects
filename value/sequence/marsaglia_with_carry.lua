@@ -273,4 +273,4 @@ local function NewMWC (info, params)
 	return rng, "no_before" -- using own Before
 end
 
-return { game = NewMWC, editor = EditorEvent, value_type = "number" }
+return { make = NewMWC, editor = EditorEvent, value_type = "number" }

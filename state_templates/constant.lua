@@ -93,7 +93,7 @@ function M.Make (vtype, def, add_constant, fix_constant, resolve_text)
 		end
 	end
 
-	return { game = NewConstant, editor = EditorEvent, value_type = vtype }
+	return { make = NewConstant, editor = EditorEvent, value_type = vtype }
 end
 
 -- Export the module.

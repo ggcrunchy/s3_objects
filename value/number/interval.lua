@@ -297,4 +297,4 @@ local function NewInterval (info, params)
 	return interval
 end
 
-return { game = NewInterval, editor = EditorEvent, value_type = "number" }
+return { make = NewInterval, editor = EditorEvent, value_type = "number" }

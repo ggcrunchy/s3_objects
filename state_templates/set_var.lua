@@ -133,7 +133,7 @@ function M.Make (vtype)
 		return setter
 	end
 
-	return { game = NewSetVar, editor = EditorEvent }
+	return { make = NewSetVar, editor = EditorEvent }
 end
 
 -- Export the module.

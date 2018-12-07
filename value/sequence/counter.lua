@@ -249,4 +249,4 @@ local function NewCounter (info, params)
 	return counter
 end
 
-return { game = NewCounter, editor = EditorEvent, value_type = "uint" }
+return { make = NewCounter, editor = EditorEvent, value_type = "uint" }

@@ -838,4 +838,4 @@ local function NewMaze (info, block)
 	end
 end
 
-return { game = NewMaze, editor = OnEditorEvent }
+return { make = NewMaze, editor = OnEditorEvent }

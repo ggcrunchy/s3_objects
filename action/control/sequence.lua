@@ -103,4 +103,4 @@ local function NewSequence (info, params)
 	end
 end
 
-return { game = NewSequence, editor = EditorEvent }
+return { make = NewSequence, editor = EditorEvent }

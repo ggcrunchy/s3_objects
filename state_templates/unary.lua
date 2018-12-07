@@ -183,7 +183,7 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 		return getter
 	end
 
-	return { game = NewUnary, editor = EditorEvent, value_type = rtype }
+	return { make = NewUnary, editor = EditorEvent, value_type = rtype }
 end
 
 -- Export the module.

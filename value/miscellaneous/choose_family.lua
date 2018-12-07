@@ -68,4 +68,4 @@ local function NewFamily (info)
 	return FamilyFuncs[info.family]
 end
 
-return { game = NewFamily, editor = EditorEvent, value_type = "family" }
+return { make = NewFamily, editor = EditorEvent, value_type = "family" }
