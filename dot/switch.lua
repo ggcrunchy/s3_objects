@@ -46,6 +46,13 @@ local Runtime = Runtime
 -- Imports --
 local band = bit.band
 
+-- Exports --
+local M = {}
+
+--
+--
+--
+
 -- Dot methods --
 local Switch = entity.NewMethods()--{}
 
@@ -251,7 +258,11 @@ local function LinkSwitch (switch, other, sub, other_sub)
 end
 
 -- Handler for switch-specific editor events, cf. s3_utils.dots.EditorEvent
-local function OnEditorEvent (what, arg1, arg2, arg3)
+function M.editor (what, arg1, arg2, arg3)
+	--[[
+		TODO: should become something like:
+			return a table that gets stitched into a list...
+	]]
 	-- Build --
 	-- arg1: Level
 	-- arg2: Original entry
@@ -334,7 +345,7 @@ local function ExclusiveTarget (endpoint, psl)
 	end
 end
 
-local function NewSwitch (group, info, params)
+function M.make (group, info, params)
 	local switch = display.newGroup()
 
 	group:insert(switch)
@@ -366,8 +377,9 @@ local function NewSwitch (group, info, params)
 		switch.m_forward_saved = switch.m_forward
 	end
 	-- ^^^ TODO: targets and direction bound to be rare (also hard to maintain!), consider manual tracking
+	-- stuff like reverses more properly belong to event blocks (or whatever) themselves
 
 	return switch
 end
 
-return { make = NewSwitch, editor = OnEditorEvent }
+return M
