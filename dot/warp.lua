@@ -227,11 +227,11 @@ local function IgnoreSetAngle (what)
 end
 
 local function Getter (_, what)
-	if what == "block_func_prep_PROP" then
+	if what == "block_func_prep_P" then
 		return IgnoreSetAngle
-	elseif what == "body_PROP" then
+	elseif what == "body_P" then
 		return Body
-	elseif what == "on_rotate_block_PROP" then
+	elseif what == "on_rotate_block_P" then
 		return Rotate
 	else
 		return TouchImage

@@ -23,18 +23,13 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local ipairs = ipairs
-
 -- Modules --
-local args = require("iterator_ops.args")
 local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local call = require("corona_utils.call")
 local collision = require("corona_utils.collision")
 local entity = require("corona_utils.entity")
 local file = require("corona_utils.file")
-local meta = require("tektite_core.table.meta")
 
 -- Plugins --
 local bit = require("plugin.bit")
@@ -54,81 +49,46 @@ local M = {}
 --
 
 -- Dot methods --
-local Switch = entity.NewMethods()--{}
+local Switch = entity.NewMethods()
 
 -- Switch <-> events binding --
-local Events = call.NewDispatcher()--bind.BroadcastBuilder_Helper()
+local Events = call.NewDispatcher()
 
 -- Sounds played by switch --
 local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", "Switch1.wav", "Switch2.mp3" }
 
---
-local Targets = {}
-
---
-local function TargetsLoop (...)
-	local n = 0
-
-	for _, targets in args.Args(...) do
-		if targets then
-			Targets[n + 1], n = targets, n + 1
-		end
-	end
-
-	for i = #Targets, n + 1, -1 do
-		Targets[i] = nil
-	end
-
-	return ipairs(Targets)
-end
-
 --- Dot method: switch acted on as dot of interest.
 function Switch:ActOn ()
-	local forward, any_successes, no_failures = self.m_forward, false, true
+	local any_successes, no_failures = false, true
 
 	-- Fire the event and stop showing its hint, and wait for it to finish.
-	local n = 0
+	local n, flag, waiting = 0, 1, self.m_waiting
 
-	for _, targets in TargetsLoop(self, self[forward]) do
-		local flag, waiting = 1, targets.m_waiting
+	for _, event in Events:IterateFunctionsForObject(self) do
+		local commands = bind.GetActionCommands(event)
 
-		for _, event in Events:IterateFunctionsForObject(targets) do--Events.Iter(targets) do
-			local commands = bind.GetActionCommands(event)
-
-			if band(waiting, flag) == 0 then
-				if commands then
-					commands("set_direction", forward)
-					-- TODO: entity.SendMessageTo(...)
-				end
-
-				if event() ~= "failed" then
-					any_successes, waiting = true, waiting + flag
-				else
-					no_failures = false
-				end
-
-				n = n + 1
-
-				if commands then
-					commands("show", false)
-					-- TODO: entity.SendMessageTo(...)
-				end
+		if band(waiting, flag) == 0 then
+			if event() ~= "failed" then
+				any_successes, waiting = true, waiting + flag
+			else
+				no_failures = false
 			end
 
-			flag = 2 * flag
+			n = n + 1
+
+			if commands then
+				commands("show", false)
+				-- TODO: entity.SendMessageTo(...)
+			end
 		end
 
-		targets.m_waiting = waiting
+		flag = 2 * flag
 	end
+
+	self.m_waiting = waiting
 
 	--bind.AddCalls(n)
 	call.AddCalls(n)
-
-	-- If there is state around to restore the initial "forward" state of the switch,
-	-- we do what it anticipated: reverse the switch's forward-ness.
-	if self.m_forward_saved ~= nil and any_successes then
-		self.m_forward = not forward
-	end
 
 	--
 	if no_failures or any_successes then
@@ -161,47 +121,32 @@ function Switch:Reset ()
 	self[1].isVisible = true
 	self[2].isVisible = false
 
-	self.m_touched = false
-
-	for _, targets in args.Args(self, self[true], self[false]) do
-		if targets then
-			targets.m_waiting = 0
-		end
-	end
-
-	if self.m_forward_saved ~= nil then
-		self.m_forward = self.m_forward_saved
-	end
+	self.m_touched, self.m_waiting = false, 0
 end
 
 --- Dot method: update switch state.
 function Switch:Update ()
-	local forward, touched = self.m_forward, self.m_touched
+	local touched, flag, waiting = self.m_touched, 1, self.m_waiting
 
-	for _, targets in TargetsLoop(self, self[true], self[false]) do
-		local flag, waiting = 1, targets.m_waiting
+	for _, event in Events:IterateFunctionsForObject(self) do
+		local commands = bind.GetActionCommands(event)
 
-		for _, event in Events:IterateFunctionsForObject(targets) do--Events.Iter(targets) do
-			local commands = bind.GetActionCommands(event)
+		if band(waiting, flag) ~= 0 and (not commands or commands("is_done")) then
+			waiting = waiting - flag
 
-			if band(waiting, flag) ~= 0 and (not commands or commands("is_done")) then
-				waiting = waiting - flag
-
-				if touched and commands then
-					commands("set_direction", forward)
-					commands("show", true)
-					-- ^^ TODO: entity.SendMessageTo(...)
-					-- actually, leaning more and more to just eliminating this approach
-					-- few enough use cases to just handle there
-						-- Direction node, OnDone, ShowHint, HideHint, etc.
-				end
+			if touched and commands then
+				commands("show", true)
+				-- ^^ TODO: entity.SendMessageTo(...)
+				-- actually, leaning more and more to just eliminating this approach
+				-- few enough use cases to just handle there
+					-- Direction node, OnDone, ShowHint, HideHint, etc.
 			end
-
-			flag = 2 * flag
 		end
 
-		targets.m_waiting = waiting
+		flag = 2 * flag
 	end
+
+	self.m_waiting = waiting
 end
 
 -- Switch-being-touched event --
@@ -211,7 +156,7 @@ local TouchEvent = { name = "touching_dot" }
 collision.AddHandler("switch", function(phase, switch, other, other_type)
 	-- Player touched switch: signal it as the dot of interest.
 	if other_type == "player" then
-		local forward, is_touched = switch.m_forward, phase == "began"
+		local is_touched = phase == "began"
 
 		TouchEvent.dot, TouchEvent.is_touching, switch.m_touched = switch, is_touched, is_touched
 
@@ -220,20 +165,17 @@ collision.AddHandler("switch", function(phase, switch, other, other_type)
 		TouchEvent.dot = nil
 
 		--
-		for _, targets in TargetsLoop(switch, switch[true], switch[false]) do
-			local flag, waiting = 1, targets.m_waiting
+		local flag, waiting = 1, switch.m_waiting
 
-			for _, event in Events:IterateFunctionsForObject(targets) do--Events.Iter(targets) do
-				local commands = bind.GetActionCommands(event)
+		for _, event in Events:IterateFunctionsForObject(switch) do
+			local commands = bind.GetActionCommands(event)
 
-				if commands and band(waiting, flag) == 0 then
-					commands("set_direction", forward)
-					commands("show", is_touched)
-					-- TODO: entity.SendMessageTo(...)
-				end
-
-				flag = 2 * flag
+			if commands and band(waiting, flag) == 0 then
+				commands("show", is_touched)
+				-- TODO: entity.SendMessageTo(...)
 			end
+
+			flag = 2 * flag
 		end
 
 	-- Switch-flipper touched switch: try to flip it.
@@ -244,16 +186,8 @@ end)
 
 --
 local function LinkSwitch (switch, other, sub, other_sub)
-	local tkey
-
 	if sub == "trip" then
-		tkey = "target"
-	elseif sub == "ftrip" or sub == "rtrip" then
-		tkey = sub == "ftrip" and "ftarget" or "rtarget"
-	end
-
-	if tkey then
-		bind.AddId(switch, tkey, other.uid, other_sub)
+		bind.AddId(switch, "target", other.uid, other_sub)
 	end
 end
 
@@ -273,27 +207,23 @@ function M.editor (what, arg1, arg2, arg3)
 	-- Enumerate Defaults --
 	-- arg1: Defaults
 	elseif what == "enum_defs" then
-		arg1.forward = false
-		arg1.reverses = false
+		-- STUFF
 
 	-- Enumerate Properties --
 	-- arg1: Dialog
 	elseif what == "enum_props" then
-		arg1:AddCheckbox{ text = "Starts forward?", value_name = "forward" }
-		arg1:AddCheckbox{ text = "Reverse on trip?", value_name = "reverses" }
+		-- STUFF
 
 	-- Get Link Grouping --
 	elseif what == "get_link_grouping" then
 		return {
-			{ text = "EVENTS", font = "bold", color = "actions", is_source = true }, "trip", "ftrip", "rtrip"
+			{ text = "EVENTS", font = "bold", color = "actions", is_source = true }, "trip"
 		}
 
 	-- Get Link Info --
 	-- arg1: Info to populate
 	elseif what == "get_link_info" then
 		arg1.trip = "Fire target action"
-		arg1.ftrip = "Fire forward-only action"
-		arg1.rtrip = "Fire reverse-only action"
 
 	-- Get Tag --
 	elseif what == "get_tag" then
@@ -305,7 +235,7 @@ function M.editor (what, arg1, arg2, arg3)
 
 	-- New Tag --
 	elseif what == "new_tag" then
-		return "sources_and_targets", { trip = true, ftrip = true, rtrip = true }, nil
+		return "sources_and_targets", "trip", nil
 
 	-- Prep Link --
 	elseif what == "prep_link" then
@@ -316,15 +246,7 @@ function M.editor (what, arg1, arg2, arg3)
 	-- arg2: Switch values
 	-- arg3: Representative object
 	elseif what == "verify" then
-		local has_any
-
-		for _, tkey in args.Args("trip", "ftrip", "rtrip") do
-			if arg1.links:HasLinks(arg3, tkey) then
-				has_any = true
-			end
-		end
-
-		if not has_any then
+		if not arg1.links:HasLinks(arg3, "trip") then
 			arg1[#arg1 + 1] = "Switch `" .. arg2.name .. "` has no event targets"
 		end
 	end
@@ -333,51 +255,27 @@ end
 -- GFX path --
 local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
 
---
-local function ExclusiveTarget (endpoint, psl)
-	if endpoint then
-		local into = { m_waiting = 0 }
-
-		--Events.Subscribe(into, endpoint, psl)
-		psl:Subscribe(endpoint, Events:GetAdder(), into)
-
-		return into
-	end
-end
-
 function M.make (group, info, params)
 	local switch = display.newGroup()
 
 	group:insert(switch)
 
-	local image1 = display.newImage(switch, GFX .. "Switch-1.png")
+	local _ = display.newImage(switch, GFX .. "Switch-1.png")
 	local image2 = display.newImage(switch, GFX .. "Switch-2.png")
 
 	image2.isVisible = false
 
 	switch:scale(.5, .5)
 
-	--meta.Augment(switch, Switch)
 	entity.Make(switch, Switch)
 
 	Sounds:Load()
 
 	local psl = params:GetPubSubList()
 
-	--Events.Subscribe(switch, info.target, psl)
 	psl:Subscribe(info.target, Events:GetAdder(), switch)
 
-	switch[true] = ExclusiveTarget(info.ftarget, psl)
-	switch[false] = ExclusiveTarget(info.rtarget, psl)
-
-	switch.m_forward = not not info.forward
 	switch.m_waiting = 0
-
-	if info.reverses then
-		switch.m_forward_saved = switch.m_forward
-	end
-	-- ^^^ TODO: targets and direction bound to be rare (also hard to maintain!), consider manual tracking
-	-- stuff like reverses more properly belong to event blocks (or whatever) themselves
 
 	return switch
 end
