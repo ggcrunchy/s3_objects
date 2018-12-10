@@ -196,6 +196,25 @@ function M.editor (what, arg1, arg2, arg3)
 	--[[
 		TODO: should become something like:
 			return a table that gets stitched into a list...
+		return {
+			_init = function(name) -- or something that does GetState() for us, e.g. init_nodes()
+				local np = function_set.GetState(name)
+
+				np:AddExportNode("trip", "func")
+			end,
+			get_link_info = function(info)
+				info:SetExportHeading("EVENTS")
+					:SetFont("bold")
+					:SetColor("actions")
+				info:AddExportLink("trip", "Fire target actions")
+			end,
+			-- thumb filename?
+			verify = function(vblock, switch, id)
+				if not vblock.links:HasLinks(id, "trip") then
+					vblock[#vblock + 1] = "Switch ``" .. switch.name .. "`` has no event targets"
+				end
+			end
+		}
 	]]
 	-- Build --
 	-- arg1: Level
