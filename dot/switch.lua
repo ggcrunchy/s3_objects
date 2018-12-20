@@ -202,11 +202,23 @@ function M.editor (what, arg1, arg2, arg3)
 
 				np:AddExportNode("trip", "func")
 			end,
-			get_link_info = function(info)
+			get_node_info = function(info)
 				info:SetExportHeading("EVENTS")
 					:SetFont("bold")
 					:SetColor("actions")
-				info:AddExportLink("trip", "Fire target actions")
+				info:AddExportNode("trip", "Fire target actions")
+
+					or
+
+				info:SetHeading("EVENTS")
+					:SetFont("bold")
+					:SetColor("actions")
+				info:AddNode("trip", "Fire target actions")
+
+					or
+
+				{ name = "EVENTS", font = "bold", color = "actions" },
+					"trip", "Fire target actions"
 			end,
 			-- thumb filename?
 			verify = function(vblock, switch, id)
