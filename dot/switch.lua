@@ -219,6 +219,21 @@ function M.editor (what, arg1, arg2, arg3)
 
 				{ name = "EVENTS", font = "bold", color = "actions" },
 					"trip", "Fire target actions"
+
+					or
+
+				info:AddString("EVENTS")
+					:SetFont("bold")
+					:SetColor("actions"),
+				info:AddNode("trip", "func", "Fire target actions"),
+				blocks = {
+					{
+						-- as above...
+					}, {
+						-- ...ditto
+					}
+				}
+				-- ^^^ This seems to be the winner (annoying implementation but useful properties)
 			end,
 			-- thumb filename?
 			verify = function(vblock, switch, id)
