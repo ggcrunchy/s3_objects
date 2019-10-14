@@ -540,10 +540,10 @@ local function NewMaze (info, block)
 			-- Randomly shake the group around from a home position every so often.
 			gx, gy = group.x, group.y
 
-			shaking = timers.Repeat(function()
+			shaking = timer.performWithDelay(50, function()
 				group.x = gx + ShakeBy()
 				group.y = gy + ShakeBy()
-			end, 50)
+			end, 0)
 
 			-- Shake until the dust clears. If this is before the form itself, kick that
 			-- off. Otherwise, cancel the dummy transition to conclude the form event.
