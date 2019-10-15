@@ -280,6 +280,8 @@ end
 -- Warp-being-touched event --
 local TouchEvent = { name = "touching_dot" }
 
+local TouchedWarpEvent = { name = "touched_warp" }
+
 -- Arrow fade transition --
 local ArrowFadeParams = { alpha = 0, transition = easing.outCirc, onComplete = display.remove }
 
@@ -308,7 +310,11 @@ collision.AddHandler("warp", function(phase, warp, other, other_type)
 
 	-- Enemy touched warp: react.
 	elseif other_type == "enemy" then
-		other:ReactTo("touched_warp", warp, phase == "began")
+		TouchedWarpEvent.warp, TouchedWarpEvent.is_touching = warp, phase == "began"
+
+		other:dispatchEvent(TouchedWarpEvent)
+
+		TouchedWarpEvent.warp = nil
 	end
 end)
 
