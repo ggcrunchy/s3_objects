@@ -96,5 +96,4 @@ function M.Make (vtype, def, add_constant, fix_constant, resolve_text)
 	return { make = NewConstant, editor = EditorEvent, value_type = vtype }
 end
 
--- Export the module.
 return M

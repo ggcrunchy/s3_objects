@@ -240,5 +240,4 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, opts)
 	return { make = NewBinary, editor = EditorEvent, value_type = vtype }
 end
 
--- Export the module.
 return M

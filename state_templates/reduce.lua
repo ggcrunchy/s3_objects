@@ -134,5 +134,4 @@ function M.Make (vtype, suffix, choice_pairs, def_choice, defs, rtype)
 	return { make = NewReduce, editor = EditorEvent, value_type = rtype }
 end
 
--- Export the module.
 return M

@@ -328,7 +328,6 @@ local WarpFill = {
 -- Radius of warp object --
 local WarpRadius
 
--- Listen to events.
 for k, v in pairs{
 	-- Enter Level --
 	enter_level = function(level)

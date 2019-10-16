@@ -403,5 +403,4 @@ function M.Make (vtype, def, has_tolerance)
 	return { make = NewMap, editor = EditorEvent, value_type = vtype }
 end
 
--- Export the module.
 return M

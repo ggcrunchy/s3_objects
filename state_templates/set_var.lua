@@ -136,5 +136,4 @@ function M.Make (vtype)
 	return { make = NewSetVar, editor = EditorEvent }
 end
 
--- Export the module.
 return M

@@ -100,7 +100,6 @@ local Holding
 -- --
 local Time
 
--- Listen to events.
 for k, v in pairs{
 	-- Enter Level --
 	enter_level = function(level)

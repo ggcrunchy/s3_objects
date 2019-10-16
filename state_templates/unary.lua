@@ -186,5 +186,4 @@ function M.Make (vtype, gdef, suffix, choice_pairs, def_choice, rtype)
 	return { make = NewUnary, editor = EditorEvent, value_type = rtype }
 end
 
--- Export the module.
 return M

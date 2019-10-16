@@ -188,5 +188,4 @@ function M.Make (vtype, gdef, suffix, rtype)
 	return { make = NewCompound, editor = EditorEvent, value_type = rtype }
 end
 
--- Export the module.
 return M

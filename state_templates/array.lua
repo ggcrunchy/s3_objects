@@ -519,5 +519,4 @@ function M.Make (vtype, def, has_order, has_tolerance)
 	return { make = NewArray, editor = EditorEvent, value_type = vtype }
 end
 
--- Export the module.
 return M

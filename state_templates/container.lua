@@ -342,5 +342,4 @@ function M.Make (vtype, def)
 	return { make = NewContainer, editor = EditorEvent, value_type = vtype }
 end
 
--- Export the module.
 return M
