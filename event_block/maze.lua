@@ -38,13 +38,12 @@ local random = math.random
 local remove = table.remove
 
 -- Modules --
-local effect_props = require("corona_shader.effect_props")
+local args = require("iterator_ops.args")
 local match_slot_id = require("tektite_core.array.match_slot_id")
 local movement = require("s3_utils.movement")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
 local tilesets = require("s3_utils.tilesets")
-local timers = require("corona_utils.timers")
 
 -- Plugins --
 local memoryBitmap = require("plugin.memoryBitmap")
@@ -62,19 +61,10 @@ local Runtime = Runtime
 local timer = timer
 local transition = transition
 
--- Layer used to draw hints --
-local MarkersLayer
-
--- --
-local Effects = {}
-
--- --
-local Names = {}
-
--- --
-local IsMultiPass
-
 --
+--
+--
+
 local function NewKernel (name, tile_shader)
 	local category, group, sname = name:match("(%a+)%.([_%a][_%w]*)%.([_%a][_%w]*)")
 	local kname = ("%s_%s"):format(sname, tile_shader:gsub("%.", "__"))
@@ -89,13 +79,36 @@ local function NewKernel (name, tile_shader)
 	}
 
 	graphics.defineEffect(kernel)
-	effect_props.AddMultiPassEffect(kernel)
 
 	return category .. "." .. group .. "." .. kname
 end
 
+local Effects = {
+	__index = function(t, shader)
+		local effect = {
+			stipple = NewKernel(stipple_kernel, shader),
+			unfurl = NewKernel(unfurl_kernel.KERNEL_NAME, shader)
+		}
+
+		t[shader] = effect
+
+		return effect
+	end
+}
+
+setmetatable(Effects, Effects)
+
 -- --
-local Holding
+local Names = {}
+
+-- --
+local IsMultiPass
+
+-- Layer used to draw hints --
+local MarkersLayer
+
+-- --
+local TileVertexData
 
 -- --
 local Time
@@ -114,43 +127,27 @@ for k, v in pairs{
 			end
 		end
 
-		Holding, MarkersLayer, Time = nil
+		TileVertexData, MarkersLayer, Time = nil
 	end,
 
 	-- Things Loaded --
 	things_loaded = function()
-		--
 		local tile_shader = tilesets.GetShader()
 
 		IsMultiPass = tile_shader ~= nil
 
 		if IsMultiPass then
-			--
 			local effect = Effects[tile_shader]
 
-			if not effect then
-				effect = {
-					stipple = NewKernel(stipple_kernel, tile_shader),
-					unfurl = NewKernel(unfurl_kernel, tile_shader)
-				}
+			Names.stipple, Names.unfurl, TileVertexData = effect.stipple, effect.unfurl, {}
 
-				Effects[tile_shader] = effect
-			end
-
-			Names.stipple, Names.unfurl = effect.stipple, effect.unfurl
-
-			--
-			Holding = { tilesets.GetVertexDataNames() }
-
-			for i = 1, 4 do
-				if Holding[i] then
-					Holding[Holding[i]] = 0
+			for i, name in args.Args(tilesets.GetVertexDataNames()) do
+				if name and i <= 4 then
+					TileVertexData[name] = 0
 				end
-
-				Holding[i] = nil
 			end
 		else
-			Names.stipple, Names.unfurl = stipple_kernel, unfurl_kernel
+			Names.stipple, Names.unfurl = stipple_kernel, unfurl_kernel.KERNEL_NAME
 		end
 	end
 } do
@@ -187,26 +184,14 @@ local ParamsSetup = {
 	start = { from = { bottom = .6, left = .6, top = .4, right = .4 } }
 }
 
--- --
-local Identity = { __index = function(_, k) return k end }
-
-setmetatable(Identity, Identity)
-
--- --
-local Reroute = { u = "unfurl.u", v = "unfurl.v" }
-
-for k in pairs(ParamsSetup.up.from) do
-	Reroute[k] = "unfurl." .. k
-end
-
 --
-local function HoldValues (tile)
-	if Holding then
+local function CacheTileVertexData (tile)
+	if TileVertexData then
 		local basic, fill = not tile.m_augmented, tile.fill
 		local effect = basic and fill.effect or fill.effect.tile
 
-		for k in pairs(Holding) do
-			Holding[k] = effect[k]
+		for k in pairs(TileVertexData) do
+			TileVertexData[k] = effect[k]
 		end
 
 		tile.m_augmented = true
@@ -214,21 +199,17 @@ local function HoldValues (tile)
 end
 
 --
-local function AttachEffect (tile, what, proxy)
+local function AttachEffect (tile, what)
 	local fill = tile.fill
 
-	HoldValues(tile)
+	CacheTileVertexData(tile)
 
-	if proxy then
-		effect_props.AssignEffect(tile, Names[what])
-	else
-		fill.effect = Names[what]
-	end
+	fill.effect = Names[what]
 
 	if IsMultiPass then
 		local tile = fill.effect.tile
 
-		for k, v in pairs(Holding) do
+		for k, v in pairs(TileVertexData) do
 			tile[k] = v
 		end
 
@@ -244,22 +225,24 @@ local function Unfurl (x, y, occupancy, which, delay)
 	local image, setup = tile_maps.GetImage(index), ParamsSetup[which]
 
 	if occupancy("mark", index) and image then
-		AttachEffect(image, "unfurl", true)
-
-		local effect, except, lut = effect_props.Wrap(image), setup.except, IsMultiPass and Reroute or Identity
+		local effect, except = AttachEffect(image, "unfurl"), setup.except
+		local cprops = unfurl_kernel.CombinedProperties
 
 		for k, v in pairs(setup.from) do
-			local uk = lut[k]
+			cprops:SetProperty(effect, k, v)
 
-			effect[uk], UnfurlParams[uk] = v, To[k ~= except and k]
+			UnfurlParams[k] = To[k ~= except and k]
 		end
 
 		local name = tile_flags.GetNameByFlags(tile_flags.GetResolvedFlags(index))
 		local u, v = tilesets.GetFrameCenter(name)
 
-		effect[lut.u], effect[lut.v], UnfurlParams.delay, image.isVisible = u, v, delay, true
+		cprops:SetProperty(effect, "u", u)
+		cprops:SetProperty(effect, "v", v)
 
-		transition.to(effect, UnfurlParams)
+		UnfurlParams.delay, image.isVisible = delay, true
+
+		transition.to(cprops:WrapForTransitions(effect), UnfurlParams)
 
 		return true
 	end

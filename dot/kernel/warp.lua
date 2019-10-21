@@ -24,9 +24,9 @@
 --
 
 -- Modules --
-local fx = require("s3_utils.fx")
-local loader = require("corona_shader.loader")
-local screen_fx = require("corona_shader.screen_fx")
+local distort = require("s3_utils.snippets.operations.distort")
+local includer = require("corona_utils.includer")
+local iq = require("s3_utils.snippets.noise.iq")
 
 --
 --
@@ -34,11 +34,15 @@ local screen_fx = require("corona_shader.screen_fx")
 
 local kernel = { language = "glsl", category = "composite", group = "dot", name = "warp" }
 
-kernel.vertexData = fx.DistortionKernelParams()
+kernel.vertexData = distort.KernelParams()
 
-kernel.vertex = screen_fx.GetPassThroughVertexKernelSource()
+kernel.vertex = distort.GetPassThroughVertexKernelSource()
 
-kernel.fragment = loader.FragmentShader[[
+includer.Augment({
+	requires = { distort.GET_DISTORT_INFLUENCE, distort.GET_DISTORTED_RGB, iq.OCTAVES },
+
+	fragment = [[
+
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
 		P_UV vec2 offset = IQ_Octaves(uv * 12.3, uv * 14.1) * GetDistortInfluence(2. * uv - 1., .75, 15.);
@@ -48,6 +52,10 @@ kernel.fragment = loader.FragmentShader[[
 		return CoronaColorScale(mix(vec4(background, 1.), foreground, .675)) * foreground.a;
 	}
 ]]
+
+}, kernel)
+
+kernel.fragment = distort.GetPrelude() .. kernel.fragment
 
 graphics.defineEffect(kernel)
 

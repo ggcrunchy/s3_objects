@@ -33,6 +33,7 @@ local type = type
 local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
+local distort = require("s3_utils.snippets.operations.distort")
 local entity = require("corona_utils.entity")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
@@ -364,7 +365,7 @@ for k, v in pairs{
 	end,
 
 	-- Set Canvas --
-	set_canvas = fx.DistortionCanvasToPaintAttacher(WarpFill.paint2),
+	set_canvas = distort.CanvasToPaintAttacher(WarpFill.paint2),
 
 	-- Set Canvas Alpha --
 	set_canvas_alpha = function(event)
@@ -504,7 +505,7 @@ WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.pn
 local function NewWarp (group, info)
 	local warp = display.newCircle(group, 0, 0, WarpRadius)
 
-	fx.DistortionBindCanvasEffect(warp, WarpFill, warp_kernel)
+	distort.BindCanvasEffect(warp, WarpFill, warp_kernel)
 
 	Scale(warp, 1)
 

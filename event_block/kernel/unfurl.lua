@@ -24,8 +24,11 @@
 --
 
 -- Modules --
-local loader = require("corona_shader.loader")
-local unit_pair = require("corona_shader.encode.vars.unit_pair")
+local includer = require("corona_utils.includer")
+local unit_exclusive = require("s3_utils.snippets.operations.unit_inclusive")
+
+-- Exports --
+local M = {}
 
 --
 --
@@ -34,27 +37,27 @@ local unit_pair = require("corona_shader.encode.vars.unit_pair")
 local kernel = { category = "filter", group = "event_block_maze", name = "unfurl" }
 
 kernel.vertexData = {
-	{
-		name = "u",
-		default = 0, min = 0, max = 1,
-		index = 0
-	},
-	{
-		name = "v",
-		default = 0, min = 0, max = 1,
-		index = 1
-	}
-
-	-- left_bottom (2), set below: [0, 1; def = 0] (both)
-	-- right_top (3), set below: [0, 1; def = 1] (both)
+	{ name = "u", index = 0, default = 0, min = 0, max = 1 },
+	{ name = "v", index = 1, default = 0, min = 0, max = 1 },
+	unit_exclusive.VertexDatum("left_bottom", 2, 0, 0),
+	unit_exclusive.VertexDatum("right_top", 3, 1, 1)
 }
 
-unit_pair.AddVertexProperty(kernel, 2, "left", "bottom", "left_bottom", 0, 0)
-unit_pair.AddVertexProperty(kernel, 3, "right", "top", "right_top", 1, 1)
+local cprops = unit_exclusive.NewCombinedProperties()
+
+cprops:AddPair("left_bottom", "left", "bottom")
+cprops:AddPair("right_top", "right", "top")
+
+--- DOCME
+M.CombinedProperties = cprops
 
 kernel.isTimeDependent = true
 
-kernel.vertex = loader.VertexShader[[
+includer.Augment({
+	requires = { unit_exclusive.UNIT_PAIR },
+
+	vertex = [[
+
 	varying P_UV vec2 uv_rel;
 	varying P_UV vec2 left_bottom;
 	varying P_UV vec2 right_top;
@@ -67,9 +70,10 @@ kernel.vertex = loader.VertexShader[[
 
 		return pos;
 	}
-]]
+]],
 
-kernel.fragment = loader.FragmentShader[[
+	fragment = [[
+
 	varying P_UV vec2 uv_rel;
 	varying P_UV vec2 left_bottom;
 	varying P_UV vec2 right_top;
@@ -79,9 +83,9 @@ kernel.fragment = loader.FragmentShader[[
 		P_UV float t = CoronaTotalTime;
 
 		// Build up some wave sums to displace the edges a bit.
-		P_UV vec4 s1 = sin(vec4(7.9, 3.2, 3.1, 1.7) * uv_rel.yxyx + mod(vec4(2.7, 3.9, 4.1, -3.7) * 3.7, TWO_PI) * t);
-		P_UV vec4 s2 = sin(vec4(3.6, 6.1, 5.7, 8.1) * uv_rel.yxyx + mod(vec4(-3.9, 2.1, 8.2, 1.1) * 2.1, TWO_PI) * t);
-		P_UV vec4 s3 = sin(vec4(1.7, 1.3, 1.6, 3.9) * uv_rel.yxyx + mod(vec4(2.3, -2.8, 1.1, 3.3) * 1.3, TWO_PI) * t);
+		P_UV vec4 s1 = sin(vec4(7.9, 3.2, 3.1, 1.7) * uv_rel.yxyx + vec4(3.707, 1.864, 2.604, 5.160) * t);
+		P_UV vec4 s2 = sin(vec4(3.6, 6.1, 5.7, 8.1) * uv_rel.yxyx + vec4(4.376, 4.410, 4.654, 2.310) * t);
+		P_UV vec4 s3 = sin(vec4(1.7, 1.3, 1.6, 3.9) * uv_rel.yxyx + vec4(2.990, 2.643, 1.430, 4.290) * t);
 		P_UV vec4 sum = s1 * .043 + s2 * .035 + s3 * .022;
 
 		// Draw the pixel if it lies within all four (displaced) edges.
@@ -92,6 +96,11 @@ kernel.fragment = loader.FragmentShader[[
 	}
 ]]
 
+}, kernel)
+
 graphics.defineEffect(kernel)
 
-return "filter.event_block_maze.unfurl"
+--- DOCME
+M.KERNEL_NAME = "filter.event_block_maze.unfurl"
+
+return M
