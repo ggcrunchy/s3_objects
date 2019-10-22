@@ -798,26 +798,22 @@ local function NewMaze (info, block)
 		end
 	end
 
+	block:addEventListener("is_done", function(event)
+		event.result = not forming
+	end)
+
+	block:addEventListener("set_direction", function(event)
+		forward = not not event.dir
+	end)
+
+	block:addEventListener("show", function(event)
+		Show(event.should_show)
+	end)
+
 	-- Put the maze into an initial state and supply its event.
 	block:Reset()
 
-	return Fire, function(what, arg1, arg2)
-		-- Is Done? --
-		if what == "is_done" then
-			return not forming
-
-		-- Set Direction --
-		-- arg1: Forward boolean
-		elseif what == "set_direction" then
-			forward = not not arg1
-
-		-- Show --
-		-- arg1: Object that wants to show something, e.g. a switch
-		-- arg2: If true, begin showing; otherwise, stop
-		elseif what == "show" then
-			Show(arg1, arg2)
-		end
-	end
+	return Fire
 end
 
 return { make = NewMaze, editor = OnEditorEvent }

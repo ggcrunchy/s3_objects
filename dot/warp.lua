@@ -34,7 +34,6 @@ local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
 local distort = require("s3_utils.snippets.operations.distort")
-local entity = require("corona_utils.entity")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
 local fx = require("s3_utils.fx")
@@ -55,7 +54,7 @@ local Runtime = Runtime
 local transition = transition
 
 -- Dot methods --
-local Warp = entity.NewMethods()--{}
+local Warp = {}
 
 -- Layer used to draw hints --
 local MarkersLayer
@@ -509,13 +508,12 @@ local function NewWarp (group, info)
 
 	Scale(warp, 1)
 
-	--meta.Augment(warp, Warp)
-	entity.Make(warp, Warp)
+	meta.Augment(warp, Warp)
 
 	Sounds:Load()
 
 	--
-	local _, id = pubsub.IsEndpoint(info.to, true)--bind.IsCompositeId(info.to, true)
+	local id = pubsub.IsEndpoint(info.to, true)
 
 	if id then
 		warp.m_to = positions.GetPosition(id)

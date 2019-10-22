@@ -28,8 +28,8 @@ local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local call = require("corona_utils.call")
 local collision = require("corona_utils.collision")
-local entity = require("corona_utils.entity")
 local file = require("corona_utils.file")
+local meta = require("tektite_core.table.meta")
 
 -- Plugins --
 local bit = require("plugin.bit")
@@ -49,7 +49,7 @@ local M = {}
 --
 
 -- Dot methods --
-local Switch = entity.NewMethods()
+local Switch = {}
 
 -- Switch <-> events binding --
 local Events = call.NewDispatcher()
@@ -65,8 +65,6 @@ function Switch:ActOn ()
 	local n, flag, waiting = 0, 1, self.m_waiting
 
 	for _, event in Events:IterateFunctionsForObject(self) do
-		local commands = bind.GetActionCommands(event)
-
 		if band(waiting, flag) == 0 then
 			if event() ~= "failed" then
 				any_successes, waiting = true, waiting + flag
@@ -76,10 +74,7 @@ function Switch:ActOn ()
 
 			n = n + 1
 
-			if commands then
-				commands("show", false)
-				-- TODO: entity.SendMessageTo(...)
-			end
+			call.DispatchOrHandleNamedEvent_NamedArgPair("show", event, "origin", self, "should_show", false)
 		end
 
 		flag = 2 * flag
@@ -87,7 +82,6 @@ function Switch:ActOn ()
 
 	self.m_waiting = waiting
 
-	--bind.AddCalls(n)
 	call.AddCalls(n)
 
 	--
@@ -129,17 +123,11 @@ function Switch:Update ()
 	local touched, flag, waiting = self.m_touched, 1, self.m_waiting
 
 	for _, event in Events:IterateFunctionsForObject(self) do
-		local commands = bind.GetActionCommands(event)
-
-		if band(waiting, flag) ~= 0 and (not commands or commands("is_done")) then
+		if band(waiting, flag) ~= 0 and call.DispatchOrHandleNamedEvent("is_done", event, true) then
 			waiting = waiting - flag
 
-			if touched and commands then
-				commands("show", true)
-				-- ^^ TODO: entity.SendMessageTo(...)
-				-- actually, leaning more and more to just eliminating this approach
-				-- few enough use cases to just handle there
-					-- Direction node, OnDone, ShowHint, HideHint, etc.
+			if touched then
+				call.DispatchOrHandleNamedEvent_NamedArgPair("show", event, "origin", self, "should_show", true)
 			end
 		end
 
@@ -168,11 +156,8 @@ collision.AddHandler("switch", function(phase, switch, other, other_type)
 		local flag, waiting = 1, switch.m_waiting
 
 		for _, event in Events:IterateFunctionsForObject(switch) do
-			local commands = bind.GetActionCommands(event)
-
-			if commands and band(waiting, flag) == 0 then
-				commands("show", is_touched)
-				-- TODO: entity.SendMessageTo(...)
+			if band(waiting, flag) == 0 then
+				call.DispatchOrHandleNamedEvent_NamedArgPair("show", event, "origin", switch, "should_show", is_touched)
 			end
 
 			flag = 2 * flag
@@ -313,7 +298,7 @@ function M.make (group, info, params)
 
 	switch:scale(.5, .5)
 
-	entity.Make(switch, Switch)
+	meta.Augment(switch, Switch)
 
 	Sounds:Load()
 

@@ -89,7 +89,7 @@ local OutPropertiesBase = {
 	}
 }
 
-local Singletons = meta.Weak("k")
+local Singletons = meta.WeakKeyed()
 
 local ADT = {
 	queue = function(list, what, arg)
