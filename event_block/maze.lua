@@ -1,4 +1,4 @@
---- Maze-type event block.
+--- Maze-type block.
 --
 -- A maze is a strictly toggle-type event, i.e. it goes on &rarr; off or vice versa, and may
 -- begin in either state. After toggling, the **"tiles_changed"** event is dispatched with
@@ -49,9 +49,9 @@ local tilesets = require("s3_utils.tilesets")
 local memoryBitmap = require("plugin.memoryBitmap")
 
 -- Kernels --
-local preview_kernel = require("s3_objects.event_block.kernel.preview")
-local stipple_kernel = require("s3_objects.event_block.kernel.stipple")
-local unfurl_kernel = require("s3_objects.event_block.kernel.unfurl")
+local preview_kernel = require("s3_objects.block.kernel.preview")
+local stipple_kernel = require("s3_objects.block.kernel.stipple")
+local unfurl_kernel = require("s3_objects.block.kernel.unfurl")
 
 -- Corona globals --
 local display = display
@@ -413,7 +413,7 @@ local function MakeMaze (open, occupancy)
 	until #Maze == 0
 end
 
--- Handler for maze-specific editor events, cf. s3_utils.event_blocks.EditorEvent
+-- Handler for maze-specific editor events, cf. s3_utils.blocks.EditorEvent
 local function OnEditorEvent (what, arg1, arg2, arg3)
 	-- Build --
 	-- arg1: Level
@@ -435,7 +435,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 
 	-- Get Thumb Filename --
 	elseif what == "get_thumb_filename" then
-		return "s3_objects/event_block/thumb/maze.png"
+		return "s3_objects/block/thumb/maze.png"
 
 	-- Verify --
 	-- arg1: Verify block
@@ -558,7 +558,7 @@ local function NewMaze (info, block)
 		end
 	end
 
-	-- Compute the deltas between rows of the maze event block (using its width).
+	-- Compute the deltas between rows of the maze block (using its width).
 	local col1, col2 = block:GetColumns()
 
 	Deltas[1] = col1 - col2 - 1

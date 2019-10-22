@@ -34,7 +34,7 @@ local M = {}
 --
 --
 
-local kernel = { category = "filter", group = "event_block_maze", name = "unfurl" }
+local kernel = { category = "filter", group = "block_maze", name = "unfurl" }
 
 kernel.vertexData = {
 	{ name = "u", index = 0, default = 0, min = 0, max = 1 },
@@ -101,6 +101,6 @@ includer.Augment({
 graphics.defineEffect(kernel)
 
 --- DOCME
-M.KERNEL_NAME = "filter.event_block_maze.unfurl"
+M.KERNEL_NAME = "filter.block_maze.unfurl"
 
 return M

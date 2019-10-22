@@ -23,7 +23,7 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
-local kernel = { category = "filter", group = "event_block_maze", name = "stipple" }
+local kernel = { category = "filter", group = "block_maze", name = "stipple" }
 
 kernel.vertexData = {
 	{
@@ -106,4 +106,4 @@ kernel.fragment = [[
 
 graphics.defineEffect(kernel)
 
-return "filter.event_block_maze.stipple"
+return "filter.block_maze.stipple"
