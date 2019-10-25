@@ -25,7 +25,9 @@
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local frames = require("corona_utils.frames")
+
+-- Corona globals --
+local Runtime = Runtime
 
 --
 --
@@ -69,7 +71,7 @@ local function NewOnceInFrame (info, params)
 	local id
 
 	local function once_in_frame ()
-		local fid = frames.GetFrameID()
+		local fid = Runtime.getFrameID()
 
 		if fid ~= id then
 			local at_limit = bind.AtLimit() -- will the next call fail?

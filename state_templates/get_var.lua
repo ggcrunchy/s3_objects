@@ -25,9 +25,11 @@
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local frames = require("corona_utils.frames")
 local object_vars = require("config.ObjectVariables")
 local store = require("s3_utils.state.store")
+
+-- Corona globals --
+local Runtime = Runtime
 
 -- Exports --
 local M = {}
@@ -130,7 +132,7 @@ function M.Make (vtype, def)
 				if comp then
 					family = comp
 				else
-					local fid = frames.GetFrameID()
+					local fid = Runtime.getFrameID()
 
 					if fid ~= id then
 						id, value = fid, GetValue(family, vtype, name, def)
