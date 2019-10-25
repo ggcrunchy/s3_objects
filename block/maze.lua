@@ -234,11 +234,10 @@ local function Unfurl (x, y, occupancy, which, delay)
 			UnfurlParams[k] = To[k ~= except and k]
 		end
 
-		local name = tile_flags.GetNameByFlags(tile_flags.GetResolvedFlags(index))
-		local u, v = tilesets.GetFrameCenter(name)
+		local ibounds = image.path.textureBounds
 
-		cprops:SetProperty(effect, "u", u)
-		cprops:SetProperty(effect, "v", v)
+		cprops:SetProperty(effect, "u", (ibounds.uMin + ibounds.uMax) / 2)
+		cprops:SetProperty(effect, "v", (ibounds.vMin + ibounds.vMax) / 2)
 
 		UnfurlParams.delay, image.isVisible = delay, true
 
@@ -333,10 +332,9 @@ local function FadeOut (block)
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			local effect = AttachEffect(image, "stipple")
-			local name = tile_flags.GetNameByFlags(tile_flags.GetResolvedFlags(index))
+			local effect, ibounds = AttachEffect(image, "stipple"), image.path.textureBounds
 
-			effect.u, effect.v = tilesets.GetFrameCenter(name)
+			effect.u, effect.v = (ibounds.uMin + ibounds.uMax) / 2, (ibounds.vMin + ibounds.vMax) / 2
 			effect.seed = index + random(3)
 
 			transition.to(image, FadeOutParams)
