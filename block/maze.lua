@@ -525,9 +525,9 @@ local function NewMaze (info, block)
 				group.y = gy + ShakeBy()
 			end, 0)
 
-			-- Shake until the dust clears. If this is before the form itself, kick that
-			-- off. Otherwise, cancel the dummy transition to conclude the form event.
-			local sparams = { time = block:Dust(3, 7) }
+			-- Shake for a little bit. If this is before the form itself, kick that off.
+			-- Otherwise, cancel the dummy transition to conclude the form event.
+			local sparams = {}
 
 			function sparams.onComplete (group)
 				StopShaking(group)

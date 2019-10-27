@@ -1,4 +1,4 @@
---- Component that confers some array storage on its owner.
+--- Mixin that confers some array storage on its owner.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -44,7 +44,7 @@ local _list = {}
 --
 --
 
-local Component = {}
+local DataArrayMixin = {}
 
 local Adders = {
 	function(list, top, arg)
@@ -92,9 +92,9 @@ local function GetList (da, list)
 	return list or { size = da:DataArray_GetSize(), top = 0 }
 end
 
---- Adds an item to the block's list.
+--- Adds an item to the array.
 -- @param ...
-function Component:DataArray_AddToList (...)
+function DataArrayMixin:DataArray_AddToList (...)
 	local list = GetList(self, self[_list])
 	local adder = Adders[list.size] or DefAdder
 
@@ -105,10 +105,12 @@ end
 
 local DynamicLists = {}
 
+local AssignmentNonce = DynamicLists -- use arbitrary internal object as nonce
+
 local DynamicFactories = {
 	function(dset, list, arg)
 		local function dfunc (what, a, b)
-			if rawequal(what, DynamicLists) then -- see note below
+			if rawequal(what, AssignmentNonce) then
 				arg = a
 			else
 				assert(list[dfunc], "Invalid dynamic function")
@@ -130,7 +132,7 @@ local DynamicFactories = {
 
 	function(dset, list, arg1, arg2)
 		local function dfunc (what, a, b)
-			if rawequal(what, DynamicLists) then -- see note below
+			if rawequal(what, AssignmentNonce) then
 				arg1, arg2 = a, b
 			else
 				assert(list[dfunc], "Invalid dynamic function")
@@ -154,7 +156,7 @@ local DynamicFactories = {
 
 	function(dset, list, arg1, arg2, arg3)
 		local function dfunc (what, a, b, c)
-			if rawequal(what, DynamicLists) then -- see note below
+			if rawequal(what, AssignmentNonce) then
 				arg1, arg2, arg3 = a, b, c
 			else
 				assert(list[dfunc], "Invalid dynamic function")
@@ -180,7 +182,7 @@ local DynamicFactories = {
 
 	function(dset, list, arg1, arg2, arg3, arg4)
 		local function dfunc (what, a, b, c, d)
-			if rawequal(what, DynamicLists) then -- see note below
+			if rawequal(what, AssignmentNonce) then
 				arg1, arg2, arg3, arg4 = a, b, c, d
 			else
 				assert(list[dfunc], "Invalid dynamic function")
@@ -223,7 +225,7 @@ local function DefDynamicFactory (dset, list, ...)
 	CollectAndTrim(cur, list, ...)
 
 	local function dfunc (what, a, b, ...)
-		if rawequal(what, DynamicLists) then -- see note below
+		if rawequal(what, AssignmentNonce) then
 			local n = CollectAndTrim(cur, list, a, b, ...)
 
 			for i = n + 1, list.size do
@@ -253,16 +255,16 @@ local function DefDynamicFactory (dset, list, ...)
 	return dfunc
 end
 
---- Adds an item to the block's list.
+--- Adds an item to the array.
 -- @param ...
 -- @treturn function X
-function Component:DataArray_AddToList_Dynamic (...)
+function DataArrayMixin:DataArray_AddToList_Dynamic (...)
 	local list, size = self[_dynamic_list] or {}, self:DataArray_GetItemSize()
 	local dset = DynamicLists[size] or {}
 	local dfunc = remove(dset)
 
 	if dfunc then
-		dfunc(DynamicLists, ...) -- arbitrary nonce
+		dfunc(AssignmentNonce, ...)
 	else
 		local factory = DynamicFactories[size] or DefDynamicFactory
 
@@ -278,13 +280,13 @@ end
 
 
 --- DOCME
-function Component:DataArray_GetItemSize ()
+function DataArrayMixin:DataArray_GetItemSize ()
 	return self[_item_size] or 1
 end
 
 --- Getters.
 -- @treturn boolean List has items?
-function Component:DataArray_HasItems ()
+function DataArrayMixin:DataArray_HasItems ()
 	return self[_list] ~= nil
 end
 
@@ -329,7 +331,7 @@ end
 
 --- Performs some operation on each item in the list.
 -- @treturn iterator Supplies tile index, item, commands function, argument #1, argument #2.
-function Component:DataArray_IterList ()
+function DataArrayMixin:DataArray_IterList ()
 	local list, dlist = self[_list], self[_dynamic_list]
 
 	if dlist then
@@ -346,7 +348,7 @@ function Component:DataArray_IterList ()
 end
 
 --- DOCME
-function Component:DataArray_RemoveList (dlist_too)
+function DataArrayMixin:DataArray_RemoveList (dlist_too)
 	local list = self[_list]
 
 	self[_list] = nil
@@ -359,7 +361,7 @@ function Component:DataArray_RemoveList (dlist_too)
 end
 
 --- DOCME
-function Component:DataArray_SetItemSize (size)
+function DataArrayMixin:DataArray_SetItemSize (size)
 	assert(size > 0, "Non-positive size")
 	assert(not (self[_dynamic_list] or self[_list]), "Cannot set size while list has items")
 
@@ -412,7 +414,7 @@ end
 local Actions = { allow_add = "is_table" }
 
 function Actions:add ()
-	for k, v in pairs(Component) do
+	for k, v in pairs(DataArrayMixin) do
 		self[k] = v
 	end
 end
@@ -420,7 +422,7 @@ end
 function Actions:remove ()
 	self[_dynamic_list], self[_list], self[_item_size] = nil
 
-	for k, v in pairs(Component) do
+	for k, v in pairs(DataArrayMixin) do
 		self[k] = v
 	end
 end
