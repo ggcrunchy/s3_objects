@@ -28,8 +28,10 @@ local pairs = pairs
 
 -- Modules --
 local bind = require("corona_utils.bind")
-local mwc_rng = require("number_sequences.mwc_rng")
 local object_vars = require("config.ObjectVariables")
+
+-- Plugins --
+local mwc = require("plugin.mwc") -- TODO?!
 
 --
 --
