@@ -89,7 +89,7 @@ local function DefAdder (list, top, ...)
 end
 
 local function GetList (da, list)
-	return list or { size = da:DataArray_GetSize(), top = 0 }
+	return list or { size = da:DataArray_GetItemSize(), top = 0 }
 end
 
 --- Adds an item to the array.
@@ -329,8 +329,8 @@ local function AddDynamicItems (da, dlist, list)
 	return list
 end
 
---- Performs some operation on each item in the list.
--- @treturn iterator Supplies tile index, item, commands function, argument #1, argument #2.
+--- Iterate over each item in the array.
+-- @treturn iterator Supplies the _n_ parts of each item, cf. @{DataArrayMixin:DataArray_SetItemSize}.
 function DataArrayMixin:DataArray_IterList ()
 	local list, dlist = self[_list], self[_dynamic_list]
 

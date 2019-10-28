@@ -33,6 +33,8 @@ local type = type
 local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
+local component = require("tektite_core.component")
+local data_array = require("s3_objects.mixin.data_array")
 local distort = require("s3_utils.snippets.operations.distort")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
@@ -53,7 +55,10 @@ local easing = easing
 local Runtime = Runtime
 local transition = transition
 
--- Dot methods --
+--
+--
+--
+
 local Warp = {}
 
 -- Layer used to draw hints --
@@ -94,12 +99,9 @@ local function DoWarp (warp, func)
 
 		func("move_prepare", warp, target, ttype)
 
-		-- If there is no cargo, we're done. Otherwise, remove it and do warp logic.
-		local items = warp.m_items
+		local items = warp:DataArray_RemoveList()
 
 		if items then
-			warp.m_items = nil
-
 			-- Make a list for tracking transition handles and add it to a free slot.
 			local hindex, handles = 1, {}
 
@@ -199,24 +201,11 @@ function Warp:ActOn ()
 	end
 end
 
---- Utility.
--- @param item Item to add to the warp's "cargo".
-function Warp:AddItem (item)
-	local items = self.m_items or {}
-
-	items[#items + 1] = item
-
-	self.m_items = items
-end 
-
 -- Physics body --
 local Body = { radius = 25 }
 
 -- Touch image --
 local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "WarpTouch.png"
-
---
-local WarpBlockFunc
 
 local function Rotate (warp, angle)
 	-- TODO: polarity, etc.
@@ -242,7 +231,7 @@ Warp.__rprops = { block_func_prep_P = Getter, body_P = Getter, on_rotate_block_P
 
 --- Dot method: reset warp state.
 function Warp:Reset ()
-	self.m_items = nil
+	self:DataArray_RemoveList()
 end
 
 -- Scale helper
@@ -258,7 +247,7 @@ function Warp:Update ()
 	Scale(self, 1 - sin(self.rotation / 30) * .05)
 end
 
---- Manually triggers a warp, sending anything loaded by @{Warp:AddItem} through.
+--- Manually triggers a warp, sending anything loaded by @{DataArrayMixin:DataArray_AddToList} through.
 --
 -- The cargo is emptied after use.
 --
@@ -497,6 +486,8 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 		arg1[#arg1 + 1] = "Warp `" .. arg2.name .. "`: " .. problem
 	end
 end
+
+component.AddToObject(Warp, data_array)
 
 -- Warp image --
 WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
