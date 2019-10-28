@@ -39,14 +39,12 @@ local remove = table.remove
 
 -- Modules --
 local args = require("iterator_ops.args")
+local bitmap = require("s3_utils.bitmap")
 local match_slot_id = require("tektite_core.array.match_slot_id")
 local movement = require("s3_utils.movement")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
 local tilesets = require("s3_utils.tilesets")
-
--- Plugins --
-local memoryBitmap = require("plugin.memoryBitmap")
 
 -- Kernels --
 local preview_kernel = require("s3_objects.block.kernel.preview")
@@ -676,7 +674,7 @@ local function NewMaze (info, block)
 			if not maxt then
 				local col1, row1, col2, row2 = block:GetInitialRect()
 				local w, h, times = col2 - col1 + 1, row2 - row1 + 1, {}
-				local tex = memoryBitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
+				local tex = bitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
 
 				--
 				i1 = tile_maps.GetTileIndex(col1, row1)
