@@ -28,6 +28,7 @@ local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local call = require("corona_utils.call")
 local collision = require("corona_utils.collision")
+local component = require("tektite_core.component")
 local file = require("corona_utils.file")
 local meta = require("tektite_core.table.meta")
 
@@ -137,12 +138,9 @@ function Switch:Update ()
 	self.m_waiting = waiting
 end
 
--- Switch-being-touched event --
 local TouchEvent = { name = "touching_dot" }
 
--- Add switch-OBJECT collision handler.
 collision.AddHandler("switch", function(phase, switch, other, other_type)
-	-- Player touched switch: signal it as the dot of interest.
 	if other_type == "player" then
 		local is_touched = phase == "began"
 
@@ -163,8 +161,7 @@ collision.AddHandler("switch", function(phase, switch, other, other_type)
 			flag = 2 * flag
 		end
 
-	-- Switch-flipper touched switch: try to flip it.
-	elseif phase == "began" and collision.Implements_PredOrDefPass(other, "flips_switch") == "passed" then
+	elseif phase == "began" and component.ImplementedByObject(other, "flips_switch") then
 		switch:ActOn()
 	end
 end)
