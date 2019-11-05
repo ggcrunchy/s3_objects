@@ -34,9 +34,9 @@ local iq = require("s3_utils.snippets.noise.iq")
 
 local kernel = { language = "glsl", category = "composite", group = "dot", name = "warp" }
 
-kernel.vertexData = distort.KernelParams()
-
-kernel.vertex = distort.GetPassThroughVertexKernelSource()
+kernel.vertexData = {
+	{ name = "alpha", index = 0, default = 1, min = 0, max = 1 }
+}
 
 includer.Augment({
 	requires = { distort.GET_DISTORT_INFLUENCE, distort.GET_DISTORTED_RGB, iq.OCTAVES },
@@ -47,15 +47,13 @@ includer.Augment({
 	{
 		P_UV vec2 offset = IQ_Octaves(uv * 12.3, uv * 14.1) * GetDistortInfluence(2. * uv - 1., .75, 15.);
 		P_COLOR vec4 foreground = texture2D(CoronaSampler0, uv);
-		P_COLOR vec3 background = GetDistortedRGB(CoronaSampler1, offset, CoronaVertexUserData);
+		P_COLOR vec3 background = GetDistortedRGB(CoronaSampler1, offset) * CoronaVertexUserData.x;
 
 		return CoronaColorScale(mix(vec4(background, 1.), foreground, .675)) * foreground.a;
 	}
 ]]
 
 }, kernel)
-
-kernel.fragment = distort.GetPrelude() .. kernel.fragment
 
 graphics.defineEffect(kernel)
 
