@@ -38,7 +38,6 @@ local data_array = require("s3_objects.mixin.data_array")
 local distort = require("s3_utils.snippets.operations.distort")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
-local fx = require("s3_utils.fx")
 local length = require("tektite_core.number.length")
 local markers = require("s3_utils.effect.markers")
 local meta = require("tektite_core.table.meta")
@@ -52,6 +51,7 @@ local warp_kernel = require("s3_objects.dot.kernel.warp")
 -- Corona globals --
 local display = display
 local easing = easing
+local graphics = graphics
 local Runtime = Runtime
 local transition = transition
 
@@ -61,19 +61,14 @@ local transition = transition
 
 local Warp = {}
 
--- Layer used to draw hints --
 local MarkersLayer
 
--- Move-between-warps transition --
 local MoveParams = { transition = easing.inOutQuad }
 
--- Sounds played during warping --
 local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
 
--- Network of warps --
 local WarpList
 
--- Default warp logic: no-op
 local function DefWarp () end
 
 -- Groups of warp transition handles, to allow cancelling --
@@ -88,6 +83,49 @@ local function GetTarget (warp)
 	else
 		return to, "position"
 	end
+end
+
+local function ClearMask (object)
+	object:setMask(nil)
+end
+
+local function ScaleMask (body, object)
+	object = object or body
+
+	object.maskScaleX = body.width / 4
+	object.maskScaleY = body.height / 2
+end
+
+local MaskIn = { time = 900, transition = easing.inQuad }
+
+local function WarpIn (object, on_complete)
+	ScaleMask(object, MaskIn)
+
+	MaskIn.onComplete = on_complete or ClearMask
+
+	local handle = transition.to(object, MaskIn)
+
+	MaskIn.onComplete = nil
+
+	return handle
+end
+
+local Mask = graphics.newMask("s3_objects/dot/gfx/WarpMask.png")
+
+local MaskOut = { maskScaleX = 0, maskScaleY = 0, time = 900, transition = easing.outQuad }
+
+local function WarpOut (object, on_complete)
+	object:setMask(Mask)
+
+	ScaleMask(object)
+
+	MaskOut.onComplete = on_complete or nil
+
+	local handle = transition.to(object, MaskOut)
+
+	MaskOut.onComplete = nil
+
+	return handle
 end
 
 -- Warp logic
@@ -131,7 +169,7 @@ local function DoWarp (warp, func)
 			local function MoveParams_OC (object)
 				if display.isValid(object) then
 					for i, item in ipairs(items) do
-						handles[i] = fx.WarpIn(item, i == 1 and WarpIn_OC)
+						handles[i] = WarpIn(item, i == 1 and WarpIn_OC)
 					end
 
 					func("move_done_moving", warp, target, ttype)
@@ -169,7 +207,7 @@ local function DoWarp (warp, func)
 			-- Kick off the warp-out transitions of each item. Since the transitions all
 			-- finish at the same time, only the first needs an onComplete callback.
 			for i, item in ipairs(items) do
-				handles[i] = fx.WarpOut(item, i == 1 and WarpOut_OC)
+				handles[i] = WarpOut(item, i == 1 and WarpOut_OC)
 			end
 
 			Sounds:PlaySound("warp")
@@ -201,10 +239,8 @@ function Warp:ActOn ()
 	end
 end
 
--- Physics body --
 local Body = { radius = 25 }
 
--- Touch image --
 local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "WarpTouch.png"
 
 local function Rotate (warp, angle)
@@ -234,7 +270,6 @@ function Warp:Reset ()
 	self:DataArray_RemoveList()
 end
 
--- Scale helper
 local function Scale (warp, scale)
 	warp.xScale = .5 * scale
 	warp.yScale = .5 * scale
@@ -266,12 +301,10 @@ function Warp:Use (func)
 	return DoWarp(self, func) ~= nil
 end
 
--- Warp-being-touched event --
 local TouchEvent = { name = "touching_dot" }
 
 local TouchedWarpEvent = { name = "touched_warp" }
 
--- Arrow fade transition --
 local ArrowFadeParams = { alpha = 0, transition = easing.outCirc, onComplete = display.remove }
 
 -- Add warp-OBJECT collision handler.
@@ -307,14 +340,12 @@ collision.AddHandler("warp", function(phase, warp, other, other_type)
 	end
 end)
 
--- Warp graphics and effect --
 local WarpFill = {
 	type = "composite",
 	paint1 = { type = "image" },
 	paint2 = { type = "image" }
 }
 
--- Radius of warp object --
 local WarpRadius
 
 for k, v in pairs{
@@ -489,7 +520,6 @@ end
 
 component.AddToObject(Warp, data_array)
 
--- Warp image --
 WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
 
 local function NewWarp (group, info)
