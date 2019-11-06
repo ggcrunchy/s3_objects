@@ -23,6 +23,14 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local includer = require("corona_utils.includer")
+local orange_duck = require("s3_utils.snippets.operations.orange_duck")
+
+--
+--
+--
+
 local kernel = { category = "filter", group = "block_maze", name = "preview" }
 
 kernel.vertexData = {
@@ -45,16 +53,20 @@ kernel.vertexData = {
 	}
 }
 
-kernel.fragment = [[
+includer.Augment({
+	requires = { orange_duck.RELATIONAL },
+
+	fragment = [[
+
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
 		#define PREVIEW_TIME CoronaVertexUserData.x
 
 		P_COLOR vec2 time_opacity = texture2D(CoronaSampler0, uv).rg; // What "time" and opacity does this part of the maze have?
 		P_UV float rise_and_hold = dot(CoronaVertexUserData.yz, vec2(1.)); // Duration over which we rise and hold
-		P_UV float has_risen = step(CoronaVertexUserData.y, PREVIEW_TIME); // Have we already risen?
+		P_UV float has_risen = WHEN_LE(CoronaVertexUserData.y, PREVIEW_TIME); // Have we already risen?
 		P_UV float t_rise = PREVIEW_TIME / CoronaVertexUserData.y; // If not, when are we along the way?
-		P_UV float is_falling = step(rise_and_hold, PREVIEW_TIME); // Are we now falling?
+		P_UV float is_falling = WHEN_LE(rise_and_hold, PREVIEW_TIME); // Are we now falling?
 		P_UV float t_fall = (PREVIEW_TIME - rise_and_hold) / (CoronaVertexUserData.w - rise_and_hold); // If so, when?
 
 		// Figure out the "time" (0 = bottom, 1 = top) according to what interval the preview time is in. 
@@ -65,16 +77,18 @@ kernel.fragment = [[
 		P_COLOR vec4 color = CoronaColorScale(vec4(vec3(gray), 1.));
 
 		// Mask out off-maze parts.
-		color *= step(.5, time_opacity.y);
+		color *= WHEN_LE(.5, time_opacity.y);
 
 		// Dither the remaining bits somewhat and supply the color.
 		P_COLOR float h1 = fract(32. * (uv.x + uv.y)), h2 = fract(32. * (uv.x - uv.y));
 
-		color *= (1. - step(.5, h1) * step(.5, h2));
+		color *= (1. - WHEN_LE(.5, h1) * WHEN_LE(.5, h2));
 
 		return color;
 	}
 ]]
+
+}, kernel)
 
 graphics.defineEffect(kernel)
 

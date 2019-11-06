@@ -23,6 +23,14 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Modules --
+local includer = require("corona_utils.includer")
+local orange_duck = require("s3_utils.snippets.operations.orange_duck")
+
+--
+--
+--
+
 local kernel = { category = "filter", group = "block_maze", name = "stipple" }
 
 kernel.vertexData = {
@@ -48,19 +56,20 @@ kernel.vertexData = {
 	}
 }
 
-kernel.vertex = [[
-	varying P_UV vec2 uv_rel;
+includer.Augment({
+	requires = { orange_duck.RELATIONAL },
+
+	vertex = [[
 
 	P_POSITION vec2 VertexKernel (P_POSITION vec2 pos)
 	{
-		uv_rel = step(CoronaTexCoord.xy, CoronaVertexUserData.xy);
+		uv_rel = WHEN_LT(CoronaTexCoord.xy, CoronaVertexUserData.xy);
 
 		return pos;
 	}
-]]
+]],
 
-kernel.fragment = [[
-	varying P_UV vec2 uv_rel;
+	fragment = [[
 
 	P_POSITION vec2 GetPosition (P_UV float epoch)
 	{
@@ -102,7 +111,10 @@ kernel.fragment = [[
 
 		return CoronaColorScale(texture2D(CoronaSampler0, uv)) * scale;
 	}
-]]
+]],
+
+	varyings = { uv_rel = "vec2" }
+}, kernel)
 
 graphics.defineEffect(kernel)
 

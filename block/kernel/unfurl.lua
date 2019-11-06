@@ -25,6 +25,7 @@
 
 -- Modules --
 local includer = require("corona_utils.includer")
+local orange_duck = require("s3_utils.snippets.operations.orange_duck")
 local unit_exclusive = require("s3_utils.snippets.operations.unit_inclusive")
 
 -- Exports --
@@ -54,29 +55,21 @@ M.CombinedProperties = cprops
 kernel.isTimeDependent = true
 
 includer.Augment({
-	requires = { unit_exclusive.UNIT_PAIR },
+	requires = { orange_duck.RELATIONAL, unit_exclusive.UNIT_PAIR },
 
 	vertex = [[
-
-	varying P_UV vec2 uv_rel;
-	varying P_UV vec2 left_bottom;
-	varying P_UV vec2 right_top;
 
 	P_POSITION vec2 VertexKernel (P_POSITION vec2 pos)
 	{
 		left_bottom = UnitPair(CoronaVertexUserData.z);
 		right_top = UnitPair(CoronaVertexUserData.w);
-		uv_rel = step(CoronaTexCoord.xy, CoronaVertexUserData.xy);
+		uv_rel = WHEN_LT(CoronaTexCoord.xy, CoronaVertexUserData.xy);
 
 		return pos;
 	}
 ]],
 
 	fragment = [[
-
-	varying P_UV vec2 uv_rel;
-	varying P_UV vec2 left_bottom;
-	varying P_UV vec2 right_top;
 
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
@@ -89,13 +82,14 @@ includer.Augment({
 		P_UV vec4 sum = s1 * .043 + s2 * .035 + s3 * .022;
 
 		// Draw the pixel if it lies within all four (displaced) edges.
-		P_UV vec2 pos = .775 * uv + .125;
-		P_UV float in_all = step(2., dot(step(left_bottom + sum.xy, pos), step(pos, right_top + sum.zw)));
+		P_UV vec2 pos = .775 * uv + .125; // lower-left = (.125, .125), upper-right = (.875, .875)
+		P_UV float in_all = WHEN_EQ(2., dot(WHEN_LE(left_bottom + sum.xy, pos), WHEN_LE(pos, right_top + sum.zw)));
 
 		return CoronaColorScale(texture2D(CoronaSampler0, uv)) * in_all;
 	}
-]]
+]],
 
+	varyings = { uv_rel = "vec2", left_bottom = "vec2", right_top = "vec2" }
 }, kernel)
 
 graphics.defineEffect(kernel)
