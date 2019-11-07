@@ -308,7 +308,9 @@ local TouchedWarpEvent = { name = "touched_warp" }
 local ArrowFadeParams = { alpha = 0, transition = easing.outCirc, onComplete = display.remove }
 
 -- Add warp-OBJECT collision handler.
-collision.AddHandler("warp", function(phase, warp, other, other_type)
+collision.AddHandler("warp", function(phase, warp, other)
+	local other_type = collision.GetType(other)
+
 	-- Player touched warp: signal it as the dot of interest.
 	if other_type == "player" then
 		TouchEvent.dot, TouchEvent.is_touching = warp, phase == "began"
