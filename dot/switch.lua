@@ -49,13 +49,11 @@ local M = {}
 --
 --
 
--- Dot methods --
 local Switch = {}
 
 -- Switch <-> events binding --
 local Events = call.NewDispatcher()
 
--- Sounds played by switch --
 local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", "Switch1.wav", "Switch2.mp3" }
 
 --- Dot method: switch acted on as dot of interest.
@@ -99,10 +97,8 @@ function Switch:ActOn ()
 	end
 end
 
--- Physics body --
 local Body = { radius = 25 }
 
--- Touch image --
 local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "SwitchTouch.png"
 
 local function Getter (_, what)
@@ -166,7 +162,6 @@ collision.AddHandler("switch", function(phase, switch, other)
 	end
 end)
 
---
 local function LinkSwitch (switch, other, sub, other_sub)
 	if sub == "trip" then
 		bind.AddId(switch, "target", other.uid, other_sub)
@@ -280,7 +275,6 @@ function M.editor (what, arg1, arg2, arg3)
 	end
 end
 
--- GFX path --
 local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
 
 function M.make (group, info, params)
