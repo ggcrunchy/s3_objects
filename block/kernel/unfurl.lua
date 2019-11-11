@@ -54,7 +54,7 @@ M.CombinedProperties = cprops
 
 kernel.isTimeDependent = true
 
-includer.Augment({
+includer.AugmentKernels({
 	requires = { orange_duck.RELATIONAL, unit_exclusive.UNIT_PAIR },
 
 	vertex = [[

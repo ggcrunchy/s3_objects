@@ -53,7 +53,7 @@ kernel.vertexData = {
 	}
 }
 
-includer.Augment({
+includer.AugmentKernels({
 	requires = { orange_duck.RELATIONAL },
 
 	fragment = [[

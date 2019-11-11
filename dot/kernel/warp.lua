@@ -38,7 +38,7 @@ kernel.vertexData = {
 	{ name = "alpha", index = 0, default = 1, min = 0, max = 1 }
 }
 
-includer.Augment({
+includer.AugmentKernels({
 	requires = { distort.GET_DISTORT_INFLUENCE, distort.GET_DISTORTED_RGB, iq.OCTAVES },
 
 	vertex = [[
