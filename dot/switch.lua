@@ -99,13 +99,11 @@ end
 
 local Body = { radius = 25 }
 
-local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "SwitchTouch.png"
-
 local function Getter (_, what)
-	return what == "body_P" and Body or TouchImage
+	return what == "body_P" and Body or "Flip Switch"
 end
 
-Switch.__rprops = { body_P = Getter, touch_image_P = Getter }
+Switch.__rprops = { body_P = Getter, touch_text_P = Getter }
 
 --- Dot method: reset switch state.
 function Switch:Reset ()
