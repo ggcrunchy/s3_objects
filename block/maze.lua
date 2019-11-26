@@ -46,10 +46,10 @@ local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
 local tilesets = require("s3_utils.tilesets")
 
--- Kernels --
-local preview_kernel = require("s3_objects.block.kernel.preview")
-local stipple_kernel = require("s3_objects.block.kernel.stipple")
-local unfurl_kernel = require("s3_objects.block.kernel.unfurl")
+-- Effects --
+local preview_effect = require("s3_objects.block.effect.preview")
+local stipple_effect = require("s3_objects.block.effect.stipple")
+local unfurl_effect = require("s3_objects.block.effect.unfurl")
 
 -- Corona globals --
 local display = display
@@ -63,7 +63,7 @@ local transition = transition
 --
 --
 
-local function NewKernel (name, tile_shader)
+local function NewEffect (name, tile_shader)
 	local category, group, sname = name:match("(%a+)%.([_%a][_%w]*)%.([_%a][_%w]*)")
 	local kname = ("%s_%s"):format(sname, tile_shader:gsub("%.", "__"))
 	local kernel = { category = category, group = group, name = kname }
@@ -84,8 +84,8 @@ end
 local Effects = {
 	__index = function(t, shader)
 		local effect = {
-			stipple = NewKernel(stipple_kernel, shader),
-			unfurl = NewKernel(unfurl_kernel.KERNEL_NAME, shader)
+			stipple = NewEffect(stipple_effect, shader),
+			unfurl = NewEffect(unfurl_effect.EFFECT_NAME, shader)
 		}
 
 		t[shader] = effect
@@ -145,7 +145,7 @@ for k, v in pairs{
 				end
 			end
 		else
-			Names.stipple, Names.unfurl = stipple_kernel, unfurl_kernel.KERNEL_NAME
+			Names.stipple, Names.unfurl = stipple_effect, unfurl_effect.EFFECT_NAME
 		end
 	end
 } do
@@ -224,7 +224,7 @@ local function Unfurl (x, y, occupancy, which, delay)
 
 	if occupancy("mark", index) and image then
 		local effect, except = AttachEffect(image, "unfurl"), setup.except
-		local cprops = unfurl_kernel.CombinedProperties
+		local cprops = unfurl_effect.CombinedProperties
 
 		for k, v in pairs(setup.from) do
 			cprops:SetProperty(effect, k, v)
@@ -766,7 +766,7 @@ local function NewMaze (info, block)
 			local total = 2 * maxt + hold -- rise, hold, fall
 
 			mhint.fill = Time[block].fill
-			mhint.fill.effect = preview_kernel
+			mhint.fill.effect = preview_effect
 			mhint.fill.effect.rise = maxt
 			mhint.fill.effect.hold = hold
 			mhint.fill.effect.total = total

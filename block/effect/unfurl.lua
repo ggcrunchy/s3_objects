@@ -95,6 +95,6 @@ includer.AugmentKernels({
 graphics.defineEffect(kernel)
 
 --- DOCME
-M.KERNEL_NAME = "filter.block_maze.unfurl"
+M.EFFECT_NAME = "filter.block_maze.unfurl"
 
 return M

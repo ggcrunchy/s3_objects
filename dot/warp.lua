@@ -39,14 +39,14 @@ local distort = require("s3_utils.snippets.operations.distort")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
 local length = require("tektite_core.number.length")
-local markers = require("s3_utils.effect.markers")
+local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
 local positions = require("s3_utils.positions")
 local pubsub = require("corona_utils.pubsub")
 local tile_maps = require("s3_utils.tile_maps")
 
--- Kernels --
-local warp_kernel = require("s3_objects.dot.kernel.warp")
+-- Effects --
+local warp_effect = require("s3_objects.dot.effect.warp")
 
 -- Corona globals --
 local display = display
@@ -527,7 +527,7 @@ WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.pn
 local function NewWarp (group, info)
 	local warp = display.newCircle(group, 0, 0, WarpRadius)
 
-	distort.BindCanvasEffect(warp, WarpFill, warp_kernel)
+	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
 
 	Scale(warp, 1)
 
