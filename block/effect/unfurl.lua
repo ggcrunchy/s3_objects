@@ -35,9 +35,9 @@ local M = {}
 --
 --
 
-local kernel = { category = "filter", group = "block_maze", name = "unfurl" }
+local effect = { category = "filter", group = "block_maze", name = "unfurl" }
 
-kernel.vertexData = {
+effect.vertexData = {
 	{ name = "u", index = 0, default = 0, min = 0, max = 1 },
 	{ name = "v", index = 1, default = 0, min = 0, max = 1 },
 	unit_exclusive.VertexDatum("left_bottom", 2, 0, 0),
@@ -52,7 +52,7 @@ cprops:AddPair("right_top", "right", "top")
 --- DOCME
 M.CombinedProperties = cprops
 
-kernel.isTimeDependent = true
+effect.isTimeDependent = true
 
 includer.AugmentKernels({
 	requires = { orange_duck.RELATIONAL, unit_exclusive.UNIT_PAIR },
@@ -90,9 +90,9 @@ includer.AugmentKernels({
 ]],
 
 	varyings = { uv_rel = "vec2", left_bottom = "vec2", right_top = "vec2" }
-}, kernel)
+}, effect)
 
-graphics.defineEffect(kernel)
+graphics.defineEffect(effect)
 
 --- DOCME
 M.EFFECT_NAME = "filter.block_maze.unfurl"

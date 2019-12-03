@@ -31,9 +31,9 @@ local orange_duck = require("s3_utils.snippets.operations.orange_duck")
 --
 --
 
-local kernel = { category = "filter", group = "block_maze", name = "stipple" }
+local effect = { category = "filter", group = "block_maze", name = "stipple" }
 
-kernel.vertexData = {
+effect.vertexData = {
 	{
 		name = "u",
 		default = 0, min = 0, max = 1,
@@ -114,8 +114,8 @@ includer.AugmentKernels({
 ]],
 
 	varyings = { uv_rel = "vec2" }
-}, kernel)
+}, effect)
 
-graphics.defineEffect(kernel)
+graphics.defineEffect(effect)
 
 return "filter.block_maze.stipple"

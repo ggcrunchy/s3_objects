@@ -32,9 +32,9 @@ local iq = require("s3_utils.snippets.noise.iq")
 --
 --
 
-local kernel = { language = "glsl", category = "composite", group = "dot", name = "warp" }
+local effect = { language = "glsl", category = "composite", group = "dot", name = "warp" }
 
-kernel.vertexData = {
+effect.vertexData = {
 	{ name = "alpha", index = 0, default = 1, min = 0, max = 1 }
 }
 
@@ -63,8 +63,8 @@ includer.AugmentKernels({
 	}
 ]]
 
-}, kernel)
+}, effect)
 
-graphics.defineEffect(kernel)
+graphics.defineEffect(effect)
 
 return "composite.dot.warp"

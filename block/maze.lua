@@ -65,10 +65,10 @@ local transition = transition
 
 local function NewEffect (name, tile_shader)
 	local category, group, sname = name:match("(%a+)%.([_%a][_%w]*)%.([_%a][_%w]*)")
-	local kname = ("%s_%s"):format(sname, tile_shader:gsub("%.", "__"))
-	local kernel = { category = category, group = group, name = kname }
+	local mp_name = ("%s_%s"):format(sname, tile_shader:gsub("%.", "__"))
+	local mp_effect = { category = category, group = group, name = mp_name }
 
-	kernel.graph = {
+	mp_effect.graph = {
 		nodes = {
 			tile = { effect = tile_shader, input1 = "paint1" },
 			[sname] =  { effect = name, input1 = "tile" },
@@ -76,9 +76,9 @@ local function NewEffect (name, tile_shader)
 		output = sname
 	}
 
-	graphics.defineEffect(kernel)
+	graphics.defineEffect(mp_effect)
 
-	return category .. "." .. group .. "." .. kname
+	return category .. "." .. group .. "." .. mp_name
 end
 
 local Effects = {
