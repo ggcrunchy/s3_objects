@@ -40,7 +40,7 @@ local remove = table.remove
 -- Modules --
 local args = require("iterator_ops.args")
 local bitmap = require("s3_utils.bitmap")
-local match_slot_id = require("tektite_core.array.match_slot_id")
+local embedded_predicate = require("tektite_core.array.embedded_predicate")
 local movement = require("s3_utils.movement")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
@@ -96,19 +96,15 @@ local Effects = {
 
 setmetatable(Effects, Effects)
 
--- --
 local Names = {}
 
--- --
 local IsMultiPass
 
 -- Layer used to draw hints --
 local MarkersLayer
 
--- --
 local TileVertexData
 
--- --
 local Time
 
 for k, v in pairs{
@@ -152,37 +148,6 @@ for k, v in pairs{
 	Runtime:addEventListener(k, v)
 end
 
--- Ping-pong buffers for unfurling the maze --
-local List1, List2 = {}, {}
-
--- Unfurl timing values --
-local UnfurlDelay, UnfurlTime = 150, 850
-
--- Unfurl transition --
-local UnfurlParams = { time = UnfurlTime, transition = easing.outQuint }
-
--- Unfurl parameter destinations --
-local To = { top = 1, left = 0, bottom = 0, right = 1 }
-
--- Unfurl parameter initial values, plus which parameter (if any) is already in place --
-local ParamsSetup = {
-	-- Up --
-	up = { from = { bottom = 0, left = .6, top = 0, right = .4 }, except = "bottom" },
-
-	-- Left --
-	left = { from = { bottom = .6, left = 1, top = .4, right = 1 }, except = "right" },
-
-	-- Down --
-	down = { from = { bottom = 1, left = .6, top = 1, right = .4 }, except = "top" },
-
-	-- Right --
-	right = { from = { bottom = .6, left = 0, top = .4, right = 0 }, except = "left" },
-
-	-- Start --
-	start = { from = { bottom = .6, left = .6, top = .4, right = .4 } }
-}
-
---
 local function CacheTileVertexData (tile)
 	if TileVertexData then
 		local basic, fill = not tile.m_augmented, tile.fill
@@ -196,7 +161,6 @@ local function CacheTileVertexData (tile)
 	end
 end
 
---
 local function AttachEffect (tile, what)
 	local fill = tile.fill
 
@@ -216,6 +180,30 @@ local function AttachEffect (tile, what)
 		return fill.effect
 	end
 end
+
+-- Unfurl parameter initial values, plus which parameter (if any) is already in place --
+local ParamsSetup = {
+	-- Up --
+	up = { from = { bottom = 0, left = .6, top = 0, right = .4 }, except = "bottom" },
+
+	-- Left --
+	left = { from = { bottom = .6, left = 1, top = .4, right = 1 }, except = "right" },
+
+	-- Down --
+	down = { from = { bottom = 1, left = .6, top = 1, right = .4 }, except = "top" },
+
+	-- Right --
+	right = { from = { bottom = .6, left = 0, top = .4, right = 0 }, except = "left" },
+
+	-- Start --
+	start = { from = { bottom = .6, left = .6, top = .4, right = .4 } }
+}
+
+local To = { top = 1, left = 0, bottom = 0, right = 1 }
+
+local UnfurlDelay, UnfurlTime = 150, 850
+
+local UnfurlParams = { time = UnfurlTime, transition = easing.outQuint }
 
 -- Adds a tile to the unfurling maze
 local function Unfurl (x, y, occupancy, which, delay)
@@ -245,19 +233,17 @@ local function Unfurl (x, y, occupancy, which, delay)
 	end
 end
 
---
 local function UnfurlDirs (x, y)
 	return movement.Ways(tile_maps.GetTileIndex(x, y))
 end
 
---
 local function ArgId (arg) return arg end
 
---
+local List1, List2 = {}, {}
+
 local function Visit (block, occupancy, func, dirs, arg, xform)
 	occupancy("begin_generation")
 
-	-- Unfurl the tiles from some random starting point.
 	local col1, row1, col2, row2 = block:GetInitialRect()
 	local from, to, count = List1, List2, 2
 
@@ -292,14 +278,11 @@ local function Visit (block, occupancy, func, dirs, arg, xform)
 	until count == 0
 end
 
---
 local function IncDelay (delay)
 	return delay + UnfurlDelay
 end
 
--- Kicks off a fade-in
 local function FadeIn (block, occupancy)
-	-- Start all the maze off hidden.
 	for index in block:IterSelf() do
 		local image = tile_maps.GetImage(index)
 
@@ -308,11 +291,9 @@ local function FadeIn (block, occupancy)
 		end
 	end
 
-	-- Unfurl the tiles from some random starting point.
 	Visit(block, occupancy, Unfurl, UnfurlDirs, UnfurlDelay, IncDelay)
 end
 
--- Fade-out transition --
 local FadeOutParams = {
 	alpha = .2, time = 1250,
 
@@ -321,10 +302,8 @@ local FadeOutParams = {
 	end
 }
 
--- Stipple effect transition --
 local StippleParams = { scale = 0, time = 850, transition = easing.outBounce }
 
--- Kicks off a fade-out
 local function FadeOut (block)
 	for index in block:IterSelf() do
 		local image = tile_maps.GetImage(index)
@@ -353,7 +332,6 @@ local function FindChoice (_, what)
 	end
 end
 
--- --
 local IndexToDir = { "up", "left", "down", "right" }
 
 -- Tile deltas in each cardinal direction --
@@ -442,22 +420,18 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
--- A random shake displacement
 local function ShakeBy ()
 	local amount = random(3, 16)
 
 	return amount <= 8 and amount or (amount - 11)
 end
 
--- Updates tiles from maze block flags
 local function UpdateTiles (block)
 	tile_maps.SetTilesFromFlags(block:GetImageGroup(), block:GetInitialRect())
 end
 
---
 local FadeParams = { onComplete = display.remove }
 
---
 local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCubic }
 
 -- Wipes the maze state (and optionally its flags), marking borders
@@ -478,7 +452,6 @@ local function Wipe (block, open, wipe_flags)
 	end
 end
 
--- Event dispatched on change --
 local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
 
 local function NewMaze (info, block)
@@ -561,7 +534,7 @@ local function NewMaze (info, block)
 	Deltas[3] = col2 - col1 + 1
 
 	-- Fires off the maze event
-	local forward, occupancy = nil, match_slot_id.Wrap(open)
+	local forward, occupancy = nil, embedded_predicate.Wrap(open)
 
 	local function Fire ()
 		if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
