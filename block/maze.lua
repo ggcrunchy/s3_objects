@@ -32,17 +32,15 @@
 --
 
 -- Standard library imports --
-local ipairs = ipairs
 local pairs = pairs
 local random = math.random
-local remove = table.remove
 
 -- Modules --
-local args = require("iterator_ops.args")
 local bitmap = require("s3_utils.bitmap")
 local embedded_predicate = require("tektite_core.array.embedded_predicate")
+local maze_maker = require("s3_objects.block.details.maze_maker")
 local movement = require("s3_utils.movement")
-local tile_flags = require("s3_utils.tile_flags")
+local tile_effect = require("s3_objects.block.details.tile_effect")
 local tile_maps = require("s3_utils.tile_maps")
 local tilesets = require("s3_utils.tilesets")
 
@@ -54,7 +52,6 @@ local unfurl_effect = require("s3_objects.block.effect.unfurl")
 -- Corona globals --
 local display = display
 local easing = easing
-local graphics = graphics
 local Runtime = Runtime
 local timer = timer
 local transition = transition
@@ -63,47 +60,13 @@ local transition = transition
 --
 --
 
-local function NewEffect (name, tile_shader)
-	local category, group, sname = name:match("(%a+)%.([_%a][_%w]*)%.([_%a][_%w]*)")
-	local mp_name = ("%s_%s"):format(sname, tile_shader:gsub("%.", "__"))
-	local mp_effect = { category = category, group = group, name = mp_name }
+local RawNames = { stipple = stipple_effect, unfurl = unfurl_effect.EFFECT_NAME }
 
-	mp_effect.graph = {
-		nodes = {
-			tile = { effect = tile_shader, input1 = "paint1" },
-			[sname] =  { effect = name, input1 = "tile" },
-		},
-		output = sname
-	}
+local NameMapping = tile_effect.NewMapping(RawNames)
 
-	graphics.defineEffect(mp_effect)
+local Names
 
-	return category .. "." .. group .. "." .. mp_name
-end
-
-local Effects = {
-	__index = function(t, shader)
-		local effect = {
-			stipple = NewEffect(stipple_effect, shader),
-			unfurl = NewEffect(unfurl_effect.EFFECT_NAME, shader)
-		}
-
-		t[shader] = effect
-
-		return effect
-	end
-}
-
-setmetatable(Effects, Effects)
-
-local Names = {}
-
-local IsMultiPass
-
--- Layer used to draw hints --
 local MarkersLayer
-
-local TileVertexData
 
 local Time
 
@@ -121,64 +84,15 @@ for k, v in pairs{
 			end
 		end
 
-		TileVertexData, MarkersLayer, Time = nil
+		MarkersLayer, Names, Time = nil
 	end,
 
 	-- Things Loaded --
 	things_loaded = function()
-		local tile_shader = tilesets.GetShader()
-
-		IsMultiPass = tile_shader ~= nil
-
-		if IsMultiPass then
-			local effect = Effects[tile_shader]
-
-			Names.stipple, Names.unfurl, TileVertexData = effect.stipple, effect.unfurl, {}
-
-			for i, name in args.Args(tilesets.GetVertexDataNames()) do
-				if name and i <= 4 then
-					TileVertexData[name] = 0
-				end
-			end
-		else
-			Names.stipple, Names.unfurl = stipple_effect, unfurl_effect.EFFECT_NAME
-		end
+		Names = tile_effect.GetNames(RawNames, NameMapping, tilesets.GetShader())
 	end
 } do
 	Runtime:addEventListener(k, v)
-end
-
-local function CacheTileVertexData (tile)
-	if TileVertexData then
-		local basic, fill = not tile.m_augmented, tile.fill
-		local effect = basic and fill.effect or fill.effect.tile
-
-		for k in pairs(TileVertexData) do
-			TileVertexData[k] = effect[k]
-		end
-
-		tile.m_augmented = true
-	end
-end
-
-local function AttachEffect (tile, what)
-	local fill = tile.fill
-
-	CacheTileVertexData(tile)
-
-	fill.effect = Names[what]
-
-	if IsMultiPass then
-		local tile = fill.effect.tile
-
-		for k, v in pairs(TileVertexData) do
-			tile[k] = v
-		end
-
-		return fill.effect[what]
-	else
-		return fill.effect
-	end
 end
 
 -- Unfurl parameter initial values, plus which parameter (if any) is already in place --
@@ -211,7 +125,7 @@ local function Unfurl (x, y, occupancy, which, delay)
 	local image, setup = tile_maps.GetImage(index), ParamsSetup[which]
 
 	if occupancy("mark", index) and image then
-		local effect, except = AttachEffect(image, "unfurl"), setup.except
+		local effect, except = tile_effect.AttachEffect(Names, image, "unfurl"), setup.except
 		local cprops = unfurl_effect.CombinedProperties
 
 		for k, v in pairs(setup.from) do
@@ -237,47 +151,6 @@ local function UnfurlDirs (x, y)
 	return movement.Ways(tile_maps.GetTileIndex(x, y))
 end
 
-local function ArgId (arg) return arg end
-
-local List1, List2 = {}, {}
-
-local function Visit (block, occupancy, func, dirs, arg, xform)
-	occupancy("begin_generation")
-
-	local col1, row1, col2, row2 = block:GetInitialRect()
-	local from, to, count = List1, List2, 2
-
-	from[1], from[2], xform = random(col1, col2), random(row1, row2), xform or ArgId
-
-	func(from[1], from[2], occupancy, "start")
-
-	repeat
-		local nadded = 0
-
-		for i = 1, count, 2 do
-			local x, y = from[i], from[i + 1]
-
-			for dir in dirs(x, y, arg) do
-				local tx, ty, bounded = x, y, true
-
-				if dir == "left" or dir == "right" then
-					tx = tx + (dir == "left" and -1 or 1)
-					bounded = tx >= col1 and tx <= col2
-				else
-					ty = ty + (dir == "up" and -1 or 1)
-					bounded = ty >= row1 and ty <= row2
-				end
-
-				if bounded and func(tx, ty, occupancy, dir, arg) then
-					to[nadded + 1], to[nadded + 2], nadded = tx, ty, nadded + 2
-				end
-			end
-		end
-
-		from, to, count, arg = to, from, nadded, xform(arg)
-	until count == 0
-end
-
 local function IncDelay (delay)
 	return delay + UnfurlDelay
 end
@@ -291,7 +164,7 @@ local function FadeIn (block, occupancy)
 		end
 	end
 
-	Visit(block, occupancy, Unfurl, UnfurlDirs, UnfurlDelay, IncDelay)
+	maze_maker.Visit(block, occupancy, Unfurl, UnfurlDirs, UnfurlDelay, IncDelay)
 end
 
 local FadeOutParams = {
@@ -309,7 +182,7 @@ local function FadeOut (block)
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			local effect, ibounds = AttachEffect(image, "stipple"), image.path.textureBounds
+			local effect, ibounds = tile_effect.AttachEffect(Names, image, "stipple"), image.path.textureBounds
 
 			effect.u, effect.v = (ibounds.uMin + ibounds.uMax) / 2, (ibounds.vMin + ibounds.vMax) / 2
 			effect.seed = index + random(3)
@@ -318,73 +191,6 @@ local function FadeOut (block)
 			transition.to(effect, StippleParams) -- TODO: Verify on reset_level with "already showing" maze
 		end
 	end
-end
-
--- Tile deltas (indices into Deltas) available on current iteration, during maze building --
-local Choices = {}
-
---
-local function FindChoice (_, what)
-	for i = 1, #Choices do
-		if Choices[i] == what then
-			return Choices[i + 1]
-		end
-	end
-end
-
-local IndexToDir = { "up", "left", "down", "right" }
-
--- Tile deltas in each cardinal direction --
-local Deltas = { false, -1, false, 1 }
-
--- List of flood-filled tiles that might still have exits available --
-local Maze = {}
-
--- Populates the maze state used to build tile flags
-local function MakeMaze (open, occupancy)
-	occupancy("begin_generation")
-
-	-- Choose a random maze tile and do a random flood-fill of the block.
-	Maze[#Maze + 1] = random(#open / 4)
-
-	repeat
-		local index = Maze[#Maze]
-
-		-- Mark this tile slot as explored.
-		occupancy("mark", index)
-
-		-- Examine each direction out of the tile. If the direction was already marked
-		-- (borders are pre-marked in the relevant direction), or the relevant neighbor
-		-- has already been explored, ignore it. Otherwise, add it to the choices.
-		local oi, n = (index - 1) * 4, 0
-
-		for i, delta in ipairs(Deltas) do
-			if not (open[oi + i] or occupancy("check", index + delta)) then
-				n = n + 1
-
-				Choices[n] = i
-			end
-		end
-
-		-- If there are no choices left, remove the tile from the list. Otherwise, choose
-		-- one of the available directions and mark it, plus the reverse direction in the
-		-- relevant neighbor, and try to resume the flood-fill from that neighbor.
-		if n > 0 then
-			local i = Choices[random(n)]
-			local delta = Deltas[i]
-
-			open[oi + i] = true
-
-			oi = oi + delta * 4
-			i = (i + 1) % 4 + 1 -- n.b. follows the order used by Deltas and open
-
-			open[oi + i] = true
-
-			Maze[#Maze + 1] = index + delta
-		else
-			remove(Maze)
-		end
-	until #Maze == 0
 end
 
 -- Handler for maze-specific editor events, cf. s3_utils.blocks.EditorEvent
@@ -433,24 +239,6 @@ end
 local FadeParams = { onComplete = display.remove }
 
 local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCubic }
-
--- Wipes the maze state (and optionally its flags), marking borders
-local function Wipe (block, open, wipe_flags)
-	local i, col1, row1, col2, row2 = 0, block:GetInitialRect()
-
-	for _, col, row in block:IterSelf() do
-		open[i + 1] = row == row1 and "edge"
-		open[i + 2] = col == col1 and "edge"
-		open[i + 3] = row == row2 and "edge"
-		open[i + 4] = col == col2 and "edge"
-
-		i = i + 4
-	end
-
-	if wipe_flags then
-		tile_flags.WipeFlags(col1, row1, col2, row2)
-	end
-end
 
 local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
 
@@ -518,7 +306,7 @@ local function NewMaze (info, block)
 	local open, added = {}
 
 	function block:Reset ()
-		Wipe(self, open, added)
+		maze_maker.Wipe(self, open, added)
 
 		if added then
 			UpdateTiles(self)
@@ -527,14 +315,10 @@ local function NewMaze (info, block)
 		end
 	end
 
-	-- Compute the deltas between rows of the maze block (using its width).
-	local col1, col2 = block:GetColumns()
-
-	Deltas[1] = col1 - col2 - 1
-	Deltas[3] = col2 - col1 + 1
+	maze_maker.SetupFromBlock(block)
 
 	-- Fires off the maze event
-	local forward, occupancy = nil, embedded_predicate.Wrap(open)
+	local occupancy = embedded_predicate.Wrap(open)
 
 	local function Fire ()
 		if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
@@ -545,54 +329,12 @@ local function NewMaze (info, block)
 		-- If the previous operation was adding the maze, then wipe it.
 		if added then
 			FadeOut(block)
-			Wipe(block, open, true)
+			maze_maker.Wipe(block, open, true)
 
 		-- Otherwise, make a new one and add it.
 		else
-			MakeMaze(open, occupancy)
-
-			-- Convert maze state into flags. Border flags are left in place, allowing the
-			-- maze to coalesce with the rest of the level.
-			local i, ncols, nrows = 0, tile_maps.GetCounts()
-
-			for index, col, row in block:IterSelf() do
-				local flags = 0
-
-				-- Is this cell open, going up? On the interior, just accept it; along the
-				-- fringe of the level, reject it. Otherwise, when on the fringe of the maze
-				-- alone, accept it if the next cell up has a "down" flag.
-				local uedge = open[i + 1]
-
-				if uedge and row > 1 and (uedge ~= "edge" or tile_flags.IsFlagSet_Working(index - ncols, "down")) then
-					flags = flags + tile_flags.GetFlagsByName("up")
-				end
-
-				-- Likewise, going left...
-				local ledge = open[i + 2]
-
-				if ledge and col > 1 and (ledge ~= "edge" or tile_flags.IsFlagSet_Working(index - 1, "right")) then
-					flags = flags + tile_flags.GetFlagsByName("left")
-				end
-
-				-- ...going down...
-				local dedge = open[i + 3]
-
-				if dedge and row < nrows and (dedge ~= "edge" or tile_flags.IsFlagSet_Working(index + ncols, "up")) then
-					flags = flags + tile_flags.GetFlagsByName("down")
-				end
-
-				-- ...and going right.
-				local redge = open[i + 4]
-
-				if redge and col < ncols and (redge ~= "edge" or tile_flags.IsFlagSet_Working(index + 1, "left")) then
-					flags = flags + tile_flags.GetFlagsByName("right")
-				end
-
-				-- Register the final flags.
-				tile_flags.SetFlags(index, flags)
-
-				i = i + 4
-			end
+			maze_maker.Build(open, occupancy)
+			maze_maker.SetFlags(block, open)
 		end
 
 		-- Alert listeners about tile changes and fade tiles in or out. When fading in,
@@ -641,7 +383,6 @@ local function NewMaze (info, block)
 	local function Show (show)
 		-- Show...
 		if show then
-			--
 			Time = Time or {}
 
 			if not maxt then
@@ -649,14 +390,13 @@ local function NewMaze (info, block)
 				local w, h, times = col2 - col1 + 1, row2 - row1 + 1, {}
 				local tex = bitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
 
-				--
 				i1 = tile_maps.GetTileIndex(col1, row1)
 				i2 = tile_maps.GetTileIndex(col2, row2)
 				maxt = 0
 
-				-- Make a random maze in the block and make a low-res texture to represent it.
-				MakeMaze(open, occupancy)
-				Visit(block, occupancy, function(x, y, _, dir)
+				-- Make a random maze in the block with a low-res texture to represent it.
+				maze_maker.Build(open, occupancy)
+				maze_maker.Visit(block, occupancy, function(x, y, _, dir)
 					local index = tile_maps.GetTileIndex(x, y)
 
 					if occupancy("mark", index) then
@@ -691,33 +431,11 @@ local function NewMaze (info, block)
 						end
 					end
 				end, function(x, y)
-					local index = tile_maps.GetTileIndex(x, y)
-					local oi, n = (index - 1) * 4, 1
-
-					Choices[1] = false
-
-					for i, delta in ipairs(Deltas) do
-						if not (open[oi + i] or occupancy("check", index + delta)) then
-							Choices[n + 1], n = IndexToDir[i], n + 1
-						end
-					end
-
-					for _ = 1, n - 2 do
-						local j = random(2, n)
-
-						Choices[j], Choices[n] = Choices[n], Choices[j]
-					end
-
-					for i = #Choices, n + 1, -1 do
-						Choices[i] = nil
-					end
-
-					return FindChoice, nil, false
+					return maze_maker.IterChoices(tile_maps.GetTileIndex(x, y), open, occupancy)
 				end)
 
 				tex:invalidate()
 
-				--
 				Time[block] = {
 					fill = { type = "image", filename = tex.filename, baseDir = tex.baseDir, format = "rgb" },
 					tex = tex
@@ -769,10 +487,6 @@ local function NewMaze (info, block)
 
 	block:addEventListener("is_done", function(event)
 		event.result = not forming
-	end)
-
-	block:addEventListener("set_direction", function(event)
-		forward = not not event.dir
 	end)
 
 	block:addEventListener("show", function(event)
