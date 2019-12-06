@@ -25,6 +25,7 @@
 
 -- Standard library imports --
 local ipairs = ipairs
+local next = next
 local random = math.random
 local remove = table.remove
 
@@ -79,9 +80,9 @@ function M.Build (open, occupancy)
 		-- has already been explored, ignore it. Otherwise, add it to the choices.
 		local n, oi = GetChoices(index, occupancy, open)
 
-		-- If there are no choices left, remove the tile from the list. Otherwise, choose
-		-- one of the available directions and mark it, plus the reverse direction in the
-		-- relevant neighbor, and try to resume the flood-fill from that neighbor.
+		-- Remove the tile from the list if no choices remain. Otherwise, choose and mark
+		-- one of the available directions, plus the reverse direction for the relevant
+		-- neighbor, and try to resume the flood-fill from that neighbor.
 		if n > 0 then
 			local i = Choices[random(n)]
 			local delta = Deltas[i]
@@ -102,24 +103,27 @@ end
 
 local IndexToDir = { "up", "left", "down", "right" }
 
-local ChoicesLeft
+local Dirs = {}
 
-local function AuxIterChoice ()
-	if ChoicesLeft > 0 then
-		local index = random(ChoicesLeft)
-		local i = Choices[index]
+local function AuxIterChoice (_, k)
+	k = next(Dirs, k)
 
-		Choices[index], ChoicesLeft = Choices[ChoicesLeft], ChoicesLeft - 1
-
-		return IndexToDir[i]
+	if k then
+		Dirs[k] = nil
 	end
+
+	return k
 end
 
 --- DOCME
 function M.IterChoices (index, open, occupancy)
-	ChoicesLeft = GetChoices(index, occupancy, open)
+	for i = 1, GetChoices(index, occupancy, open) do
+		local name = IndexToDir[Choices[i]]
 
-	return AuxIterChoice
+		Dirs[name] = true
+	end
+
+	return AuxIterChoice, nil, nil
 end
 
 --- Convert maze state into flags.
