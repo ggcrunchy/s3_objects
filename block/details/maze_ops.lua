@@ -25,11 +25,11 @@
 
 -- Standard library imports --
 local ipairs = ipairs
-local next = next
 local random = math.random
 local remove = table.remove
 
 -- Modules --
+local movement = require("s3_utils.movement")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
 
@@ -45,20 +45,6 @@ local Choices = {}
 
 -- Tile deltas in each cardinal direction --
 local Deltas = { false, -1, false, 1 }
-
-local function GetChoices (index, occupancy, open)
-	local oi, n = (index - 1) * 4, 0
-
-	for i, delta in ipairs(Deltas) do
-		if not (open[oi + i] or occupancy("check", index + delta)) then
-			n = n + 1
-
-			Choices[n] = i
-		end
-	end
-
-	return n, oi
-end
 
 local Work = {}
 
@@ -78,7 +64,15 @@ function M.Build (open, occupancy)
 		-- Examine each direction out of the tile. If the direction was already marked
 		-- (borders are pre-marked in the relevant direction), or the relevant neighbor
 		-- has already been explored, ignore it. Otherwise, add it to the choices.
-		local n, oi = GetChoices(index, occupancy, open)
+		local oi, n = (index - 1) * 4, 0
+
+		for i, delta in ipairs(Deltas) do
+			if not (open[oi + i] or occupancy("check", index + delta)) then
+				n = n + 1
+
+				Choices[n] = i
+			end
+		end
 
 		-- Remove the tile from the list if no choices remain. Otherwise, choose and mark
 		-- one of the available directions, plus the reverse direction for the relevant
@@ -99,31 +93,6 @@ function M.Build (open, occupancy)
 			remove(Work)
 		end
 	until #Work == 0
-end
-
-local IndexToDir = { "up", "left", "down", "right" }
-
-local Dirs = {}
-
-local function AuxIterChoice (_, k)
-	k = next(Dirs, k)
-
-	if k then
-		Dirs[k] = nil
-	end
-
-	return k
-end
-
---- DOCME
-function M.IterChoices (index, open, occupancy)
-	for i = 1, GetChoices(index, occupancy, open) do
-		local name = IndexToDir[Choices[i]]
-
-		Dirs[name] = true
-	end
-
-	return AuxIterChoice, nil, nil
 end
 
 --- Convert maze state into flags.
@@ -185,7 +154,7 @@ local function ArgId (arg) return arg end
 local List1, List2 = {}, {}
 
 --- DOCME
-function M.Visit (block, occupancy, func, dirs, arg, xform)
+function M.Visit (block, occupancy, func, arg, xform)
 	occupancy("begin_generation")
 
 	local col1, row1, col2, row2 = block:GetInitialRect()
@@ -193,16 +162,18 @@ function M.Visit (block, occupancy, func, dirs, arg, xform)
 
 	from[1], from[2], xform = random(col1, col2), random(row1, row2), xform or ArgId
 
-	func(from[1], from[2], occupancy, "start")
+	func("start", arg, nil, from[1], from[2])
 
 	repeat
 		local nadded = 0
 
+		arg = xform(arg)
+
 		for i = 1, count, 2 do
 			local x, y = from[i], from[i + 1]
 
-			for dir in dirs(x, y, arg) do
-				local tx, ty, bounded = x, y, true
+			for dir in movement.Ways(tile_maps.GetTileIndex(x, y)) do
+				local tx, ty, bounded = x, y
 
 				if dir == "left" or dir == "right" then
 					tx = tx + (dir == "left" and -1 or 1)
@@ -212,13 +183,17 @@ function M.Visit (block, occupancy, func, dirs, arg, xform)
 					bounded = ty >= row1 and ty <= row2
 				end
 
-				if bounded and func(tx, ty, occupancy, dir, arg) then
-					to[nadded + 1], to[nadded + 2], nadded = tx, ty, nadded + 2
+				if bounded then
+					local tindex = tile_maps.GetTileIndex(tx, ty)
+
+					if occupancy("mark", tindex) and func(dir, arg, tindex, tx, ty) then
+						to[nadded + 1], to[nadded + 2], nadded = tx, ty, nadded + 2
+					end
 				end
 			end
 		end
 
-		from, to, count, arg = to, from, nadded, xform(arg)
+		from, to, count = to, from, nadded
 	until count == 0
 end
 

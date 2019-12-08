@@ -38,9 +38,9 @@ local random = math.random
 -- Modules --
 local bitmap = require("s3_utils.bitmap")
 local embedded_predicate = require("tektite_core.array.embedded_predicate")
-local maze_maker = require("s3_objects.block.details.maze_maker")
-local movement = require("s3_utils.movement")
+local maze_ops = require("s3_objects.block.details.maze_ops")
 local tile_effect = require("s3_objects.block.details.tile_effect")
+local tile_flags = require("s3_utils.tile_flags")
 local tile_maps = require("s3_utils.tile_maps")
 local tilesets = require("s3_utils.tilesets")
 
@@ -119,14 +119,12 @@ local UnfurlDelay, UnfurlTime = 150, 850
 
 local UnfurlParams = { time = UnfurlTime, transition = easing.outQuint }
 
--- Adds a tile to the unfurling maze
-local function Unfurl (x, y, occupancy, which, delay)
-	local index = tile_maps.GetTileIndex(x, y)
-	local image, setup = tile_maps.GetImage(index), ParamsSetup[which]
+local function UnfurlTile (which, delay, index)
+	local image = tile_maps.GetImage(index)
 
-	if occupancy("mark", index) and image then
+	if image then
+		local cprops, setup = unfurl_effect.CombinedProperties, ParamsSetup[which]
 		local effect, except = tile_effect.AttachEffect(Names, image, "unfurl"), setup.except
-		local cprops = unfurl_effect.CombinedProperties
 
 		for k, v in pairs(setup.from) do
 			cprops:SetProperty(effect, k, v)
@@ -147,10 +145,6 @@ local function Unfurl (x, y, occupancy, which, delay)
 	end
 end
 
-local function UnfurlDirs (x, y)
-	return movement.Ways(tile_maps.GetTileIndex(x, y))
-end
-
 local function IncDelay (delay)
 	return delay + UnfurlDelay
 end
@@ -164,7 +158,7 @@ local function FadeIn (block, occupancy)
 		end
 	end
 
-	maze_maker.Visit(block, occupancy, Unfurl, UnfurlDirs, UnfurlDelay, IncDelay)
+	maze_ops.Visit(block, occupancy, UnfurlTile, UnfurlDelay, IncDelay)
 end
 
 local FadeOutParams = {
@@ -242,6 +236,10 @@ local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCu
 
 local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
 
+local function IncPreviewTime (t)
+	return t + 1 / 32
+end
+
 local function NewMaze (info, block)
 	-- Shaking block transition and state --
 	local shaking, gx, gy
@@ -306,7 +304,7 @@ local function NewMaze (info, block)
 	local open, added = {}
 
 	function block:Reset ()
-		maze_maker.Wipe(self, open, added)
+		maze_ops.Wipe(self, open, added)
 
 		if added then
 			UpdateTiles(self)
@@ -315,7 +313,7 @@ local function NewMaze (info, block)
 		end
 	end
 
-	maze_maker.SetupFromBlock(block)
+	maze_ops.SetupFromBlock(block)
 
 	-- Fires off the maze event
 	local occupancy = embedded_predicate.Wrap(open)
@@ -329,12 +327,12 @@ local function NewMaze (info, block)
 		-- If the previous operation was adding the maze, then wipe it.
 		if added then
 			FadeOut(block)
-			maze_maker.Wipe(block, open, true)
+			maze_ops.Wipe(block, open, true)
 
 		-- Otherwise, make a new one and add it.
 		else
-			maze_maker.Build(open, occupancy)
-			maze_maker.SetFlags(block, open)
+			maze_ops.Build(open, occupancy)
+			maze_ops.SetFlags(block, open)
 		end
 
 		-- Alert listeners about tile changes and fade tiles in or out. When fading in,
@@ -387,7 +385,7 @@ local function NewMaze (info, block)
 
 			if not maxt then
 				local col1, row1, col2, row2 = block:GetInitialRect()
-				local w, h, times = col2 - col1 + 1, row2 - row1 + 1, {}
+				local w, h = col2 - col1 + 1, row2 - row1 + 1
 				local tex = bitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
 
 				i1 = tile_maps.GetTileIndex(col1, row1)
@@ -395,44 +393,38 @@ local function NewMaze (info, block)
 				maxt = 0
 
 				-- Make a random maze in the block with a low-res texture to represent it.
-				maze_maker.Build(open, occupancy)
-				maze_maker.Visit(block, occupancy, function(x, y, _, dir)
-					local index = tile_maps.GetTileIndex(x, y)
+				maze_ops.Wipe(block, open)
+				maze_ops.Build(open, occupancy)
 
-					if occupancy("mark", index) then
-						local ix, iy = (x - col1) * 2 + 1, (y - row1) * 2 + 1
+				local prev = tile_flags.UseFlags(open) -- arbitrary nonce
 
-						if dir == "start" then
-							times[index] = 0
+				maze_ops.SetFlags(block, open)
+				tile_flags.ResolveFlags()
+				maze_ops.Visit(block, occupancy, function(dir, t, _, x, y)
+					local ix, iy = (x - col1) * 2 + 1, (y - row1) * 2 + 1
 
-							tex:setPixel(ix, iy, 0, 1, 0)
+					if dir == "start" then
+						tex:setPixel(ix, iy, 0, 1, 0)
+					else
+						local dx, dy = 0, 0
+
+						if dir == "up" or dir == "down" then
+							dy = dir == "up" and -1 or 1
 						else
-							local dx, dy = 0, 0
-
-							if dir == "up" or dir == "down" then
-								dy = dir == "up" and -1 or 1
-							else
-								dx = dir == "left" and -1 or 1
-							end
-
-							local from = tile_maps.GetTileIndex(x - dx, y - dy)
-							local t = times[from] + 1 / 32
-
-							tex:setPixel(ix - dx, iy - dy, t - 1 / 64, 1, 0)
-							tex:setPixel(ix, iy, t, 1, 0)
-
-							times[index] = t
-
-							if t > maxt then
-								maxt = t
-							end
-
-							return true
+							dx = dir == "left" and -1 or 1
 						end
+
+						tex:setPixel(ix - dx, iy - dy, t - 1 / 64, 1, 0)
+						tex:setPixel(ix, iy, t, 1, 0)
+
+						if t > maxt then
+							maxt = t
+						end
+
+						return true
 					end
-				end, function(x, y)
-					return maze_maker.IterChoices(tile_maps.GetTileIndex(x, y), open, occupancy)
-				end)
+				end, 0, IncPreviewTime)
+				tile_flags.UseFlags(prev)
 
 				tex:invalidate()
 
