@@ -67,8 +67,6 @@ local NameMapping = tile_effect.NewMapping(RawNames)
 
 local Names
 
-local MarkersLayer
-
 local Time
 
 for k, v in pairs{
@@ -79,11 +77,10 @@ for k, v in pairs{
 			end
 		end
 
-		MarkersLayer, Names, Time = nil
+		Names, Time = nil
 	end,
 
-	things_loaded = function(level)
-		MarkersLayer = level.markers_layer
+	things_loaded = function()
 		Names = tile_effect.GetNames(RawNames, NameMapping, tilesets.GetShader())
 	end
 } do
@@ -296,7 +293,7 @@ local function NewMaze (info, params)
 	-- up1, left1, down1, right1, up2, left2, down2, right2, ... }, where upX et al. are
 	-- booleans (true if open) indicating the state of tile X's directions. The list of
 	-- already explored tiles is maintained under the negative integer keys.
-	local open, block, added = {}, blocks.New(info)
+	local open, block, added = {}, blocks.New(info, params)
 
 	function block:Reset ()
 		maze_ops.Wipe(self, open, added)
@@ -430,9 +427,10 @@ local function NewMaze (info, params)
 			end
 
 			--
-			mgroup = display.newGroup()
+			local markers_layer = params:GetCurrentLevelProperty("markers_layer")
 
-			MarkersLayer:insert(mgroup)
+			mgroup = display.newGroup()
+			markers_layer:insert(mgroup)
 
 			--
 			local x1, y1 = tile_maps.GetTilePos(i1)
