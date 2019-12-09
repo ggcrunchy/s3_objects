@@ -93,7 +93,6 @@ local function LinkTimer (setter, other, tsub, other_sub)
 end
 
 for k, v in pairs{
-	-- Leave Level --
 	leave_level = function()
 		for i = 1, #(Timers or ""), 2 do
 			for _, handle in pairs(Timers[i]) do
@@ -104,7 +103,6 @@ for k, v in pairs{
 		Timers = nil
 	end,
 
-	-- Reset Level --
 	reset_level = function()
 		for i = 1, #(Timers or ""), 2 do
 			if Timers[i + 1] == "normal" then

@@ -351,7 +351,6 @@ local WarpFill = {
 local WarpRadius
 
 for k, v in pairs{
-	-- Enter Level --
 	enter_level = function(level)
 		MarkersLayer = level.markers_layer
 		HandleGroups = {}
@@ -362,13 +361,11 @@ for k, v in pairs{
 		WarpRadius = 1.15 * (w + h) / 2
 	end,
 
-	-- Leave Level --
 	leave_level = function()
 		HandleGroups, MarkersLayer, WarpList = nil
 		WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
 	end,
 
-	-- Pre-Reset --
 	pre_reset = function()
 		for i, hgroup in ipairs(HandleGroups) do
 			if hgroup then
@@ -385,10 +382,8 @@ for k, v in pairs{
 		end
 	end,
 
-	-- Set Canvas --
 	set_canvas = distort.CanvasToPaintAttacher(WarpFill.paint2),
 
-	-- Set Canvas Alpha --
 	set_canvas_alpha = function(event)
 		local alpha = event.alpha
 

@@ -37,6 +37,7 @@ local random = math.random
 
 -- Modules --
 local bitmap = require("s3_utils.bitmap")
+local blocks = require("s3_utils.blocks")
 local embedded_predicate = require("tektite_core.array.embedded_predicate")
 local maze_ops = require("s3_objects.block.details.maze_ops")
 local tile_effect = require("s3_objects.block.details.tile_effect")
@@ -71,12 +72,6 @@ local MarkersLayer
 local Time
 
 for k, v in pairs{
-	-- Enter Level --
-	enter_level = function(level)
-		MarkersLayer = level.markers_layer
-	end,
-
-	-- Leave Level --
 	leave_level = function()
 		if Time then
 			for _, tt in pairs(Time) do
@@ -87,8 +82,8 @@ for k, v in pairs{
 		MarkersLayer, Names, Time = nil
 	end,
 
-	-- Things Loaded --
-	things_loaded = function()
+	things_loaded = function(level)
+		MarkersLayer = level.markers_layer
 		Names = tile_effect.GetNames(RawNames, NameMapping, tilesets.GetShader())
 	end
 } do
@@ -240,7 +235,7 @@ local function IncPreviewTime (t)
 	return t + 1 / 32
 end
 
-local function NewMaze (info, block)
+local function NewMaze (info, params)
 	-- Shaking block transition and state --
 	local shaking, gx, gy
 
@@ -301,7 +296,7 @@ local function NewMaze (info, block)
 	-- up1, left1, down1, right1, up2, left2, down2, right2, ... }, where upX et al. are
 	-- booleans (true if open) indicating the state of tile X's directions. The list of
 	-- already explored tiles is maintained under the negative integer keys.
-	local open, added = {}
+	local open, block, added = {}, blocks.New(info)
 
 	function block:Reset ()
 		maze_ops.Wipe(self, open, added)
@@ -485,10 +480,8 @@ local function NewMaze (info, block)
 		Show(event.should_show)
 	end)
 
-	-- Put the maze into an initial state and supply its event.
 	block:Reset()
-
-	return Fire
+	block:AttachEvent(Fire, info, params)
 end
 
 return { make = NewMaze, editor = OnEditorEvent }
