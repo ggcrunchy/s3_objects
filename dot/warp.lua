@@ -373,8 +373,6 @@ for k, v in pairs{
 		end
 	end,
 
---	set_canvas = distort.CanvasToPaintAttacher(WarpFill.paint2),
-
 	set_canvas_alpha = function(event)
 		local alpha = event.alpha
 
@@ -511,7 +509,7 @@ component.AddToObject(Warp, data_array)
 WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
 
 local function NewWarp (info, params)
-	if not WarpRadius then
+	if not WarpList then
 		MarkersLayer = params:GetCurrentLevelProperty("markers_layer")
 		HandleGroups = {}
 		WarpList = {}
