@@ -29,6 +29,7 @@ local bind = require("corona_utils.bind")
 local call = require("corona_utils.call")
 local collision = require("corona_utils.collision")
 local component = require("tektite_core.component")
+local dots = require("s3_utils.dots")
 local file = require("corona_utils.file")
 local meta = require("tektite_core.table.meta")
 
@@ -275,10 +276,10 @@ end
 
 local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
 
-function M.make (group, info, params)
+function M.make (--[[group, ]]info, params)
 	local switch = display.newGroup()
 
-	group:insert(switch)
+	--[[group]]params:GetCurrentLevelProperty("things_layer"):insert(switch)
 
 	local _ = display.newImage(switch, GFX .. "Switch-1.png")
 	local image2 = display.newImage(switch, GFX .. "Switch-2.png")
@@ -297,7 +298,8 @@ function M.make (group, info, params)
 
 	switch.m_waiting = 0
 
-	return switch
+	dots.New(info, switch)
+--	return switch
 end
 
 return M

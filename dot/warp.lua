@@ -36,6 +36,7 @@ local collision = require("corona_utils.collision")
 local component = require("tektite_core.component")
 local data_array = require("s3_objects.mixin.data_array")
 local distort = require("s3_utils.snippets.operations.distort")
+local dots = require("s3_utils.dots")
 local file = require("corona_utils.file")
 local frames = require("corona_utils.frames")
 local length = require("tektite_core.number.length")
@@ -351,16 +352,6 @@ local WarpFill = {
 local WarpRadius
 
 for k, v in pairs{
-	enter_level = function(level)
-		MarkersLayer = level.markers_layer
-		HandleGroups = {}
-		WarpList = {}
-
-		local w, h = tile_maps.GetSizes()
-
-		WarpRadius = 1.15 * (w + h) / 2
-	end,
-
 	leave_level = function()
 		HandleGroups, MarkersLayer, WarpList = nil
 		WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
@@ -382,7 +373,7 @@ for k, v in pairs{
 		end
 	end,
 
-	set_canvas = distort.CanvasToPaintAttacher(WarpFill.paint2),
+--	set_canvas = distort.CanvasToPaintAttacher(WarpFill.paint2),
 
 	set_canvas_alpha = function(event)
 		local alpha = event.alpha
@@ -519,8 +510,20 @@ component.AddToObject(Warp, data_array)
 
 WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
 
-local function NewWarp (group, info)
-	local warp = display.newCircle(group, 0, 0, WarpRadius)
+local function NewWarp (info, params)
+	if not WarpRadius then
+		MarkersLayer = params:GetCurrentLevelProperty("markers_layer")
+		HandleGroups = {}
+		WarpList = {}
+
+		local w, h = tile_maps.GetSizes()
+
+		WarpRadius = 1.15 * (w + h) / 2
+
+		distort.AttachCanvasToPaint(WarpFill.paint2, params:GetCurrentLevelProperty("canvas"))
+	end
+	
+	local warp = display.newCircle(params:GetCurrentLevelProperty("things_layer"), 0, 0, WarpRadius)
 
 	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
 
@@ -542,7 +545,7 @@ local function NewWarp (group, info)
 	-- Add the warp to the list so it can be targeted.
 	WarpList[info.uid] = warp
 
-	return warp
+	dots.New(info, warp)
 end
 
 return { make = NewWarp, editor = OnEditorEvent }
