@@ -279,7 +279,7 @@ local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
 function M.make (info, params)
 	local switch = display.newGroup()
 
-	params:GetCurrentLevelProperty("things_layer"):insert(switch)
+	params.things_layer:insert(switch)
 
 	local _ = display.newImage(switch, GFX .. "Switch-1.png")
 	local image2 = display.newImage(switch, GFX .. "Switch-2.png")

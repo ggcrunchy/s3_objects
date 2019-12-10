@@ -427,10 +427,9 @@ local function NewMaze (info, params)
 			end
 
 			--
-			local markers_layer = params:GetCurrentLevelProperty("markers_layer")
-
 			mgroup = display.newGroup()
-			markers_layer:insert(mgroup)
+
+			params.markers_layer:insert(mgroup)
 
 			--
 			local x1, y1 = tile_maps.GetTilePos(i1)

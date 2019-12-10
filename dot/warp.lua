@@ -25,9 +25,7 @@
 
 -- Standard library imports --
 local ipairs = ipairs
-local pairs = pairs
 local sin = math.sin
-local type = type
 
 -- Modules --
 local audio = require("corona_utils.audio")
@@ -42,9 +40,6 @@ local frames = require("corona_utils.frames")
 local length = require("tektite_core.number.length")
 local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
-local positions = require("s3_utils.positions")
-local pubsub = require("corona_utils.pubsub")
-local tile_maps = require("s3_utils.tile_maps")
 
 -- Effects --
 local warp_effect = require("s3_objects.dot.effect.warp")
@@ -55,6 +50,9 @@ local easing = easing
 local graphics = graphics
 local Runtime = Runtime
 local transition = transition
+
+-- Exports --
+local M = {}
 
 --
 --
@@ -74,17 +72,6 @@ local function DefWarp () end
 
 -- Groups of warp transition handles, to allow cancelling --
 local HandleGroups
-
--- Helper to resolve a warp's target
-local function GetTarget (warp)
-	local to = warp.m_to
-
-	if type(to) == "number" then
-		return WarpList[to], "warp"
-	else
-		return to, "position"
-	end
-end
 
 local function ClearMask (object)
 	object:setMask(nil)
@@ -131,12 +118,12 @@ end
 
 -- Warp logic
 local function DoWarp (warp, func)
-	local target, ttype = GetTarget(warp)
+	local target = warp.m_to
 
 	if target then
 		func = func or DefWarp
 
-		func("move_prepare", warp, target, ttype)
+		func("move_prepare", warp, target)
 
 		local items = warp:DataArray_RemoveList()
 
@@ -153,7 +140,7 @@ local function DoWarp (warp, func)
 			-- Warp-in onComplete handler, which concludes the warp and does cleanup
 			local function WarpIn_OC (object)
 				if display.isValid(object) then
-					func("move_done", warp, target, ttype)
+					func("move_done", warp, target)
 
 					object:setMask(nil)
 
@@ -173,7 +160,7 @@ local function DoWarp (warp, func)
 						handles[i] = WarpIn(item, i == 1 and WarpIn_OC)
 					end
 
-					func("move_done_moving", warp, target, ttype)
+					func("move_done_moving", warp, target)
 
 					Sounds:PlaySound("warp")
 				end
@@ -192,7 +179,7 @@ local function DoWarp (warp, func)
 					MoveParams.time = length.ToBin(dx, dy, 200, 5) * 100
 					MoveParams.onComplete = MoveParams_OC
 
-					func("move_began_moving", warp, target, ttype)
+					func("move_began_moving", warp, target)
 
 					Sounds:PlaySound("whiz")
 
@@ -218,12 +205,11 @@ local function DoWarp (warp, func)
 	end
 end
 
--- Warp event state --
 local WarpEvent = {}
 
 -- DoWarp-compatible event dispatch
-local function DispatchWarpEvent (name, from, to, is_warp)
-	WarpEvent.name, WarpEvent.from, WarpEvent.to, WarpEvent.is_warp = name, from, to, is_warp
+local function DispatchWarpEvent (name, from, to)
+	WarpEvent.name, WarpEvent.from, WarpEvent.to = name, from, to
 
 	Runtime:dispatchEvent(WarpEvent)
 
@@ -289,7 +275,7 @@ end
 --
 -- This is a no-op if the warp is missing a target.
 -- @callable func As the warp progresses, this is called as
---   func(what, warp, target, target_type)
+--   func(what, warp, target)
 -- for the following values of _what_: **"move_prepare"** (if the cargo is empty, only this
 -- is performed), **"move\_began\_moving"**, **"move\_done\_moving"**, **"move_done"**.
 --
@@ -321,7 +307,7 @@ collision.AddHandler("warp", function(phase, warp, other)
 		TouchEvent.dot = nil
 
 		-- Show or hide a hint between this warp and its target.
-		local target = GetTarget(warp)
+		local target = warp.m_to
 
 		if target then
 			if phase == "began" then
@@ -343,47 +329,6 @@ collision.AddHandler("warp", function(phase, warp, other)
 	end
 end)
 
-local WarpFill = {
-	type = "composite",
-	paint1 = { type = "image" },
-	paint2 = { type = "image" }
-}
-
-local WarpRadius
-
-for k, v in pairs{
-	leave_level = function()
-		HandleGroups, MarkersLayer, WarpList = nil
-		WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
-	end,
-
-	pre_reset = function()
-		for i, hgroup in ipairs(HandleGroups) do
-			if hgroup then
-				for _, t in ipairs(hgroup) do
-					if t then
-						transition.cancel(t)
-					else
-						break
-					end
-				end
-
-				HandleGroups[i] = false
-			end
-		end
-	end,
-
-	set_canvas_alpha = function(event)
-		local alpha = event.alpha
-
-		for _, warp in pairs(WarpList) do
-			warp.fill.effect.alpha = alpha
-		end
-	end
-} do
-	Runtime:addEventListener(k, v)
-end
-
 --
 local function LinkWarp (warp, other, sub, other_sub)
 	if sub == "to" or (sub == "from" and not warp.to) then
@@ -396,7 +341,7 @@ local function LinkWarp (warp, other, sub, other_sub)
 end
 
 -- Handler for warp-specific editor events, cf. s3_utils.dots.EditorEvent
-local function OnEditorEvent (what, arg1, arg2, arg3)
+function M.editor (what, arg1, arg2, arg3)
 	-- Build --
 	-- arg1: Level
 	-- arg2: Original entry
@@ -506,22 +451,72 @@ end
 
 component.AddToObject(Warp, data_array)
 
+local function PreReset()
+	for i, hgroup in ipairs(HandleGroups) do
+		if hgroup then
+			for _, t in ipairs(hgroup) do
+				if t then
+					transition.cancel(t)
+				else
+					break
+				end
+			end
+
+			HandleGroups[i] = false
+		end
+	end
+end
+
+local function SetCanvasAlpha (event)
+	local alpha = event.alpha
+
+	for _, warp in ipairs(WarpList) do
+		warp.fill.effect.alpha = alpha
+	end
+end
+
+local WarpFill = {
+	type = "composite",
+	paint1 = { type = "image" },
+	paint2 = { type = "image" }
+}
+
+local function LeaveLevel ()
+	HandleGroups, MarkersLayer, WarpList = nil
+	WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
+
+	Runtime:removeEventListener("leave_level", LeaveLevel)
+	Runtime:removeEventListener("pre_reset", PreReset)
+	Runtime:removeEventListener("set_canvas_alpha", SetCanvasAlpha)
+end
+
 WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
 
-local function NewWarp (info, params)
+local function AddTarget (target, warp)
+	warp.m_to = target
+end
+
+local WarpRadius
+
+local function FirstTimeInit (params)
+	MarkersLayer = params.markers_layer
+	HandleGroups, WarpList = {}, {}
+	WarpRadius = 1.15 * (params.w + params.h) / 2
+
+	distort.AttachCanvasToPaint(WarpFill.paint2, params.canvas)
+
+	Runtime:addEventListener("leave_level", LeaveLevel)
+	Runtime:addEventListener("pre_reset", PreReset)
+	Runtime:addEventListener("set_canvas_alpha", SetCanvasAlpha)
+end
+
+--- DOCME
+function M.make (info, params)
 	if not WarpList then
-		MarkersLayer = params:GetCurrentLevelProperty("markers_layer")
-		HandleGroups = {}
-		WarpList = {}
-
-		local w, h = tile_maps.GetSizes()
-
-		WarpRadius = 1.15 * (w + h) / 2
-
-		distort.AttachCanvasToPaint(WarpFill.paint2, params:GetCurrentLevelProperty("canvas"))
+		FirstTimeInit(params)
 	end
 	
-	local warp = display.newCircle(params:GetCurrentLevelProperty("things_layer"), 0, 0, WarpRadius)
+	local warp = display.newCircle(params.things_layer, 0, 0, WarpRadius)
 
 	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
 
@@ -531,19 +526,14 @@ local function NewWarp (info, params)
 
 	Sounds:Load()
 
-	--
-	local id = pubsub.IsEndpoint(info.to, true)
+	local psl = params:GetPubSubList()
 
-	if id then
-		warp.m_to = positions.GetPosition(id)
-	else
-		warp.m_to = info.to
-	end
+	psl:Subscribe(info.to, AddTarget, warp)
+	psl:Publish(warp, info.uid, "pos")
 
-	-- Add the warp to the list so it can be targeted.
-	WarpList[info.uid] = warp
+	WarpList[#WarpList + 1] = warp
 
 	dots.New(info, warp)
 end
 
-return { make = NewWarp, editor = OnEditorEvent }
+return M
