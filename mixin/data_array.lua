@@ -92,7 +92,7 @@ local function GetList (da, list)
 	return list or { size = da:DataArray_GetItemSize(), top = 0 }
 end
 
---- Adds an item to the array.
+--- Add an item to the array.
 -- @param ...
 function DataArrayMixin:DataArray_AddToList (...)
 	local list = GetList(self, self[_list])
@@ -255,7 +255,7 @@ local function DefDynamicFactory (dset, list, ...)
 	return dfunc
 end
 
---- Adds an item to the array.
+--- Add an item to the array.
 -- @param ...
 -- @treturn function X
 function DataArrayMixin:DataArray_AddToList_Dynamic (...)
@@ -284,7 +284,7 @@ function DataArrayMixin:DataArray_GetItemSize ()
 	return self[_item_size] or 1
 end
 
---- Getters.
+---
 -- @treturn boolean List has items?
 function DataArrayMixin:DataArray_HasItems ()
 	return self[_list] ~= nil
@@ -422,8 +422,8 @@ end
 function Actions:remove ()
 	self[_dynamic_list], self[_list], self[_item_size] = nil
 
-	for k, v in pairs(DataArrayMixin) do
-		self[k] = v
+	for k in pairs(DataArrayMixin) do
+		self[k] = nil
 	end
 end
 

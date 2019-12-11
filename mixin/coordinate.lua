@@ -1,4 +1,4 @@
---- Component that confers a local coordinate system on its owner.
+--- Component that confers a coordinate system on its owner.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,17 +23,43 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local pairs = pairs
+local sqrt = math.sqrt
 
+-- Modules --
+local component = require("tektite_core.component")
 
+-- Unique member keys --
+local _lcs = {}
 
+--
+--
+--
 
-
-
-
-
+local CoordinateMixin = {}
 
 --- DOCME
-function M.GlobalToLocal (x, y, lcs)
+--[[
+function CoordinateMixin:Coordinate_GetComponents (x, y)
+	local lcs = self[_lcs]
+
+	if lcs then
+		local cx, cy, lx, ly, fx, fy, ux, uy = lcs()
+		local dx, dy, f2, u2 = x - cx, y - cy, fx^2 + fy^2, ux^2 + uy^2
+		local s = (dx * fx + dy * fy) / f2
+		local t = (dx * ux + dy * uy) / u2
+
+		return lx + s * sqrt(f2), ly + t * sqrt(u2)
+	else
+		return x, y
+	end
+end
+]]
+--- DOCME
+function CoordinateMixin:Coordinate_GlobalToLocal (x, y)
+	local lcs = self[_lcs]
+
 	if lcs then
 		local cx, cy, lx, ly, fx, fy, ux, uy = lcs()
 		local dx, dy, flen2, ulen2 = x - lx, y - ly, fx^2 + fy^2, ux^2 + uy^2
@@ -45,7 +71,14 @@ function M.GlobalToLocal (x, y, lcs)
 end
 
 --- DOCME
-function M.LocalToGlobal (x, y, lcs)
+function CoordinateMixin:Coordinate_HasLocalCoordinateSystem ()
+	return self[_lcs] ~= nil
+end
+
+--- DOCME
+function CoordinateMixin:Coordinate_LocalToGlobal (x, y)
+	local lcs = self[_lcs]
+
 	if lcs then
 		local cx, cy, lx, ly, fx, fy, ux, uy = lcs()
 		local dx, dy = x - lx, y - ly
@@ -55,3 +88,26 @@ function M.LocalToGlobal (x, y, lcs)
 		return x, y
 	end
 end
+
+--- DOCME
+function CoordinateMixin:Coordinate_SetLocalCoordinateSystem (lcs)
+	self[_lcs] = 
+end
+
+local Actions = { allow_add = "is_table" }
+
+function Actions:add ()
+	for k, v in pairs(CoordinateMixin) do
+		self[k] = v
+	end
+end
+
+function Actions:remove ()
+	self[_lcs] = nil
+
+	for k in pairs(CoordinateMixin) do
+		self[k] = nil
+	end
+end
+
+return component.RegisterType{ name = "coordinate", actions = Actions }
