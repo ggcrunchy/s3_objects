@@ -40,38 +40,38 @@ local _lcs = {}
 local CoordinateMixin = {}
 
 --- DOCME
---[[
+-- TODO: VERY unsure about this :P
 function CoordinateMixin:Coordinate_GetComponents (x, y)
 	local lcs = self[_lcs]
 
 	if lcs then
-		local cx, cy, lx, ly, fx, fy, ux, uy = lcs()
-		local dx, dy, f2, u2 = x - cx, y - cy, fx^2 + fy^2, ux^2 + uy^2
-		local s = (dx * fx + dy * fy) / f2
+		local cx, cy, lx, ly, rx, ry, ux, uy = lcs()
+		local dx, dy, r2, u2 = x - cx, y - cy, rx^2 + ry^2, ux^2 + uy^2
+		local s = (dx * rx + dy * ry) / r2
 		local t = (dx * ux + dy * uy) / u2
 
-		return lx + s * sqrt(f2), ly + t * sqrt(u2)
+		return lx + s * sqrt(r2), ly + t * sqrt(u2)
 	else
 		return x, y
 	end
 end
-]]
+
 --- DOCME
 function CoordinateMixin:Coordinate_GlobalToLocal (x, y)
 	local lcs = self[_lcs]
 
 	if lcs then
-		local cx, cy, lx, ly, fx, fy, ux, uy = lcs()
-		local dx, dy, flen2, ulen2 = x - lx, y - ly, fx^2 + fy^2, ux^2 + uy^2
+		local cx, cy, lx, ly, rx, ry, ux, uy = lcs()
+		local dx, dy, rlen2, ulen2 = x - lx, y - ly, rx^2 + ry^2, ux^2 + uy^2
 
-		return cx + (dx * fx + dy * fy) / flen2, cy + (dx * ux + dy * uy) / ulen2
+		return cx + (dx * rx + dy * ry) / rlen2, cy + (dx * ux + dy * uy) / ulen2
 	else
 		return x, y
 	end
 end
 
 --- DOCME
-function CoordinateMixin:Coordinate_HasLocalCoordinateSystem ()
+function CoordinateMixin:Coordinate_HasLocalSystem ()
 	return self[_lcs] ~= nil
 end
 
@@ -80,18 +80,18 @@ function CoordinateMixin:Coordinate_LocalToGlobal (x, y)
 	local lcs = self[_lcs]
 
 	if lcs then
-		local cx, cy, lx, ly, fx, fy, ux, uy = lcs()
+		local cx, cy, lx, ly, rx, ry, ux, uy = lcs()
 		local dx, dy = x - lx, y - ly
 
-		return cx + dx * fx + dy * ux, cy + dx * fy + dy * uy
+		return cx + dx * rx + dy * ux, cy + dx * ry + dy * uy
 	else
 		return x, y
 	end
 end
 
 --- DOCME
-function CoordinateMixin:Coordinate_SetLocalCoordinateSystem (lcs)
-	self[_lcs] = 
+function CoordinateMixin:Coordinate_SetLocalSystem (lcs)
+	self[_lcs] = lcs
 end
 
 local Actions = { allow_add = "is_table" }
