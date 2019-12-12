@@ -98,7 +98,9 @@ local function WarpIn (object, on_complete)
 	return handle
 end
 
-local Mask = graphics.newMask("s3_objects/dot/gfx/WarpMask.png")
+local HereGFX = file.Prefix_FromModuleAndPath(..., "gfx")
+
+local Mask = graphics.newMask(HereGFX .. "WarpMask.png")
 
 local MaskOut = { maskScaleX = 0, maskScaleY = 0, time = 900, transition = easing.outQuad }
 
@@ -490,7 +492,7 @@ local function LeaveLevel ()
 	Runtime:removeEventListener("set_canvas_alpha", SetCanvasAlpha)
 end
 
-WarpFill.paint1.filename = file.Prefix_FromModuleAndPath(..., "gfx") .. "Warp.png"
+WarpFill.paint1.filename = HereGFX .. "Warp.png"
 
 local function AddTarget (target, warp)
 	warp.m_to = target
