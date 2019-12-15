@@ -32,7 +32,7 @@ local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
 local collision = require("corona_utils.collision")
 local component = require("tektite_core.component")
-local data_array = require("s3_objects.mixin.data_array")
+local data_store = require("s3_objects.mixin.data_store")
 local distort = require("s3_utils.snippets.operations.distort")
 local dots = require("s3_utils.dots")
 local file = require("corona_utils.file")
@@ -127,7 +127,7 @@ local function DoWarp (warp, func)
 
 		func("move_prepare", warp, target)
 
-		local items = warp:DataArray_RemoveList()
+		local items = warp:DataStore_RemoveParts()
 
 		if items then
 			-- Make a list for tracking transition handles and add it to a free slot.
@@ -241,9 +241,7 @@ local function IgnoreSetAngle (what)
 end
 
 local function Getter (_, what)
-	if what == "block_func_prep_P" then
-		return IgnoreSetAngle
-	elseif what == "body_P" then
+	if what == "body_P" then
 		return Body
 	elseif what == "on_rotate_block_P" then
 		return Rotate
@@ -256,7 +254,7 @@ Warp.__rprops = { block_func_prep_P = Getter, body_P = Getter, on_rotate_block_P
 
 --- Dot method: reset warp state.
 function Warp:Reset ()
-	self:DataArray_RemoveList()
+	self:DataStore_RemoveParts()
 end
 
 local function Scale (warp, scale)
@@ -271,7 +269,7 @@ function Warp:Update ()
 	Scale(self, 1 - sin(self.rotation / 30) * .05)
 end
 
---- Manually triggers a warp, sending anything loaded by @{DataArrayMixin:DataArray_AddToList} through.
+--- Manually triggers a warp, sending through anything loaded by @{DataArrayMixin:DataStore_Append}.
 --
 -- The cargo is emptied after use.
 --
@@ -451,7 +449,7 @@ function M.editor (what, arg1, arg2, arg3)
 	end
 end
 
-component.AddToObject(Warp, data_array)
+component.AddToObject(Warp, data_store)
 
 local function PreReset()
 	for i, hgroup in ipairs(HandleGroups) do
