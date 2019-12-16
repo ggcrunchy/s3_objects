@@ -30,6 +30,7 @@ local sin = math.sin
 -- Modules --
 local audio = require("corona_utils.audio")
 local bind = require("corona_utils.bind")
+local call = require("corona_utils.call")
 local collision = require("corona_utils.collision")
 local component = require("tektite_core.component")
 local data_store = require("s3_objects.mixin.data_store")
@@ -60,170 +61,14 @@ local M = {}
 
 local Warp = {}
 
-local MarkersLayer
-
-local MoveParams = { transition = easing.inOutQuad }
-
-local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
-
-local WarpList
-
-local function DefWarp () end
-
--- Groups of warp transition handles, to allow cancelling --
-local HandleGroups
-
-local function ClearMask (object)
-	object:setMask(nil)
-end
-
-local function ScaleMask (body, object)
-	object = object or body
-
-	object.maskScaleX = body.width / 4
-	object.maskScaleY = body.height / 2
-end
-
-local MaskIn = { time = 900, transition = easing.inQuad }
-
-local function WarpIn (object, on_complete)
-	ScaleMask(object, MaskIn)
-
-	MaskIn.onComplete = on_complete or ClearMask
-
-	local handle = transition.to(object, MaskIn)
-
-	MaskIn.onComplete = nil
-
-	return handle
-end
-
-local HereGFX = file.Prefix_FromModuleAndPath(..., "gfx")
-
-local Mask = graphics.newMask(HereGFX .. "WarpMask.png")
-
-local MaskOut = { maskScaleX = 0, maskScaleY = 0, time = 900, transition = easing.outQuad }
-
-local function WarpOut (object, on_complete)
-	object:setMask(Mask)
-
-	ScaleMask(object)
-
-	MaskOut.onComplete = on_complete or nil
-
-	local handle = transition.to(object, MaskOut)
-
-	MaskOut.onComplete = nil
-
-	return handle
-end
-
--- Warp logic
-local function DoWarp (warp, func)
-	local target = warp.m_to
-
-	if target then
-		func = func or DefWarp
-
-		func("move_prepare", warp, target)
-
-		local items = warp:DataStore_RemoveParts()
-
-		if items then
-			-- Make a list for tracking transition handles and add it to a free slot.
-			local hindex, handles = 1, {}
-
-			while HandleGroups[hindex] do
-				hindex = hindex + 1
-			end
-
-			HandleGroups[hindex] = handles
-
-			-- Warp-in onComplete handler, which concludes the warp and does cleanup
-			local function WarpIn_OC (object)
-				if display.isValid(object) then
-					func("move_done", warp, target)
-
-					object:setMask(nil)
-
-					-- Remove all trace of transitions.
-					for i = 1, #handles do
-						handles[i] = false
-					end
-
-					HandleGroups[hindex] = false
-				end
-			end
-
-			-- Move onComplete handler, which segues into the warp-in stage of warping
-			local function MoveParams_OC (object)
-				if display.isValid(object) then
-					for i, item in ipairs(items) do
-						handles[i] = WarpIn(item, i == 1 and WarpIn_OC)
-					end
-
-					func("move_done_moving", warp, target)
-
-					Sounds:PlaySound("warp")
-				end
-			end
-
-			-- Warp-out onComplete handler, which segues into the move stage of warping
-			-- TODO: What if the warp is moving?
-			local tx, ty = target.x, target.y
-
-			local function WarpOut_OC (object)
-				if display.isValid(object) then
-					local dx, dy = object.x - tx, object.y - ty
-
-					MoveParams.x = tx
-					MoveParams.y = ty
-					MoveParams.time = length.ToBin(dx, dy, 200, 5) * 100
-					MoveParams.onComplete = MoveParams_OC
-
-					func("move_began_moving", warp, target)
-
-					Sounds:PlaySound("whiz")
-
-					-- We now want to track the single move transition. If we do need to
-					-- cancel the warp, the logic only looks up to the first missing handle,
-					-- so we can safely clear the list by setting the second entry false;
-					-- the full array will be overwritten by warp-in transition handles in
-					-- the next stage.
-					handles[1], handles[2] = transition.to(object, MoveParams), false
-				end
-			end
-
-			-- Kick off the warp-out transitions of each item. Since the transitions all
-			-- finish at the same time, only the first needs an onComplete callback.
-			for i, item in ipairs(items) do
-				handles[i] = WarpOut(item, i == 1 and WarpOut_OC)
-			end
-
-			Sounds:PlaySound("warp")
-
-			return true
-		end
-	end
-end
-
 local WarpEvent = {}
-
--- DoWarp-compatible event dispatch
-local function DispatchWarpEvent (name, from, to)
-	WarpEvent.name, WarpEvent.from, WarpEvent.to = name, from, to
-
-	Runtime:dispatchEvent(WarpEvent)
-
-	WarpEvent.from, WarpEvent.to = nil
-end
 
 --- Dot method: warp acted on as dot of interest.
 --
 -- If the warp has a valid target, dispatches various events (cf. _func_ in @{Warp:Use})
--- with this warp and the target as arguments.
-function Warp:ActOn ()
-	if not DoWarp(self, DispatchWarpEvent) then
+-- to the actor with this warp and said target as arguments.
+function Warp:ActOn (actor)
+	if not self:Use(actor) then
 		-- Sound effect?
 	end
 end
@@ -234,10 +79,6 @@ local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "WarpTouch.png"
 
 local function Rotate (warp, angle)
 	-- TODO: polarity, etc.
-end
-
-local function IgnoreSetAngle (what)
-	return what == "set_angle" and "ignore"
 end
 
 local function Getter (_, what)
@@ -269,7 +110,68 @@ function Warp:Update ()
 	Scale(self, 1 - sin(self.rotation / 30) * .05)
 end
 
---- Manually triggers a warp, sending through anything loaded by @{DataArrayMixin:DataStore_Append}.
+local function DispatchWarpEvent (user, name, from, to)
+	WarpEvent.name, WarpEvent.from, WarpEvent.to = name, from, to
+
+	call.DispatchOrHandleEvent(user, WarpEvent)
+
+	WarpEvent.from, WarpEvent.to = nil
+end
+
+local function ClearMask (object)
+	object:setMask(nil)
+end
+
+local function ScaleMask (body, object)
+	object = object or body
+
+	object.maskScaleX = body.width / 4
+	object.maskScaleY = body.height / 2
+end
+
+local Tag = "Warp:TransitionTag"
+
+local MaskIn = { time = 900, tag = Tag, transition = easing.inQuad }
+
+local function DoTransitionThenComplete (object, params, on_complete)
+	params.onComplete = on_complete
+
+	transition.to(object, params)
+
+	params.onComplete = nil
+end
+
+local function WarpIn (object, on_complete)
+	ScaleMask(object, MaskIn)
+	DoTransitionThenComplete(object, MaskIn, on_complete or ClearMask)
+end
+
+local HereGFX = file.Prefix_FromModuleAndPath(..., "gfx")
+
+local Mask = graphics.newMask(HereGFX .. "WarpMask.png")
+
+local MaskOut = { maskScaleX = 0, maskScaleY = 0, tag = Tag, time = 900, transition = easing.outQuad }
+
+local function WarpOut (object, on_complete)
+	object:setMask(Mask)
+
+	ScaleMask(object)
+	DoTransitionThenComplete(object, MaskOut, on_complete)
+end
+
+local function DoAll (items, func, on_first)
+	func(items[1], on_first) -- transitions more or less simultaneous, so only one needs to do the on-complete logic
+
+	for i = 2, #items do
+		func(items[i])
+	end
+end
+
+local MoveParams = { tag = Tag, transition = easing.inOutQuad }
+
+local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
+
+--- Trigger a warp, sending through anything loaded by @{DataArrayMixin:DataStore_Append}.
 --
 -- The cargo is emptied after use.
 --
@@ -284,9 +186,65 @@ end
 --
 -- If absent, this is a no-op.
 -- @treturn boolean The warp had cargo and a target?
-function Warp:Use (func)
-	return DoWarp(self, func) ~= nil
+function Warp:Use (user)
+	local target = self.m_to
+
+	if target then
+		DispatchWarpEvent(user, "move_prepare", self, target)
+
+		local items = self:DataStore_RemoveParts()
+
+		if items then
+			-- Warp-in onComplete handler, which concludes the warp and does cleanup
+			local function WarpIn_OC (object)
+				if display.isValid(object) then
+					DispatchWarpEvent(user, "move_done", self, target)
+
+					object:setMask(nil)
+				end
+			end
+
+			-- Move onComplete handler, which segues into the warp-in stage of warping
+			local function MoveParams_OC (object)
+				if display.isValid(object) then
+					DoAll(items, WarpIn, WarpIn_OC)
+					DispatchWarpEvent(user, "move_done_moving", self, target)
+
+					Sounds:PlaySound("warp")
+				end
+			end
+
+			-- Warp-out onComplete handler, which segues into the move stage of warping
+			-- TODO: What if the warp is moving?
+			local tx, ty = target.x, target.y
+
+			local function WarpOut_OC (object)
+				if display.isValid(object) then
+					DispatchWarpEvent(user, "move_began_moving", self, target)
+
+					Sounds:PlaySound("whiz")
+
+					local dx, dy = object.x - tx, object.y - ty
+
+					MoveParams.x = tx
+					MoveParams.y = ty
+					MoveParams.time = length.ToBin(dx, dy, 200, 5) * 100
+					MoveParams.onComplete = MoveParams_OC
+
+					transition.to(object, MoveParams)
+				end
+			end
+
+			DoAll(items, WarpOut, WarpOut_OC)
+
+			Sounds:PlaySound("warp")
+
+			return true
+		end
+	end
 end
+
+local MarkersLayer
 
 local TouchEvent = { name = "touching_dot" }
 
@@ -452,20 +410,10 @@ end
 component.AddToObject(Warp, data_store)
 
 local function PreReset()
-	for i, hgroup in ipairs(HandleGroups) do
-		if hgroup then
-			for _, t in ipairs(hgroup) do
-				if t then
-					transition.cancel(t)
-				else
-					break
-				end
-			end
-
-			HandleGroups[i] = false
-		end
-	end
+	transition.cancel(Tag)
 end
+
+local WarpList
 
 local function SetCanvasAlpha (event)
 	local alpha = event.alpha
@@ -482,12 +430,14 @@ local WarpFill = {
 }
 
 local function LeaveLevel ()
-	HandleGroups, MarkersLayer, WarpList = nil
+	MarkersLayer, WarpList = nil
 	WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
 
 	Runtime:removeEventListener("leave_level", LeaveLevel)
 	Runtime:removeEventListener("pre_reset", PreReset)
 	Runtime:removeEventListener("set_canvas_alpha", SetCanvasAlpha)
+
+	transition.cancel(Tag)
 end
 
 WarpFill.paint1.filename = HereGFX .. "Warp.png"
@@ -500,8 +450,7 @@ local WarpRadius
 
 local function FirstTimeInit (params)
 	MarkersLayer = params.markers_layer
-	HandleGroups, WarpList = {}, {}
-	WarpRadius = 1.15 * (params.w + params.h) / 2
+	WarpList, WarpRadius = {}, 1.15 * (params.w + params.h) / 2
 
 	distort.AttachCanvasToPaint(WarpFill.paint2, params.canvas)
 
