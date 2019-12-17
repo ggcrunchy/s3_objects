@@ -190,11 +190,6 @@ function DataStoreMixin:DataStore_RemoveParts (how)
 	return result
 end
 
--- Reset:
--- self.m_items = nil
-
--- TODO: various move_done_* etc. events
-
 local Actions = { allow_add = "is_table" }
 
 function Actions:add ()
