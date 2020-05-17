@@ -109,29 +109,29 @@ function M.SetFlags (block, open)
 		-- alone, accept it if the next cell up has a "down" flag.
 		local uedge = open[i + 1]
 
-		if uedge and row > 1 and (uedge ~= "edge" or tile_flags.IsFlagSet_Working(index - ncols, "down")) then
-			flags = flags + tile_flags.GetFlagsByName("up")
+		if uedge and row > 1 and (uedge ~= "edge" or tile_flags.IsWorkingFlagSet(index - ncols, "down")) then
+			flags = flags + movement.GetDirectionFlag("up")
 		end
 
 		-- Likewise, going left...
 		local ledge = open[i + 2]
 
-		if ledge and col > 1 and (ledge ~= "edge" or tile_flags.IsFlagSet_Working(index - 1, "right")) then
-			flags = flags + tile_flags.GetFlagsByName("left")
+		if ledge and col > 1 and (ledge ~= "edge" or tile_flags.IsWorkingFlagSet(index - 1, "right")) then
+			flags = flags + movement.GetDirectionFlag("left")
 		end
 
 		-- ...going down...
 		local dedge = open[i + 3]
 
-		if dedge and row < nrows and (dedge ~= "edge" or tile_flags.IsFlagSet_Working(index + ncols, "up")) then
-			flags = flags + tile_flags.GetFlagsByName("down")
+		if dedge and row < nrows and (dedge ~= "edge" or tile_flags.IsWorkingFlagSet(index + ncols, "up")) then
+			flags = flags + movement.GetDirectionFlag("down")
 		end
 
 		-- ...and going right.
 		local redge = open[i + 4]
 
-		if redge and col < ncols and (redge ~= "edge" or tile_flags.IsFlagSet_Working(index + 1, "left")) then
-			flags = flags + tile_flags.GetFlagsByName("right")
+		if redge and col < ncols and (redge ~= "edge" or tile_flags.IsWorkingFlagSet(index + 1, "left")) then
+			flags = flags + movement.GetDirectionFlag("right")
 		end
 
 		-- Register the final flags.
@@ -173,7 +173,7 @@ function M.Visit (block, occupancy, func, arg, xform)
 			local x, y = from[i], from[i + 1]
 			local tile = tile_maps.GetTileIndex(x, y)
 
-			for dir in movement.DirectionsFromFlags(tile_flags.GetResolvedFlags(tile)) do
+			for dir in movement.DirectionsFromFlags(tile_flags.GetFlags(tile)) do
 				local tx, ty, bounded = x, y
 
 				if dir == "left" or dir == "right" then
