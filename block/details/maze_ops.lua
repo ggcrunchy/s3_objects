@@ -171,8 +171,9 @@ function M.Visit (block, occupancy, func, arg, xform)
 
 		for i = 1, count, 2 do
 			local x, y = from[i], from[i + 1]
+			local tile = tile_maps.GetTileIndex(x, y)
 
-			for dir in movement.Ways(tile_maps.GetTileIndex(x, y)) do
+			for dir in movement.DirectionsFromFlags(tile_flags.GetResolvedFlags(tile)) do
 				local tx, ty, bounded = x, y
 
 				if dir == "left" or dir == "right" then
