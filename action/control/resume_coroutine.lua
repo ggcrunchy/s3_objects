@@ -32,7 +32,7 @@ local status = coroutine.status
 local type = type
 
 -- Modules --
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 local object_vars = require("config.ObjectVariables")
 local store = require("s3_utils.state.store")
 

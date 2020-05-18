@@ -28,7 +28,7 @@ local max = math.max
 local running = coroutine.running
 
 -- Modules --
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 local flow = require("coroutine_ops.flow")
 
 --

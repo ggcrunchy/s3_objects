@@ -27,7 +27,7 @@
 local max = math.max
 
 -- Modules --
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 local object_vars = require("config.ObjectVariables")
 
 -- Corona globals --

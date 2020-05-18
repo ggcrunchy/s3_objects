@@ -28,7 +28,7 @@ local pairs = pairs
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 local meta = require("tektite_core.table.meta")
 local object_vars = require("config.ObjectVariables")
 local ring_buffer = require("tektite_core.array.ring_buffer")

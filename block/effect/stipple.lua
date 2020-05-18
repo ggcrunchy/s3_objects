@@ -24,7 +24,7 @@
 --
 
 -- Modules --
-local includer = require("corona_utils.includer")
+local includer = require("solar2d_utils.includer")
 local orange_duck = require("s3_utils.snippets.operations.orange_duck")
 
 --

@@ -32,7 +32,7 @@ local min = math.min
 local pairs = pairs
 
 -- Modules --
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 local object_vars = require("config.ObjectVariables")
 
 --

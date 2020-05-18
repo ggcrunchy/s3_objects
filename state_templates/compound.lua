@@ -28,7 +28,7 @@ local ipairs = ipairs
 local pairs = pairs
 
 -- Modules --
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 local expression = require("s3_utils.expression")
 local object_vars = require("config.ObjectVariables")
 local strings = require("tektite_core.var.strings")

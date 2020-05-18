@@ -24,7 +24,7 @@
 --
 
 -- Modules --
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 
 --
 --

@@ -34,7 +34,7 @@ local sort = table.sort
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local args = require("iterator_ops.args")
-local bind = require("corona_utils.bind")
+local bind = require("solar2d_utils.bind")
 local object_vars = require("config.ObjectVariables")
 local table_funcs = require("tektite_core.table.funcs")
 

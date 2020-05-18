@@ -24,13 +24,13 @@
 --
 
 -- Modules --
-local audio = require("corona_utils.audio")
-local bind = require("corona_utils.bind")
-local call = require("corona_utils.call")
-local collision = require("corona_utils.collision")
+local audio = require("solar2d_utils.audio")
+local bind = require("solar2d_utils.bind")
+local call = require("solar2d_utils.call")
+local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local dots = require("s3_utils.dots")
-local file = require("corona_utils.file")
+local file = require("solar2d_utils.file")
 local meta = require("tektite_core.table.meta")
 
 -- Plugins --

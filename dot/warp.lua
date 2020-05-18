@@ -28,16 +28,16 @@ local ipairs = ipairs
 local sin = math.sin
 
 -- Modules --
-local audio = require("corona_utils.audio")
-local bind = require("corona_utils.bind")
-local call = require("corona_utils.call")
-local collision = require("corona_utils.collision")
+local audio = require("solar2d_utils.audio")
+local bind = require("solar2d_utils.bind")
+local call = require("solar2d_utils.call")
+local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local data_store = require("s3_objects.mixin.data_store")
 local distort = require("s3_utils.snippets.operations.distort")
 local dots = require("s3_utils.dots")
-local file = require("corona_utils.file")
-local frames = require("corona_utils.frames")
+local file = require("solar2d_utils.file")
+local frames = require("solar2d_utils.frames")
 local length = require("tektite_core.number.length")
 local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
