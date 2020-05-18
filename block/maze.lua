@@ -50,7 +50,7 @@ local preview_effect = require("s3_objects.block.effect.preview")
 local stipple_effect = require("s3_objects.block.effect.stipple")
 local unfurl_effect = require("s3_objects.block.effect.unfurl")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local easing = easing
 local Runtime = Runtime

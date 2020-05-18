@@ -38,7 +38,7 @@ local setmetatable = setmetatable
 local args = require("iterator_ops.args")
 local tilesets = require("s3_utils.tilesets")
 
--- Corona globals --
+-- Solar2D globals --
 local graphics = graphics
 
 --

@@ -28,7 +28,7 @@ local bind = require("solar2d_utils.bind")
 local object_vars = require("config.ObjectVariables")
 local store = require("s3_utils.state.store")
 
--- Corona globals --
+-- Solar2D globals --
 local Runtime = Runtime
 
 -- Exports --

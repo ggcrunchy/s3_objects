@@ -35,7 +35,7 @@ local adaptive = require("tektite_core.table.adaptive")
 local bind = require("solar2d_utils.bind")
 local ring_buffer = require("tektite_core.array.ring_buffer")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local native = native
 local Runtime = Runtime

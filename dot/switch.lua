@@ -36,7 +36,7 @@ local meta = require("tektite_core.table.meta")
 -- Plugins --
 local bit = require("plugin.bit")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local Runtime = Runtime
 

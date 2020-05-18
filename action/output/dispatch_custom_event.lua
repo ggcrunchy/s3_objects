@@ -33,7 +33,7 @@ local type = type
 local adaptive = require("tektite_core.table.adaptive")
 local bind = require("solar2d_utils.bind")
 
--- Corona globals --
+-- Solar2D globals --
 local Runtime = Runtime
 
 --

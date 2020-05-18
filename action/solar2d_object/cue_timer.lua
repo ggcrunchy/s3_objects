@@ -1,4 +1,4 @@
---- Cue a Corona timer.
+--- Cue a Solar2D timer.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -31,7 +31,7 @@ local adaptive = require("tektite_core.table.adaptive")
 local bind = require("solar2d_utils.bind")
 local object_vars = require("config.ObjectVariables")
 
--- Corona globals --
+-- Solar2D globals --
 local native = native
 local timer = timer
 

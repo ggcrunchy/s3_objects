@@ -35,7 +35,7 @@ local indexOf = table.indexOf
 -- Modules --
 local component = require("tektite_core.component")
 
--- Corona modules --
+-- Solar2D modules --
 local display = display
 
 -- Unique member keys --

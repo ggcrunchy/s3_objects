@@ -1,4 +1,4 @@
---- Cue a Corona transition.
+--- Cue a Solar2D transition.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining

@@ -45,7 +45,7 @@ local meta = require("tektite_core.table.meta")
 -- Effects --
 local warp_effect = require("s3_objects.dot.effect.warp")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local easing = easing
 local graphics = graphics
