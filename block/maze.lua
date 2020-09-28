@@ -42,6 +42,7 @@ local embedded_predicate = require("tektite_core.array.embedded_predicate")
 local maze_ops = require("s3_objects.block.details.maze_ops")
 local tile_effect = require("s3_objects.block.details.tile_effect")
 local tile_flags = require("s3_utils.tile_flags")
+local tile_layout = require("s3_utils.tile_layout")
 local tile_maps = require("s3_utils.tile_maps")
 local tilesets = require("s3_utils.tilesets")
 
@@ -219,7 +220,7 @@ local function ShakeBy ()
 end
 
 local function UpdateTiles (block)
-	tile_maps.SetTilesFromFlags(block:GetImageGroup(), block:GetInitialRect())
+	tile_maps.SetTilesFromFlags(block:GetImageGroup(), tilesets.NewTile, block:GetInitialRect())
 end
 
 local FadeParams = { onComplete = display.remove }
@@ -380,18 +381,18 @@ local function NewMaze (info, params)
 				local w, h = col2 - col1 + 1, row2 - row1 + 1
 				local tex = bitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
 
-				i1 = tile_maps.GetTileIndex(col1, row1)
-				i2 = tile_maps.GetTileIndex(col2, row2)
+				i1 = tile_layout.GetIndex(col1, row1)
+				i2 = tile_layout.GetIndex(col2, row2)
 				maxt = 0
 
 				-- Make a random maze in the block with a low-res texture to represent it.
 				maze_ops.Wipe(block, open)
 				maze_ops.Build(open, occupancy)
 
-				local prev = tile_flags.UseFlags(open) -- arbitrary nonce
+				local prev = tile_flags.UseGroup(open) -- arbitrary nonce
 
 				maze_ops.SetFlags(block, open)
-				tile_flags.ResolveFlags()
+				tile_flags.Resolve()
 				maze_ops.Visit(block, occupancy, function(dir, t, _, x, y)
 					local ix, iy = (x - col1) * 2 + 1, (y - row1) * 2 + 1
 
@@ -416,7 +417,7 @@ local function NewMaze (info, params)
 						return true
 					end
 				end, 0, IncPreviewTime)
-				tile_flags.UseFlags(prev)
+				tile_flags.UseGroup(prev)
 
 				tex:invalidate()
 
@@ -432,9 +433,9 @@ local function NewMaze (info, params)
 			params.markers_layer:insert(mgroup)
 
 			--
-			local x1, y1 = tile_maps.GetTilePos(i1)
-			local x2, y2 = tile_maps.GetTilePos(i2)
-			local tilew, tileh = tile_maps.GetSizes()
+			local x1, y1 = tile_layout.GetPosition(i1)
+			local x2, y2 = tile_layout.GetPosition(i2)
+			local tilew, tileh = tile_layout.GetSizes()
 			local cx, cy, mw, mh = (x1 + x2) / 2, (y1 + y2) / 2, x2 - x1 + tilew, y2 - y1 + tileh
 			local mhint, hold = display.newRect(mgroup, cx, cy, mw, mh), .05
 			local border = display.newRect(mgroup, cx, cy, mw, mh)
@@ -464,7 +465,7 @@ local function NewMaze (info, params)
 
 				transition.to(mgroup, FadeParams)
 			end
-
+-- TODO: need to tear down or clear the preview, else gets very confusing after first use :D
 			mgroup = nil
 		end
 	end

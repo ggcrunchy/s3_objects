@@ -29,9 +29,9 @@ local random = math.random
 local remove = table.remove
 
 -- Modules --
-local movement = require("s3_utils.movement")
+local enums = require("s3_utils.enums")
+local tile_layout = require("s3_utils.tile_layout")
 local tile_flags = require("s3_utils.tile_flags")
-local tile_maps = require("s3_utils.tile_maps")
 
 -- Exports --
 local M = {}
@@ -40,10 +40,8 @@ local M = {}
 --
 --
 
--- Tile deltas (indices into Deltas) available on current iteration, during maze building --
 local Choices = {}
 
--- Tile deltas in each cardinal direction --
 local Deltas = { false, -1, false, 1 }
 
 local Work = {}
@@ -99,7 +97,7 @@ end
 --
 -- Border flags are left in place, allowing the maze to coalesce with the rest of the level.
 function M.SetFlags (block, open)
-	local i, ncols, nrows = 0, tile_maps.GetCounts()
+	local i, ncols, nrows = 0, tile_layout.GetCounts()
 
 	for index, col, row in block:IterSelf() do
 		local flags = 0
@@ -110,28 +108,28 @@ function M.SetFlags (block, open)
 		local uedge = open[i + 1]
 
 		if uedge and row > 1 and (uedge ~= "edge" or tile_flags.IsWorkingFlagSet(index - ncols, "down")) then
-			flags = flags + movement.GetDirectionFlag("up")
+			flags = flags + enums.GetFlagByName("up")
 		end
 
 		-- Likewise, going left...
 		local ledge = open[i + 2]
 
 		if ledge and col > 1 and (ledge ~= "edge" or tile_flags.IsWorkingFlagSet(index - 1, "right")) then
-			flags = flags + movement.GetDirectionFlag("left")
+			flags = flags + enums.GetFlagByName("left")
 		end
 
 		-- ...going down...
 		local dedge = open[i + 3]
 
 		if dedge and row < nrows and (dedge ~= "edge" or tile_flags.IsWorkingFlagSet(index + ncols, "up")) then
-			flags = flags + movement.GetDirectionFlag("down")
+			flags = flags + enums.GetFlagByName("down")
 		end
 
 		-- ...and going right.
 		local redge = open[i + 4]
 
 		if redge and col < ncols and (redge ~= "edge" or tile_flags.IsWorkingFlagSet(index + 1, "left")) then
-			flags = flags + movement.GetDirectionFlag("right")
+			flags = flags + enums.GetFlagByName("right")
 		end
 
 		-- Register the final flags.
@@ -171,9 +169,9 @@ function M.Visit (block, occupancy, func, arg, xform)
 
 		for i = 1, count, 2 do
 			local x, y = from[i], from[i + 1]
-			local tile = tile_maps.GetTileIndex(x, y)
+			local tile = tile_layout.GetIndex(x, y)
 
-			for dir in movement.DirectionsFromFlags(tile_flags.GetFlags(tile)) do
+			for dir in tile_flags.GetDirections(tile) do
 				local tx, ty, bounded = x, y
 
 				if dir == "left" or dir == "right" then
@@ -185,7 +183,7 @@ function M.Visit (block, occupancy, func, arg, xform)
 				end
 
 				if bounded then
-					local tindex = tile_maps.GetTileIndex(tx, ty)
+					local tindex = tile_layout.GetIndex(tx, ty)
 
 					if occupancy("mark", tindex) and func(dir, arg, tindex, tx, ty) then
 						to[nadded + 1], to[nadded + 2], nadded = tx, ty, nadded + 2
@@ -198,7 +196,7 @@ function M.Visit (block, occupancy, func, arg, xform)
 	until count == 0
 end
 
---- Wipes the maze state (and optionally its flags), marking borders.
+--- Wipe the maze state (and optionally its flags), marking borders.
 function M.Wipe (block, open, wipe_flags)
 	local i, col1, row1, col2, row2 = 0, block:GetInitialRect()
 
