@@ -70,6 +70,33 @@ local Names
 
 local Time
 
+local function GetPreviewForBlock (block, with_indices)
+	Time = Time or {}
+
+	local col1, row1, col2, row2 = block:GetInitialRect()
+
+	if not Time[block] then
+		local w, h = col2 - col1 + 1, row2 - row1 + 1
+		local tex = bitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
+
+		Time[block] = {
+			fill = {
+				type = "image", format = "rgb",
+				filename = tex.filename, baseDir = tex.baseDir
+			}, tex = tex
+		}
+	end
+
+	if with_indices then
+		local i1 = tile_layout.GetIndex(col1, row1)
+		local i2 = tile_layout.GetIndex(col2, row2)
+
+		return Time[block], col1, row1, i1, i2
+	else
+		return Time[block]
+	end
+end
+
 for k, v in pairs{
 	leave_level = function()
 		if Time then
@@ -233,6 +260,97 @@ local function IncPreviewTime (t)
 	return t + 1 / 32
 end
 
+local function CleanUpHint (block, mgroup)
+	if display.isValid(mgroup) then
+		FadeParams.alpha = .2
+
+		transition.to(mgroup, FadeParams)
+	end
+
+	local tex = GetPreviewForBlock(block).tex
+
+	for row = 1, tex.height do
+		for col = 1, tex.width do
+			tex:setPixel(col, row, 0, 0, 0)
+		end
+	end
+end
+
+local function MakeHint (block, open, occupancy, layer)
+	-- Make a random maze in the block with a low-res texture to represent it.
+	maze_ops.Wipe(block, open)
+	maze_ops.Build(open, occupancy)
+
+	local prev = tile_flags.UseGroup(open) -- arbitrary nonce
+
+	maze_ops.SetFlags(block, open)
+	tile_flags.Resolve()
+
+	local preview, col1, row1, i1, i2 = GetPreviewForBlock(block, true)
+	local maxt, tex = 0, preview.tex
+
+	maze_ops.Visit(block, occupancy, function(dir, t, _, x, y)
+		local ix, iy = (x - col1) * 2 + 1, (y - row1) * 2 + 1
+
+		if dir == "start" then
+			tex:setPixel(ix, iy, 0, 1, 0)
+		else
+			local dx, dy = 0, 0
+
+			if dir == "up" or dir == "down" then
+				dy = dir == "up" and -1 or 1
+			else
+				dx = dir == "left" and -1 or 1
+			end
+
+			tex:setPixel(ix - dx, iy - dy, t - 1 / 64, 1, 0)
+			tex:setPixel(ix, iy, t, 1, 0)
+
+			if t > maxt then
+				maxt = t
+			end
+
+			return true
+		end
+	end, 0, IncPreviewTime)
+	tile_flags.UseGroup(prev)
+
+	tex:invalidate()
+
+	--
+	local mgroup = display.newGroup()
+
+	layer:insert(mgroup)
+
+	--
+	local x1, y1 = tile_layout.GetPosition(i1)
+	local x2, y2 = tile_layout.GetPosition(i2)
+	local tilew, tileh = tile_layout.GetSizes()
+	local cx, cy, mw, mh = (x1 + x2) / 2, (y1 + y2) / 2, x2 - x1 + tilew, y2 - y1 + tileh
+	local mhint, hold = display.newRect(mgroup, cx, cy, mw, mh), .05
+	local border = display.newRect(mgroup, cx, cy, mw, mh)
+	local total = 2 * maxt + hold -- rise, hold, fall
+
+	mhint.fill = preview.fill
+	mhint.fill.effect = preview_effect
+	mhint.fill.effect.rise = maxt
+	mhint.fill.effect.hold = hold
+	mhint.fill.effect.total = total
+
+	border:setFillColor(0, 0)
+	border:setStrokeColor(0, 0, 1)
+	mhint:setFillColor(0, 1, 0, .35)
+
+	border.strokeWidth = 2
+
+	--
+	PreviewParams.t = total
+
+	transition.to(mhint.fill.effect, PreviewParams)
+
+	return mgroup
+end
+
 local function NewMaze (info, params)
 	-- Shaking block transition and state --
 	local shaking, gx, gy
@@ -316,26 +434,20 @@ local function NewMaze (info, params)
 							-- _forward_ is also probably meaningless / failure
 			return "failed"
 		end
-			
-		-- If the previous operation was adding the maze, then wipe it.
-		if added then
-			FadeOut(block)
-			maze_ops.Wipe(block, open, true)
 
-		-- Otherwise, make a new one and add it.
-		else
-			maze_ops.Build(open, occupancy)
-			maze_ops.SetFlags(block, open)
-		end
-
-		-- Alert listeners about tile changes and fade tiles in or out. When fading in,
-		-- we must first update the tiles to reflect the new flags; on fadeout, we need
-		-- to keep the images around until the fade is done, and at that point we can
-		-- just leave them as is since they're ipso facto invisible. (The fadeout is
-		-- now done further up, as the flags are used to gather some of the texture
-		-- information for stippling.)
 		added = not added
 
+		if added then
+			maze_ops.SetFlags(block, open)
+		else
+			FadeOut(block)
+			maze_ops.Wipe(block, open, true)
+		end
+
+		-- Alert listeners about our changes and fade tiles in or out. When fading in,
+		-- we must first update the tiles to reflect the new flags; on fadeout, we need
+		-- to keep the images around until the fade is done, but since this leaves them
+		-- invisible we can do nothing.
 		Runtime:dispatchEvent(TilesChangedEvent)
 
 		if added then
@@ -369,104 +481,28 @@ local function NewMaze (info, params)
 	-- TODO: What's a good way to show this? (maybe just reuse generator with line segments, perhaps
 	-- with a little graphics fluff like in the Hilbert sample... seems like we could ALSO use this
 	-- to sequence the unfurl)
-	local mgroup, i1, i2, maxt
+	local mgroup
 
 	local function Show (show)
 		-- Show...
 		if show then
-			Time = Time or {}
-
-			if not maxt then
-				local col1, row1, col2, row2 = block:GetInitialRect()
-				local w, h = col2 - col1 + 1, row2 - row1 + 1
-				local tex = bitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
-
-				i1 = tile_layout.GetIndex(col1, row1)
-				i2 = tile_layout.GetIndex(col2, row2)
-				maxt = 0
-
-				-- Make a random maze in the block with a low-res texture to represent it.
-				maze_ops.Wipe(block, open)
-				maze_ops.Build(open, occupancy)
-
-				local prev = tile_flags.UseGroup(open) -- arbitrary nonce
-
-				maze_ops.SetFlags(block, open)
-				tile_flags.Resolve()
-				maze_ops.Visit(block, occupancy, function(dir, t, _, x, y)
-					local ix, iy = (x - col1) * 2 + 1, (y - row1) * 2 + 1
-
-					if dir == "start" then
-						tex:setPixel(ix, iy, 0, 1, 0)
-					else
-						local dx, dy = 0, 0
-
-						if dir == "up" or dir == "down" then
-							dy = dir == "up" and -1 or 1
-						else
-							dx = dir == "left" and -1 or 1
-						end
-
-						tex:setPixel(ix - dx, iy - dy, t - 1 / 64, 1, 0)
-						tex:setPixel(ix, iy, t, 1, 0)
-
-						if t > maxt then
-							maxt = t
-						end
-
-						return true
-					end
-				end, 0, IncPreviewTime)
-				tile_flags.UseGroup(prev)
-
-				tex:invalidate()
-
-				Time[block] = {
-					fill = { type = "image", filename = tex.filename, baseDir = tex.baseDir, format = "rgb" },
-					tex = tex
-				}
+			if added then
+				return -- or show some "close" hint?
+			elseif mgroup then
+				mgroup.isVisible = true
+			else
+				mgroup = MakeHint(block, open, occupancy, params.markers_layer)
 			end
-
-			--
-			mgroup = display.newGroup()
-
-			params.markers_layer:insert(mgroup)
-
-			--
-			local x1, y1 = tile_layout.GetPosition(i1)
-			local x2, y2 = tile_layout.GetPosition(i2)
-			local tilew, tileh = tile_layout.GetSizes()
-			local cx, cy, mw, mh = (x1 + x2) / 2, (y1 + y2) / 2, x2 - x1 + tilew, y2 - y1 + tileh
-			local mhint, hold = display.newRect(mgroup, cx, cy, mw, mh), .05
-			local border = display.newRect(mgroup, cx, cy, mw, mh)
-			local total = 2 * maxt + hold -- rise, hold, fall
-
-			mhint.fill = Time[block].fill
-			mhint.fill.effect = preview_effect
-			mhint.fill.effect.rise = maxt
-			mhint.fill.effect.hold = hold
-			mhint.fill.effect.total = total
-
-			border:setFillColor(0, 0)
-			border:setStrokeColor(0, 0, 1)
-			mhint:setFillColor(0, 1, 0, .35)
-
-			border.strokeWidth = 2
-
-			--
-			PreviewParams.t = total
-
-			transition.to(mhint.fill.effect, PreviewParams)
 
 		-- ...or hide.
-		else
-			if display.isValid(mgroup) then
-				FadeParams.alpha = .2
+		elseif mgroup then
+			if added then
+				CleanUpHint(block, mgroup)
 
-				transition.to(mgroup, FadeParams)
+				mgroup = nil
+			else
+				mgroup.isVisible = false
 			end
--- TODO: need to tear down or clear the preview, else gets very confusing after first use :D
-			mgroup = nil
 		end
 	end
 

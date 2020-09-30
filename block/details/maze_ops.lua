@@ -142,9 +142,9 @@ end
 --- DOCME
 function M.SetupFromBlock (block)
 	local col1, col2 = block:GetColumns()
-	local delta = col1 - col2 - 1
+	local ncols = col2 - col1 + 1
 
-	Deltas[1], Deltas[3] = delta, -delta
+	Deltas[1], Deltas[3] = -ncols, ncols
 end
 
 local function ArgId (arg) return arg end
@@ -210,7 +210,7 @@ function M.Wipe (block, open, wipe_flags)
 	end
 
 	if wipe_flags then
-		tile_flags.WipeFlags(col1, row1, col2, row2)
+		tile_flags.Wipe(col1, row1, col2, row2)
 	end
 end
 
