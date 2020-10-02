@@ -37,7 +37,6 @@ local data_store = require("s3_objects.mixin.data_store")
 local distort = require("s3_utils.snippets.operations.distort")
 local dots = require("s3_utils.dots")
 local file = require("solar2d_utils.file")
-local frames = require("solar2d_utils.frames")
 local length = require("tektite_core.number.length")
 local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
@@ -104,8 +103,8 @@ local function Scale (warp, scale)
 end
 
 --- Dot method: update warp state.
-function Warp:Update ()
-	self.rotation = self.rotation - 150 * frames.DiffTime()
+function Warp:Update (dt)
+	self.rotation = self.rotation - 150 * dt
 
 	Scale(self, 1 - sin(self.rotation / 30) * .05)
 end

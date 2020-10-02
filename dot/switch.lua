@@ -62,6 +62,9 @@ function Switch:ActOn ()
 	local any_successes, no_failures = false, true
 
 	-- Fire the event and stop showing its hint, and wait for it to finish.
+	call.BindNamedArgument("origin", self)
+	call.BindNamedArgument("should_show", false)
+
 	local n, flag, waiting = 0, 1, self.m_waiting
 
 	for _, event in Events:IterateFunctionsForObject(self) do
@@ -74,8 +77,10 @@ function Switch:ActOn ()
 
 			n = n + 1
 
-			call.DispatchOrHandleNamedEvent_NamedArgPair("show", event, "origin", self, "should_show", false)
+			call.DispatchOrHandleNamedEvent("show", event)
 		end
+
+		call.UnbindArguments()
 
 		flag = 2 * flag
 	end
@@ -118,17 +123,22 @@ end
 function Switch:Update ()
 	local touched, flag, waiting = self.m_touched, 1, self.m_waiting
 
+	call.BindNamedArgument("origin", self)
+	call.BindNamedArgument("should_show", true)
+
 	for _, event in Events:IterateFunctionsForObject(self) do
 		if band(waiting, flag) ~= 0 and call.DispatchOrHandleNamedEvent("is_done", event, true) then
 			waiting = waiting - flag
 
 			if touched then
-				call.DispatchOrHandleNamedEvent_NamedArgPair("show", event, "origin", self, "should_show", true)
+				call.DispatchOrHandleNamedEvent("show", event)
 			end
 		end
 
 		flag = 2 * flag
 	end
+
+	call.UnbindArguments()
 
 	self.m_waiting = waiting
 end
@@ -146,15 +156,20 @@ collision.AddHandler("switch", function(phase, switch, other)
 		TouchEvent.dot = nil
 
 		--
+		call.BindNamedArgument("origin", switch)
+		call.BindNamedArgument("should_show", is_touched)
+
 		local flag, waiting = 1, switch.m_waiting
 
 		for _, event in Events:IterateFunctionsForObject(switch) do
 			if band(waiting, flag) == 0 then
-				call.DispatchOrHandleNamedEvent_NamedArgPair("show", event, "origin", switch, "should_show", is_touched)
+				call.DispatchOrHandleNamedEvent("show", event)
 			end
 
 			flag = 2 * flag
 		end
+
+		call.UnbindArguments()
 
 	elseif phase == "began" and component.ImplementedByObject(other, "flips_switch") then
 		switch:ActOn()
