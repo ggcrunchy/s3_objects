@@ -62,14 +62,18 @@ function Switch:ActOn ()
 	local any_successes, no_failures = false, true
 
 	-- Fire the event and stop showing its hint, and wait for it to finish.
+	local n, flag, waiting = 0, 1, self.m_waiting
+
 	call.BindNamedArgument("origin", self)
 	call.BindNamedArgument("should_show", false)
 
-	local n, flag, waiting = 0, 1, self.m_waiting
-
 	for _, event in Events:IterateFunctionsForObject(self) do
-		if band(waiting, flag) == 0 then
-			if event() ~= "failed" then
+		if band(waiting, flag) == 0 then		
+			local is_ready = call.DispatchOrHandleNamedEvent("is_ready", event, true)
+
+			if is_ready then
+				event()
+
 				any_successes, waiting = true, waiting + flag
 			else
 				no_failures = false
@@ -80,17 +84,22 @@ function Switch:ActOn ()
 			call.DispatchOrHandleNamedEvent("show", event)
 		end
 
-		call.UnbindArguments()
-
 		flag = 2 * flag
 	end
 
+	call.UnbindArguments()
+
+	n = Events:AddForObject(self, n)
+
 	self.m_waiting = waiting
 
-	call.AddCalls(n)
-
 	--
-	if no_failures or any_successes then
+	if no_failures or any_successes then -- we might more robustly do this BEFORE making any actual calls / shows
+										 -- some sort of named event like "will_fail" might be checked?
+										 -- then we could also choose a policy too; complicating this is that
+										 -- a couple of these cases do calculations, so either these would be
+										 -- at best redundant or potentially affect correctness; in particular,
+										 -- non-switch users will not likely do all the legwork 
 		Sounds:RandomSound()
 
 		-- Change the switch image.
@@ -121,7 +130,7 @@ end
 
 --- Dot method: update switch state.
 function Switch:Update ()
-	local touched, flag, waiting = self.m_touched, 1, self.m_waiting
+	local flag, touched, waiting = 1, self.m_touched, self.m_waiting
 
 	call.BindNamedArgument("origin", self)
 	call.BindNamedArgument("should_show", true)

@@ -426,15 +426,9 @@ local function NewMaze (info, params)
 
 	maze_ops.SetupFromBlock(block)
 
-	-- Fires off the maze event
 	local occupancy = embedded_predicate.Wrap(open)
 
 	local function Fire ()
-		if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
-							-- _forward_ is also probably meaningless / failure
-			return "failed"
-		end
-
 		added = not added
 
 		if added then
@@ -508,6 +502,16 @@ local function NewMaze (info, params)
 
 	block:addEventListener("is_done", function(event)
 		event.result = not forming
+	end)
+
+	block:addEventListener("is_ready", function(event)
+		event.result = not forming
+--[[
+		if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
+							-- _forward_ is also probably meaningless / failure
+			return "failed"
+		end
+]]
 	end)
 
 	block:addEventListener("show", function(event)
