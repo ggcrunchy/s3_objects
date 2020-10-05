@@ -27,7 +27,7 @@
 local running = coroutine.running
 
 -- Modules --
-local flow = require("coroutine_ops.flow")
+local coro_flow = require("solar2d_utils.coro_flow")
 
 --
 --

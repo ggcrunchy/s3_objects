@@ -29,7 +29,7 @@ local running = coroutine.running
 
 -- Modules --
 local bind = require("solar2d_utils.bind")
-local flow = require("coroutine_ops.flow")
+local coro_flow = require("solar2d_utils.coro_flow")
 
 --
 --
@@ -101,7 +101,7 @@ local function NewWaitInCoroutine (info, params)
 		if comp then
 			get_ms = comp
 		elseif running() then
-			flow.Wait(ms or max(1, get_ms()))
+			coro_flow.Wait(ms or max(1, get_ms()))
 		else
 			NotInCoroutine(wait)
 		end
