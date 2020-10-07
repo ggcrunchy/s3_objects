@@ -29,8 +29,8 @@ local bind = require("solar2d_utils.bind")
 local call = require("solar2d_utils.call")
 local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
+local directories = require("s3_utils.directories")
 local dots = require("s3_utils.dots")
-local file = require("solar2d_utils.file")
 local meta = require("tektite_core.table.meta")
 
 -- Plugins --
@@ -298,7 +298,7 @@ function M.editor (what, arg1, arg2, arg3)
 	end
 end
 
-local GFX = file.Prefix_FromModuleAndPath(..., "gfx")
+local GFX = directories.FromModule(..., "gfx")
 
 function M.make (info, params)
 	local switch = display.newGroup()

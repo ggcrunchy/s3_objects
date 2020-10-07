@@ -34,9 +34,9 @@ local call = require("solar2d_utils.call")
 local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local data_store = require("s3_objects.mixin.data_store")
+local directories = require("s3_utils.directories")
 local distort = require("s3_utils.snippets.operations.distort")
 local dots = require("s3_utils.dots")
-local file = require("solar2d_utils.file")
 local length = require("tektite_core.number.length")
 local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
@@ -74,7 +74,7 @@ end
 
 local Body = { radius = 25 }
 
-local TouchImage = file.Prefix_FromModuleAndPath(..., "hud") .. "WarpTouch.png"
+local TouchImage = directories.FromModule(..., "hud") .. "WarpTouch.png"
 
 local function Rotate (warp, angle)
 	-- TODO: polarity, etc.
@@ -145,7 +145,7 @@ local function WarpIn (object, on_complete)
 	DoTransitionThenComplete(object, MaskIn, on_complete or ClearMask)
 end
 
-local HereGFX = file.Prefix_FromModuleAndPath(..., "gfx")
+local HereGFX = directories.FromModule(..., "gfx")
 
 local Mask = graphics.newMask(HereGFX .. "WarpMask.png")
 
