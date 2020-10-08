@@ -247,7 +247,7 @@ local function ShakeBy ()
 end
 
 local function UpdateTiles (block)
-	tile_maps.SetTilesFromFlags(block:GetImageGroup(), tilesets.NewTile, block:GetInitialRect())
+	tile_maps.SetTilesFromFlags(block:GetGroup(), tilesets.NewTile, block:GetInitialRect())
 end
 
 local FadeParams = { onComplete = display.remove }
