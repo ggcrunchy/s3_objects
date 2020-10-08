@@ -37,9 +37,10 @@ local data_store = require("s3_objects.mixin.data_store")
 local directories = require("s3_utils.directories")
 local distort = require("s3_utils.snippets.operations.distort")
 local dots = require("s3_utils.dots")
-local length = require("tektite_core.number.length")
+local numeric = require("s3_utils.numeric")
 local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
+local tile_layout = require("s3_utils.tile_layout")
 
 -- Effects --
 local warp_effect = require("s3_objects.dot.effect.warp")
@@ -168,7 +169,9 @@ end
 
 local MoveParams = { tag = Tag, transition = easing.inOutQuad }
 
-local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
+local Sounds = audio.NewSoundGroup{ module = ..., path = "sfx", warp = "Warp.mp3", whiz = "WarpWhiz.mp3" }
+
+local DistanceToTime = numeric.MakeLengthQuantizer{ unit = 200, bias = 5, rescale = 100 }
 
 --- Trigger a warp, sending through anything loaded by @{DataArrayMixin:DataStore_Append}.
 --
@@ -227,7 +230,7 @@ function Warp:Use (user)
 
 					MoveParams.x = tx
 					MoveParams.y = ty
-					MoveParams.time = length.ToBin(dx, dy, 200, 5) * 100
+					MoveParams.time = DistanceToTime(dx, dy)
 					MoveParams.onComplete = MoveParams_OC
 
 					transition.to(object, MoveParams)
@@ -449,7 +452,10 @@ local WarpRadius
 
 local function FirstTimeInit (params)
 	MarkersLayer = params.markers_layer
-	WarpList, WarpRadius = {}, 1.15 * (params.w + params.h) / 2
+
+	local w, h = tile_layout.GetSizes()
+
+	WarpList, WarpRadius = {}, 1.15 * (w + h) / 2
 
 	distort.AttachCanvasToPaint(WarpFill.paint2, params.canvas)
 

@@ -55,7 +55,7 @@ local Switch = {}
 -- Switch <-> events binding --
 local Events = call.NewDispatcher()
 
-local Sounds = audio.NewSoundGroup{ _here = ..., _prefix = "sfx", "Switch1.wav", "Switch2.mp3" }
+local Sounds = audio.NewSoundGroup{ module = ..., path = "sfx", "Switch1.wav", "Switch2.mp3" }
 
 --- Dot method: switch acted on as dot of interest.
 function Switch:ActOn ()
