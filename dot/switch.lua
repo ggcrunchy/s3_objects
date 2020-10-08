@@ -26,12 +26,13 @@
 -- Modules --
 local audio = require("solar2d_utils.audio")
 local bind = require("solar2d_utils.bind")
-local call = require("solar2d_utils.call")
 local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local directories = require("s3_utils.directories")
 local dots = require("s3_utils.dots")
+local events = require("solar2d_utils.events")
 local meta = require("tektite_core.table.meta")
+local multicall = require("solar2d_utils.multicall")
 
 -- Plugins --
 local bit = require("plugin.bit")
@@ -53,7 +54,7 @@ local M = {}
 local Switch = {}
 
 -- Switch <-> events binding --
-local Events = call.NewDispatcher()
+local Events = multicall.NewDispatcher()
 
 local Sounds = audio.NewSoundGroup{ module = ..., path = "sfx", "Switch1.wav", "Switch2.mp3" }
 
@@ -64,12 +65,12 @@ function Switch:ActOn ()
 	-- Fire the event and stop showing its hint, and wait for it to finish.
 	local n, flag, waiting = 0, 1, self.m_waiting
 
-	call.BindNamedArgument("origin", self)
-	call.BindNamedArgument("should_show", false)
+	events.BindNamedArgument("origin", self)
+	events.BindNamedArgument("should_show", false)
 
 	for _, event in Events:IterateFunctionsForObject(self) do
 		if band(waiting, flag) == 0 then		
-			local is_ready = call.DispatchOrHandleNamedEvent("is_ready", event, true)
+			local is_ready = events.DispatchOrHandle_Named("is_ready", event, true)
 
 			if is_ready then
 				event()
@@ -81,13 +82,13 @@ function Switch:ActOn ()
 
 			n = n + 1
 
-			call.DispatchOrHandleNamedEvent("show", event)
+			events.DispatchOrHandle_Named("show", event)
 		end
 
 		flag = 2 * flag
 	end
 
-	call.UnbindArguments()
+	events.UnbindArguments()
 
 	n = Events:AddForObject(self, n)
 
@@ -132,22 +133,22 @@ end
 function Switch:Update ()
 	local flag, touched, waiting = 1, self.m_touched, self.m_waiting
 
-	call.BindNamedArgument("origin", self)
-	call.BindNamedArgument("should_show", true)
+	events.BindNamedArgument("origin", self)
+	events.BindNamedArgument("should_show", true)
 
 	for _, event in Events:IterateFunctionsForObject(self) do
-		if band(waiting, flag) ~= 0 and call.DispatchOrHandleNamedEvent("is_done", event, true) then
+		if band(waiting, flag) ~= 0 and events.DispatchOrHandle_Named("is_done", event, true) then
 			waiting = waiting - flag
 
 			if touched then
-				call.DispatchOrHandleNamedEvent("show", event)
+				events.DispatchOrHandle_Named("show", event)
 			end
 		end
 
 		flag = 2 * flag
 	end
 
-	call.UnbindArguments()
+	events.UnbindArguments()
 
 	self.m_waiting = waiting
 end
@@ -165,20 +166,20 @@ collision.AddHandler("switch", function(phase, switch, other)
 		TouchEvent.dot = nil
 
 		--
-		call.BindNamedArgument("origin", switch)
-		call.BindNamedArgument("should_show", is_touched)
+		events.BindNamedArgument("origin", switch)
+		events.BindNamedArgument("should_show", is_touched)
 
 		local flag, waiting = 1, switch.m_waiting
 
 		for _, event in Events:IterateFunctionsForObject(switch) do
 			if band(waiting, flag) == 0 then
-				call.DispatchOrHandleNamedEvent("show", event)
+				events.DispatchOrHandle_Named("show", event)
 			end
 
 			flag = 2 * flag
 		end
 
-		call.UnbindArguments()
+		events.UnbindArguments()
 
 	elseif phase == "began" and component.ImplementedByObject(other, "flips_switch") then
 		switch:ActOn()

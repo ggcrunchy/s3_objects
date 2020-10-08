@@ -30,13 +30,13 @@ local sin = math.sin
 -- Modules --
 local audio = require("solar2d_utils.audio")
 local bind = require("solar2d_utils.bind")
-local call = require("solar2d_utils.call")
 local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local data_store = require("s3_objects.mixin.data_store")
 local directories = require("s3_utils.directories")
 local distort = require("s3_utils.snippets.operations.distort")
 local dots = require("s3_utils.dots")
+local events = require("solar2d_utils.events")
 local numeric = require("s3_utils.numeric")
 local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
@@ -113,7 +113,7 @@ end
 local function DispatchWarpEvent (user, name, from, to)
 	WarpEvent.name, WarpEvent.from, WarpEvent.to = name, from, to
 
-	call.DispatchOrHandleEvent(user, WarpEvent)
+	events.DispatchOrHandle(user, WarpEvent)
 
 	WarpEvent.from, WarpEvent.to = nil
 end
