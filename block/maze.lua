@@ -164,6 +164,35 @@ local function UnfurlTile (which, delay, index)
 		return true
 	end
 end
+--[[
+local g = display.newGroup()
+local r1 = display.newRect(g, display.contentCenterX, display.contentCenterY, 150, 150)
+local r2 = display.newRect(g, r1.x - (r1.width + 3), r1.y, r1.width, r1.height)
+local r3 = display.newRect(g, r1.x + (r1.width + 3), r1.y, r1.width, r1.height)
+
+local bounds = g.contentBounds
+local w, h = bounds.xMax - bounds.xMin, bounds.yMax - bounds.yMin
+
+local canvas = graphics.newTexture{ type = "maskCanvas", width = w + 6, height = h + 6 }
+local mask = graphics.newMask(canvas.filename, canvas.baseDir)
+
+g:setMask(mask)
+
+g.maskX, g.maskY = display.contentCenterX, display.contentCenterY
+
+local rr = display.newRoundedRect(0, 0, 65, 85, 15)
+
+canvas:draw(rr)
+
+timer.performWithDelay(100, function(event)
+    rr.x = math.sin(event.time / 750) * 150
+    rr.rotation = (event.time / 25) % 360
+
+    canvas:invalidate("cache")
+end, 0)
+]]
+
+-- max(CoronaVertexUserData.x - 4. * dot(texCoord - .5, texCoord - .5), 0.)
 
 local function IncDelay (delay)
 	return delay + UnfurlDelay
