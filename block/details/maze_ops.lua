@@ -145,6 +145,13 @@ function M.SetupFromBlock (block)
 	local ncols = col2 - col1 + 1
 
 	Deltas[1], Deltas[3] = -ncols, ncols
+local row1, row2 = block:GetRows()
+local w, h = tile_layout.GetSizes() -- n.b. assuming these are multiples of 4, we can add 8 to include our border pixels and round up
+local mt = graphics.newTexture{ type = "maskCanvas", width = ncols * w + 8, height = (row2 - row1 + 1) * h + 8 }
+
+local m = graphics.newMask(mt.filename, mt.baseDir)
+local g = block:GetGroup()
+g.m_mt,g.m_m=mt,m
 end
 
 local function ArgId (arg) return arg end

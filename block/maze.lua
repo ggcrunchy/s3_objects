@@ -54,6 +54,7 @@ local unfurl_effect = require("s3_objects.block.effect.unfurl")
 -- Solar2D globals --
 local display = display
 local easing = easing
+local graphics = graphics
 local Runtime = Runtime
 local timer = timer
 local transition = transition
@@ -133,16 +134,108 @@ local ParamsSetup = {
 	start = { from = { bottom = .6, left = .6, top = .4, right = .4 } }
 }
 
+local Rotation = { right = 0, down = 90, left = 180, up = 270 }
+
 local To = { top = 1, left = 0, bottom = 0, right = 1 }
 
-local UnfurlDelay, UnfurlTime = 150, 850
+local UnfurlDelay, UnfurlTime = 700--[[150]], 850
 
 local UnfurlParams = { time = UnfurlTime, transition = easing.outQuint }
+
+graphics.defineEffect{
+	category = "generator", name = "fuzz",
+
+	vertexData = {
+		{ index = 0, name = "param" },
+		{ index = 1, name = "falloff" },
+	},
+
+	fragment = [[
+		P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
+		{
+			return vec4(smoothstep(CoronaVertexUserData.x + CoronaVertexUserData.y, CoronaVertexUserData.x, uv.x));
+		}
+	]]
+}
 
 local function UnfurlTile (which, delay, index)
 	local image = tile_maps.GetImage(index)
 
 	if image then
+local movement = require("s3_utils.movement")
+local g = image.parent
+local gx, gy = g.m_cx, g.m_cy
+if not gx then
+	local bounds = g.contentBounds
+	gx, gy = (bounds.xMin + bounds.xMax) / 2, (bounds.yMin + bounds.yMax) / 2
+	g.m_cx, g.m_cy = gx, gy
+
+	g:setMask(g.m_m)
+	g.maskX,g.maskY=gx,gy
+	timer.performWithDelay(30, function()
+		g.m_mt:invalidate("cache")
+	end, 0)
+end
+		local x, y, dx, dy = image.x - gx, image.y - gy, movement.UnitDeltas(which)
+		local w, h = tile_layout.GetSizes()
+		local x0, y0, t0 = x - w * dx, y - h * dy, delay - UnfurlDelay
+local NSteps = 3
+		local dt = UnfurlDelay / NSteps
+		local px, py = -dy * w, dx * h
+local N = 3
+		local r = display.newRect(0, y0, w, h)
+
+		r.fill.effect = "generator.custom.fuzz"
+
+		r.fill.effect.param = -.25
+		r.fill.effect.falloff = .25
+local r2=display.newRect(x0 + gx,y0+gy,w-7,h-7)
+local r3=display.newRect(0,y0+gy,w,h)
+r3.anchorX,r3.x=0,x0+gx
+r3.rotation=Rotation[which]
+r2:setFillColor(0,0)
+r3:setFillColor(0,0)
+r2:setStrokeColor(1,0,0)
+r3:setStrokeColor(0,0,1)
+r2.strokeWidth=3
+r3.strokeWidth=3
+		r.anchorX, r.x = 0, x0
+		r.rotation = Rotation[which]
+g.m_mt:draw(r)
+		transition.to(r.fill.effect, { param = 1, delay = t0, time = UnfurlDelay })
+
+		local dw, dh = w / NSteps, h / NSteps
+
+		for _ = 1, NSteps do
+			local xx, yy = x0 - px / 2, y0 - py / 2
+			for j = 1, N do
+				local xt = (j + math.random() * .25 - .5) / N
+				local yt = .85 + math.random() * .3
+				local rr = display.newCircle(xx + xt * px, yy + xt * py, math.random(4, 6))
+
+rr.isVisible = false
+			transition.to(rr, { x = rr.x + yt * dx * dw, y = rr.y + yt * dy * dh, delay = t0, time = dt, onComplete = display.remove
+			, onStart = function(r) r.isVisible = true end })
+g.m_mt:draw(rr)
+			end
+			x0, y0 = x0 + dx * dw, y0 + dy * dh
+			t0 = t0 + dt
+		end
+
+		-- x, y = tile position
+		-- dx, dy = movement.UnitDeltas(which)
+		-- x0, y0 = x - TileW * dx, y - TileH * dy
+		-- t0 = delay - UnfurlDelay
+		-- rect at x0, y0 in mask canvas
+		-- rect.rotation = Rotation[which]
+		-- rect.fill.effect = FADE IN
+		-- update param from -falloff to 1, delay = t0, time = UnfurlDelay
+		-- dt = UnfurlDelay / nsteps
+		-- for i = 1, nsteps do
+		--   delay = t0 + (i - 1) * dt, time = dt
+		--   random particles along (-dy, dx)
+	
+--[[
 		local cprops, setup = unfurl_effect.CombinedProperties, ParamsSetup[which]
 		local effect, except = tile_effect.AttachEffect(Names, image, "unfurl"), setup.except
 
@@ -160,10 +253,18 @@ local function UnfurlTile (which, delay, index)
 		UnfurlParams.delay, image.isVisible = delay, true
 
 		transition.to(cprops:WrapForTransitions(effect), UnfurlParams)
-
+]]
 		return true
 	end
 end
+
+--[[
+x = param, y = falloff
+P_COLOR vec4 FragmentKernel( P_UV vec2 texCoord ){
+	return vec4(smoothstep(CoronaVertexUserData.x + CoronaVertexUserData.y, CoronaVertexUserData.x, texCoord.x), 0., 0., 1.);  
+}
+]]
+
 --[[
 local g = display.newGroup()
 local r1 = display.newRect(g, display.contentCenterX, display.contentCenterY, 150, 150)
@@ -203,11 +304,11 @@ local function FadeIn (block, occupancy)
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			image.isVisible = false
+	--		image.isVisible = false
 		end
 	end
 
-	maze_ops.Visit(block, occupancy, UnfurlTile, UnfurlDelay, IncDelay)
+	maze_ops.Visit(block, occupancy, UnfurlTile, 0--[[UnfurlDelay]], IncDelay)
 end
 
 local FadeOutParams = {
