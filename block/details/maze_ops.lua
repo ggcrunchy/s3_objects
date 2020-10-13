@@ -33,6 +33,9 @@ local enums = require("s3_utils.enums")
 local tile_layout = require("s3_utils.tile_layout")
 local tile_flags = require("s3_utils.tile_flags")
 
+-- Solar2D globals --
+local graphics = graphics
+
 -- Exports --
 local M = {}
 
@@ -145,13 +148,18 @@ function M.SetupFromBlock (block)
 	local ncols = col2 - col1 + 1
 
 	Deltas[1], Deltas[3] = -ncols, ncols
-local row1, row2 = block:GetRows()
-local w, h = tile_layout.GetSizes() -- n.b. assuming these are multiples of 4, we can add 8 to include our border pixels and round up
-local mt = graphics.newTexture{ type = "maskCanvas", width = ncols * w + 8, height = (row2 - row1 + 1) * h + 8 }
 
-local m = graphics.newMask(mt.filename, mt.baseDir)
-local g = block:GetGroup()
-g.m_mt,g.m_m=mt,m
+	local row1, row2 = block:GetRows()
+	local tw, th = tile_layout.GetSizes() -- n.b. assuming these are multiples of 4...
+	local gw, gh = ncols * tw, (row2 - row1 + 1) * th -- ...these will be too...
+	local tex, group = graphics.newTexture{
+		type = "maskCanvas",
+		width = gw, height = gh,
+		pixelWidth = gw + 8, pixelHeight = gh + 8 -- ...so we can trivially add the black border and round up
+	}, block:GetGroup()
+
+	group.m_mask_tex, group.m_mask = tex, graphics.newMask(tex.filename, tex.baseDir)
+	group.m_cx, group.m_cy = tw * (col1 + col2 - 1) / 2, th * (row1 + row2 - 1) / 2 -- subtract .5 from each component to center the cells
 end
 
 local function ArgId (arg) return arg end
