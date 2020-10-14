@@ -123,7 +123,7 @@ function FollowerMixin:Follower_StartFollowing (leader)
         list[#list + 1], self[_leader] = self, leader
 
         if not had_leader then
-            self:addEventListener("onFinalize", OnFinalize)
+            self:addEventListener("on_finalize", OnFinalize)
         end
     end
 end
@@ -131,7 +131,7 @@ end
 --- DOCME
 function FollowerMixin:Follower_StopFollowing ()
     if RemoveFromLeader(self) then
-        self:removeEventListener("OnFinalize", OnFinalize)
+        self:removeEventListener("on_finalize", OnFinalize)
     end
 end
 
