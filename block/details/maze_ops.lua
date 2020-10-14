@@ -34,7 +34,9 @@ local tile_layout = require("s3_utils.tile_layout")
 local tile_flags = require("s3_utils.tile_flags")
 
 -- Solar2D globals --
+local display = display
 local graphics = graphics
+local timer = timer
 
 -- Exports --
 local M = {}
@@ -42,6 +44,26 @@ local M = {}
 --
 --
 --
+
+--- DOCME
+function M.ActivateMask (bgroup, name, clear_after)
+	local cx, cy = bgroup.m_cx, bgroup.m_cy
+
+	if not bgroup[name] then
+		bgroup.m_out:translate(-cx, -cy)
+		bgroup.m_mask_tex:draw(bgroup.m_out)
+
+		bgroup[name], bgroup.m_out = bgroup.m_out
+	end
+
+	bgroup:setMask(bgroup.m_mask)
+
+	bgroup.maskX, bgroup.maskY = cx, cy
+
+	timer.resume(bgroup.m_mask_update)
+
+	bgroup.m_clear_after = clear_after
+end
 
 local Choices = {}
 
@@ -96,6 +118,43 @@ function M.Build (open, occupancy)
 	until #Work == 0
 end
 
+--- DOCME
+function M.DeactivateMask (bgroup)
+	timer.pause(bgroup.m_mask_update)
+
+	if bgroup.m_clear_after then
+		bgroup:setMask(nil)
+	end
+end
+
+--- DOCME
+function M.GetOutGroup (bgroup)
+	return bgroup.m_out
+end
+
+local function HideOutGroups (bgroup)
+	local cache = bgroup.m_mask_tex.cache
+
+	for i = 1, cache.numChildren do
+		cache[i].isVisible = false
+	end
+end
+
+--- DOCME
+function M.PrepareMask (bgroup, name)
+	HideOutGroups(bgroup)
+
+	local out = bgroup[name]
+
+	if out then
+		out.isVisible = true
+	else
+		out = display.newGroup()
+	end
+
+	bgroup.m_out = out
+end
+
 --- Convert maze state into flags.
 --
 -- Border flags are left in place, allowing the maze to coalesce with the rest of the level.
@@ -142,6 +201,19 @@ function M.SetFlags (block, open)
 	end
 end
 
+local function Finalize (event)
+	local bgroup = event.target
+	local preview_tex = bgroup.m_preview_tex
+
+	if preview_tex then
+		preview_tex:releaseSelf()
+	end
+
+	bgroup.m_mask_tex:releaseSelf()
+
+	timer.cancel(bgroup.m_mask_update)
+end
+
 --- DOCME
 function M.SetupFromBlock (block)
 	local col1, col2 = block:GetColumns()
@@ -153,34 +225,43 @@ function M.SetupFromBlock (block)
 	local tw, th = tile_layout.GetSizes() -- n.b. assuming these are multiples of 4...
 	local gw, gh = ncols * tw, (row2 - row1 + 1) * th -- ...these will be too...
 	local tex, group = graphics.newTexture{
-		type = "maskCanvas",
-		width = gw, height = gh,
+		type = "maskCanvas", width = gw, height = gh,
 		pixelWidth = gw + 8, pixelHeight = gh + 8 -- ...so we can trivially add the black border and round up
 	}, block:GetGroup()
 
+	group:addEventListener("finalize", Finalize)
+
 	group.m_mask_tex, group.m_mask = tex, graphics.newMask(tex.filename, tex.baseDir)
 	group.m_cx, group.m_cy = tw * (col1 + col2 - 1) / 2, th * (row1 + row2 - 1) / 2 -- subtract .5 from each component to center the cells
-end
 
-local function ArgId (arg) return arg end
+	group.m_mask_update = timer.performWithDelay(30, function()
+		group.m_mask_tex:invalidate("cache")
+	end, 0)
+
+	timer.pause(group.m_mask_update)
+end
 
 local List1, List2 = {}, {}
 
 --- DOCME
-function M.Visit (block, occupancy, func, arg, xform)
+function M.Visit (block, occupancy, func, dt, arg, how)
 	occupancy("begin_generation")
 
-	local col1, row1, col2, row2 = block:GetInitialRect()
-	local from, to, count = List1, List2, 2
+	local col0, row0, col1, row1, col2, row2 = 0, 0, block:GetInitialRect()
+	local from, to, count, t = List1, List2, 2, 0
 
-	from[1], from[2], xform = random(col1, col2), random(row1, row2), xform or ArgId
+	if how == "offset" then
+		col0, row0 = col1, row1
+	end
 
-	func("start", arg, nil, from[1], from[2])
+	from[1], from[2] = random(col1, col2), random(row1, row2)
+
+	func("start", 0, nil, from[1], from[2], arg)
 
 	repeat
-		local nadded = 0
+		t = t + dt
 
-		arg = xform(arg)
+		local nadded = 0
 
 		for i = 1, count, 2 do
 			local x, y = from[i], from[i + 1]
@@ -200,7 +281,7 @@ function M.Visit (block, occupancy, func, arg, xform)
 				if bounded then
 					local tindex = tile_layout.GetIndex(tx, ty)
 
-					if occupancy("mark", tindex) and func(dir, arg, tindex, tx, ty) then
+					if occupancy("mark", tindex) and func(dir, t, tindex, tx - col0, ty - row0, arg) then
 						to[nadded + 1], to[nadded + 2], nadded = tx, ty, nadded + 2
 					end
 				end
@@ -209,6 +290,8 @@ function M.Visit (block, occupancy, func, arg, xform)
 
 		from, to, count = to, from, nadded
 	until count == 0
+
+	return t - dt
 end
 
 --- Wipe the maze state (and optionally its flags), marking borders.

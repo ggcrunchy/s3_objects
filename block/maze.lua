@@ -32,7 +32,6 @@
 --
 
 -- Standard library imports --
-local pairs = pairs
 local random = math.random
 
 -- Modules --
@@ -41,7 +40,6 @@ local blocks = require("s3_utils.blocks")
 local embedded_predicate = require("tektite_core.array.embedded_predicate")
 local maze_ops = require("s3_objects.block.details.maze_ops")
 local movement = require("s3_utils.movement")
-local tile_effect = require("s3_objects.block.details.tile_effect")
 local tile_flags = require("s3_utils.tile_flags")
 local tile_layout = require("s3_utils.tile_layout")
 local tile_maps = require("s3_utils.tile_maps")
@@ -49,103 +47,30 @@ local tilesets = require("s3_utils.tilesets")
 
 -- Effects --
 local preview_effect = require("s3_objects.block.effect.preview")
--- local stipple_effect = require("s3_objects.block.effect.stipple")
+local stipple_effect = require("s3_objects.block.effect.stipple")
+local unfurl_effect = require("s3_objects.block.effect.unfurl")
 
 -- Solar2D globals --
 local display = display
 local easing = easing
-local graphics = graphics
 local Runtime = Runtime
-local timer = timer
 local transition = transition
 
 --
 --
 --
 
---local RawNames = { stipple = stipple_effect, unfurl = unfurl_effect.EFFECT_NAME }
-
---local NameMapping = tile_effect.NewMapping(RawNames)
-
-local Names
-
-local Time
-
-local function GetPreviewForBlock (block, with_indices)
-	Time = Time or {}
-
-	local col1, row1, col2, row2 = block:GetInitialRect()
-
-	if not Time[block] then
-		local w, h = col2 - col1 + 1, row2 - row1 + 1
-		local tex = bitmap.newTexture{ width = w * 2 - 1, height = h * 2 - 1 }
-
-		Time[block] = {
-			fill = {
-				type = "image", format = "rgb",
-				filename = tex.filename, baseDir = tex.baseDir
-			}, tex = tex
-		}
-	end
-
-	if with_indices then
-		local i1 = tile_layout.GetIndex(col1, row1)
-		local i2 = tile_layout.GetIndex(col2, row2)
-
-		return Time[block], col1, row1, i1, i2
-	else
-		return Time[block]
-	end
-end
-
-for k, v in pairs{
-	leave_level = function()
-		if Time then
-			for _, tt in pairs(Time) do
-				tt.tex:releaseSelf()
-			end
-		end
--- TODO: masks...
---		Names, 
-		Time = nil
-	end,
-
-	things_loaded = function()
---		Names = tile_effect.GetNames(RawNames, NameMapping, tilesets.GetShader())
-	end
-} do
-	Runtime:addEventListener(k, v)
-end
-
-graphics.defineEffect{
-	category = "generator", name = "fuzz",
-
-	vertexData = {
-		{ index = 0, name = "param" },
-		{ index = 1, name = "falloff" },
-	},
-
-	fragment = [[
-		P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
-		{
-			return vec4(smoothstep(CoronaVertexUserData.x + CoronaVertexUserData.y, CoronaVertexUserData.x, uv.x));
-		}
-	]]
-}
-
 local Rotation = { right = 0, down = 90, left = 180, up = 270 }
 
 local FalloffDistance = .25
 
-local function GetOrientedRect (out, image, w, h, dir)
-	local rect = image.m_unfurl_rect
+local function GetOrientedRect (out, image, index, w, h, dir)
+	local rect = out[index]
 
 	if not rect then
 		rect = display.newRect(out, 0, 0, w, h)
-		rect.anchorX, rect.fill.effect = 0, "generator.custom.fuzz"
+		rect.anchorX, rect.fill.effect = 0, unfurl_effect
 		rect.fill.effect.falloff = FalloffDistance
-
-		image.m_unfurl_rect = rect
 	end
 
 	local effect, dx, dy = rect.fill.effect, movement.UnitDeltas(dir)
@@ -161,113 +86,134 @@ local UnfurlDelay = 120
 
 local UnfurlEffectParams = { param = 1, time = UnfurlDelay }
 
-local function GetPatch (out, image)
-	local patch = image.m_patch
+local function GetPatch (out, image, index)
+	local patch = out[index]
 
 	if patch then
 		patch.width, patch.height = 1, 1
 	else
-		patch = display.newRect(out, image.x, image.y, 1, 1)
-
-		image.m_patch = patch
+		patch = display.newRect(out, 0, 0, 1, 1)
 	end
 
-	patch.isVisible = false
+	patch.x, patch.y, patch.isVisible = image.x, image.y, false
 
 	return patch
 end
 
-local function BecomeVisible (object)
-	object.isVisible = true
-end
+local PatchParams = {
+	time = 2 * UnfurlDelay,
 
-local PatchParams = { time = 2 * UnfurlDelay, onStart = BecomeVisible }
+	onStart = function(object)
+		object.isVisible = true
+	end
+}
 
-local function UnfurlTile (dir, delay, index)
+local IndexInGroup
+
+local function UnfurlTile (dir, t, index)
 	local image = tile_maps.GetImage(index)
 
 	if image then
-		local group = image.parent
+		local out = maze_ops.GetOutGroup(image.parent)
 
 		-- Unfurl a rect from the previous tile toward this one.
-		local _, effect = GetOrientedRect(group.m_out, image, PatchParams.width, PatchParams.height, dir) -- tile sizes, cf. FadeIn
+		local _, effect = GetOrientedRect(out, image, IndexInGroup + 1, PatchParams.width, PatchParams.height, dir) -- tile sizes, cf. FadeIn
 
-		UnfurlEffectParams.delay = delay - UnfurlDelay
+		UnfurlEffectParams.delay = t - UnfurlDelay
 
 		transition.to(effect, UnfurlEffectParams)
 
 		-- Our rects are smaller than the tile, so will miss some corners. We disguise this
 		-- by kicking off a gradual saturation once the unfurl is halfway along.
-		local patch = GetPatch(group.m_out, image)
+		local patch = GetPatch(out, image, IndexInGroup + 2)
 
-		PatchParams.delay = delay - .5 * UnfurlDelay
+		PatchParams.delay = t - .5 * UnfurlDelay
 
 		transition.to(patch, PatchParams)
+
+		IndexInGroup = IndexInGroup + 2
 
 		return true
 	end
 end
 
--- max(CoronaVertexUserData.x - 4. * dot(texCoord - .5, texCoord - .5), 0.)
-
-local function IncDelay (delay)
-	return delay + UnfurlDelay
-end
-
 local function FadeIn (block, occupancy)
 	local group = block:GetGroup()
-	local unfurl_group = group.m_unfurl_group
 
-	if unfurl_group then
-		unfurl_group.isVisible = true
-	else
-		group.m_out = display.newGroup()
-	end
+	maze_ops.PrepareMask(group, "m_unfurl_group")
 
-	PatchParams.width, PatchParams.height = tile_layout.GetSizes()
+	IndexInGroup, PatchParams.width, PatchParams.height = 0, tile_layout.GetSizes()
 
-	maze_ops.Visit(block, occupancy, UnfurlTile, 0, IncDelay)
+	local duration = maze_ops.Visit(block, occupancy, UnfurlTile, UnfurlDelay)
 
-	if not unfurl_group then
-		group.m_out:translate(-group.m_cx, -group.m_cy)
-		group.m_mask_tex:draw(group.m_out)
+	maze_ops.ActivateMask(group, "m_unfurl_group", true)
 
-		group.m_unfurl_group, group.m_out = group.m_out
-	end
-	
-	group:setMask(group.m_mask)
-
-	group.maskX, group.maskY = group.m_cx, group.m_cy
-
-	timer.performWithDelay(30, function()
-		group.m_mask_tex:invalidate("cache")
-	end, 0)
+	return duration + 1.25 * UnfurlDelay -- add a buffer for patches and slight timing issues
 end
 
-local FadeOutParams = {
-	alpha = .2, time = 1250,
+local function GetDot (out, image, index)
+	local dot = out[index]
 
-	onComplete = function(object)
-		object.isVisible = false
+	if not dot then
+		dot = display.newCircle(out, 0, 0, 25)
+		dot.fill.effect = stipple_effect
 	end
-}
 
-local StippleParams = { scale = 0, time = 850, transition = easing.outBounce }
+	dot.x, dot.y = image.x, image.y
+
+	local effect = dot.fill.effect
+	
+	effect.radius_squared = 0
+
+	return dot, effect
+end
+
+local DotParams = {}
+
+local StippleParams = { radius_squared = 1, transition = easing.continuousLoop }
+
+local StippleDensity = 5
 
 local function FadeOut (block)
+	local group = block:GetGroup()
+
+	maze_ops.PrepareMask(group, "m_stipple_group")
+
+	local out, duration, offset = maze_ops.GetOutGroup(group), 0, 0
+
 	for index in block:IterSelf() do
 		local image = tile_maps.GetImage(index)
 
 		if image then
-			local effect, ibounds = tile_effect.AttachEffect(Names, image, "stipple"), image.path.textureBounds
+			local x, y = image.x, image.y
 
-			effect.u, effect.v = (ibounds.uMin + ibounds.uMax) / 2, (ibounds.vMin + ibounds.vMax) / 2
-			effect.seed = index + random(3)
+			for i = 1, StippleDensity do
+				local dot, effect = GetDot(out, image, offset + i)
+				local delay, time = random(0, 150), random(650, 850)
 
-			transition.to(image, FadeOutParams)
-			transition.to(effect, StippleParams) -- TODO: Verify on reset_level with "already showing" maze
+				DotParams.x, DotParams.y = x + random(-48, 48), y + random(-48, 48)
+				DotParams.delay, DotParams.time = delay, time
+
+				transition.to(dot, DotParams)
+
+				StippleParams.delay, StippleParams.time = delay, time
+
+				transition.to(effect, StippleParams)
+
+				local sum = delay + time
+
+				if sum > duration then
+					duration = sum
+				end
+			end
+
+			offset = offset + StippleDensity
 		end
 	end
+
+	maze_ops.ActivateMask(group, "m_stipple_group")
+
+	return duration + 100 -- cf. FadeIn
 end
 
 -- Handler for maze-specific editor events, cf. s3_utils.blocks.EditorEvent
@@ -303,25 +249,7 @@ local function OnEditorEvent (what, arg1, arg2, arg3)
 	end
 end
 
-local function ShakeBy ()
-	local amount = random(3, 16)
-
-	return amount <= 8 and amount or (amount - 11)
-end
-
-local function UpdateTiles (block)
-	tile_maps.SetTilesFromFlags(block:GetGroup(), tilesets.NewTile, block:GetInitialRect())
-end
-
 local FadeParams = { onComplete = display.remove }
-
-local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCubic }
-
-local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
-
-local function IncPreviewTime (t)
-	return t + 1 / 32
-end
 
 local function CleanUpHint (block, mgroup)
 	if display.isValid(mgroup) then
@@ -330,7 +258,7 @@ local function CleanUpHint (block, mgroup)
 		transition.to(mgroup, FadeParams)
 	end
 
-	local tex = GetPreviewForBlock(block).tex
+	local tex = block:GetGroup().m_preview_tex
 
 	for row = 1, tex.height do
 		for col = 1, tex.width do
@@ -339,8 +267,46 @@ local function CleanUpHint (block, mgroup)
 	end
 end
 
+local HalfPreviewDelta = 1 / 64
+
+local function UpdatePreview (dir, t, _, x, y, tex)
+	local ix, iy = x * 2 + 1, y * 2 + 1
+
+	if dir == "start" then
+		tex:setPixel(ix, iy, 0, 1, 0)
+	else
+		local dx, dy = 0, 0
+
+		if dir == "up" or dir == "down" then
+			dy = dir == "up" and -1 or 1
+		else
+			dx = dir == "left" and -1 or 1
+		end
+
+		tex:setPixel(ix - dx, iy - dy, t - HalfPreviewDelta, 1, 0)
+		tex:setPixel(ix, iy, t, 1, 0)
+
+		return true
+	end
+end
+
+local HoldTime, PreviewDelta = .05, 2 * HalfPreviewDelta
+
+local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCubic }
+
+local function AddPreviewTexture (bgroup, col1, row1, col2, row2)
+	local tex = bitmap.newTexture{ width = (col2 - col1) * 2 + 1, height = (row2 - row1) * 2 + 1 }
+
+	bgroup.m_preview_fill, bgroup.m_preview_tex = {
+		type = "image", format = "rgb",
+		filename = tex.filename, baseDir = tex.baseDir
+	}, tex
+
+	return tex
+end
+
 local function MakeHint (block, open, occupancy, layer)
-	-- Make a random maze in the block with a low-res texture to represent it.
+	-- Prepare a new maze.
 	maze_ops.Wipe(block, open)
 	maze_ops.Build(open, occupancy)
 
@@ -349,36 +315,14 @@ local function MakeHint (block, open, occupancy, layer)
 	maze_ops.SetFlags(block, open)
 	tile_flags.Resolve()
 
-	local preview, col1, row1, i1, i2 = GetPreviewForBlock(block, true)
-	local maxt, tex = 0, preview.tex
+	-- Make a low-res texture to represent it.
+	local bgroup = block:GetGroup()
+	local preview_tex = bgroup.m_preview_tex or AddPreviewTexture(bgroup, block:GetInitialRect())
+	local duration = maze_ops.Visit(block, occupancy, UpdatePreview, PreviewDelta, preview_tex, "offset")
 
-	maze_ops.Visit(block, occupancy, function(dir, t, _, x, y)
-		local ix, iy = (x - col1) * 2 + 1, (y - row1) * 2 + 1
-
-		if dir == "start" then
-			tex:setPixel(ix, iy, 0, 1, 0)
-		else
-			local dx, dy = 0, 0
-
-			if dir == "up" or dir == "down" then
-				dy = dir == "up" and -1 or 1
-			else
-				dx = dir == "left" and -1 or 1
-			end
-
-			tex:setPixel(ix - dx, iy - dy, t - 1 / 64, 1, 0)
-			tex:setPixel(ix, iy, t, 1, 0)
-
-			if t > maxt then
-				maxt = t
-			end
-
-			return true
-		end
-	end, 0, IncPreviewTime)
 	tile_flags.UseGroup(prev)
 
-	tex:invalidate()
+	preview_tex:invalidate()
 
 	--
 	local mgroup = display.newGroup()
@@ -386,18 +330,15 @@ local function MakeHint (block, open, occupancy, layer)
 	layer:insert(mgroup)
 
 	--
-	local x1, y1 = tile_layout.GetPosition(i1)
-	local x2, y2 = tile_layout.GetPosition(i2)
-	local tilew, tileh = tile_layout.GetSizes()
-	local cx, cy, mw, mh = (x1 + x2) / 2, (y1 + y2) / 2, x2 - x1 + tilew, y2 - y1 + tileh
-	local mhint, hold = display.newRect(mgroup, cx, cy, mw, mh), .05
-	local border = display.newRect(mgroup, cx, cy, mw, mh)
-	local total = 2 * maxt + hold -- rise, hold, fall
+	local mask_tex = bgroup.m_mask_tex
+	local mhint = display.newRect(mgroup, bgroup.m_cx, bgroup.m_cy, mask_tex.width, mask_tex.height)
+	local border = display.newRect(mgroup, mhint.x, mhint.y, mhint.width, mhint.height)
+	local total = 2 * duration + HoldTime -- rise, hold, fall
 
-	mhint.fill = preview.fill
+	mhint.fill = bgroup.m_preview_fill
 	mhint.fill.effect = preview_effect
-	mhint.fill.effect.rise = maxt
-	mhint.fill.effect.hold = hold
+	mhint.fill.effect.rise = duration
+	mhint.fill.effect.hold = HoldTime
 	mhint.fill.effect.total = total
 
 	border:setFillColor(0, 0)
@@ -414,62 +355,38 @@ local function MakeHint (block, open, occupancy, layer)
 	return mgroup
 end
 
+local function UpdateTiles (block)
+	tile_maps.SetTilesFromFlags(block:GetGroup(), tilesets.NewTile, block:GetInitialRect())
+end
+
+local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
+
+local function IsDone (event)
+	event.result = not event.target:GetGroup().m_forming
+end
+
+local function IsReady (event)
+	event.result = not event.target:GetGroup().m_forming
+--[[
+	if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
+						-- _forward_ is also probably meaningless / failure
+		return "failed"
+	end
+]]
+end
+
+local function StopForming (bgroup)
+	if bgroup.m_forming then
+		maze_ops.DeactivateMask(bgroup)
+		transition.cancel(bgroup.m_forming)
+
+		bgroup.m_forming = nil
+	end
+end
+
+local FormingParams = { onComplete = StopForming }
+
 local function NewMaze (info, params)
-	-- Shaking block transition and state --
-	local shaking, gx, gy
-
-	-- A safe way to stop an in-progress shake
-	local function StopShaking (group)
-		if shaking then
-			group.x, group.y = gx, gy
-
-			timer.cancel(shaking)
-
-			shaking = nil
-		end
-	end
-
-	-- Forming maze transition (or related step) --
-	local forming
-
-	-- A safe way to stop an in-progress form, at any step (will stop shakes, too)
-	local function StopForming (group)
-		StopShaking(group)
-
-		if forming then
-			transition.cancel(forming)
-
-			forming = nil
-		end
-	end
-
-	-- If allowed, add some logic to shake the group before and after formation.
-	local Shake
-
-	if not info.no_shake then
-		function Shake (group, params)
-			-- Randomly shake the group around from a home position every so often.
-			gx, gy = group.x, group.y
-
-			shaking = timer.performWithDelay(50, function()
-				group.x = gx + ShakeBy()
-				group.y = gy + ShakeBy()
-			end, 0)
-
-			-- Shake for a little bit. If this is before the form itself, kick that off.
-			-- Otherwise, cancel the dummy transition to conclude the form event.
-			local sparams = {}
-
-			function sparams.onComplete (group)
-				StopShaking(group)
-
-				forming = params and display.isValid(group) and transition.to(group, params)
-			end
-
-			return sparams
-		end
-	end
-
 	-- Instantiate the maze state and some logic to reset / initialize it. The core state
 	-- is a flat list of the open directions of each of the block's tiles, stored as {
 	-- up1, left1, down1, right1, up2, left2, down2, right2, ... }, where upX et al. are
@@ -497,52 +414,29 @@ local function NewMaze (info, params)
 		if added then
 			maze_ops.SetFlags(block, open)
 		else
-			FadeOut(block)
+			FormingParams.time = FadeOut(block)
+
 			maze_ops.Wipe(block, open, true)
 		end
 
-		-- Alert listeners about our changes and fade tiles in or out. When fading in,
-		-- we must first update the tiles to reflect the new flags; on fadeout, we need
-		-- to keep the images around until the fade is done, but since this leaves them
-		-- invisible we can do nothing.
 		Runtime:dispatchEvent(TilesChangedEvent)
 
 		if added then
 			UpdateTiles(block)
-			FadeIn(block, occupancy)
+
+			FormingParams.time = FadeIn(block, occupancy)
 		end
 
-		-- Once the actual form part of the transition is done, send out an alert, e.g. to
-		-- rebake shapes, then do any shaking.
-		local params = {}
+		local bgroup = block:GetGroup()
 
-		function params.onComplete (group)
-			StopForming(group)
-
-			if Shake then
-				forming = transition.to(group, Shake(group))
-			end
-		end
-
-		-- Kick off the form transition. If shaking, the form is actually a sequence of
-		-- three transitions: before, form, after. The before and after are no-ops but
-		-- consolidate much of the bookkeeping that needs to be done.
-		if Shake then
-			params = Shake(block:GetGroup(), params)
-		end
-
-		forming = transition.to(block:GetGroup(), params)
+		bgroup.m_forming = transition.to(bgroup, FormingParams)
 	end
 
-	-- Shows or hides hints about the maze event
-	-- TODO: What's a good way to show this? (maybe just reuse generator with line segments, perhaps
-	-- with a little graphics fluff like in the Hilbert sample... seems like we could ALSO use this
-	-- to sequence the unfurl)
 	local mgroup
 
-	local function Show (show)
+	block:addEventListener("show", function(event)
 		-- Show...
-		if show then
+		if event.should_show then
 			if added then
 				return -- or show some "close" hint?
 			elseif mgroup then
@@ -561,25 +455,10 @@ local function NewMaze (info, params)
 				mgroup.isVisible = false
 			end
 		end
-	end
-
-	block:addEventListener("is_done", function(event)
-		event.result = not forming
 	end)
 
-	block:addEventListener("is_ready", function(event)
-		event.result = not forming
---[[
-		if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
-							-- _forward_ is also probably meaningless / failure
-			return "failed"
-		end
-]]
-	end)
-
-	block:addEventListener("show", function(event)
-		Show(event.should_show)
-	end)
+	block:addEventListener("is_done", IsDone)
+	block:addEventListener("is_ready", IsReady)
 
 	block:Reset()
 	block:AttachEvent(Fire, info, params)
