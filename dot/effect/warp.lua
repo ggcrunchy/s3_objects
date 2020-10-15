@@ -67,4 +67,8 @@ includer.AugmentKernels({
 
 graphics.defineEffect(effect)
 
+--
+--
+--
+
 return "composite.dot.warp"

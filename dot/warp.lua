@@ -59,21 +59,135 @@ local M = {}
 --
 --
 
-local Warp = {}
-
-local WarpEvent = {}
-
---- Dot method: warp acted on as dot of interest.
 --
--- If the warp has a valid target, dispatches various events (cf. _func_ in @{Warp:Use})
--- to the actor with this warp and said target as arguments.
-function Warp:ActOn (actor)
-	if not self:Use(actor) then
-		-- Sound effect?
+local function LinkWarp (warp, other, sub, other_sub)
+	if sub == "to" or (sub == "from" and not warp.to) then
+		if sub == "to" and other.type ~= "warp" then
+			bind.AddId(warp, "to", other.uid, other_sub)
+		else
+			warp.to = other.uid
+		end
 	end
 end
 
+-- Handler for warp-specific editor events, cf. s3_utils.dots.EditorEvent
+function M.editor (what, arg1, arg2, arg3)
+	-- Build --
+	-- arg1: Level
+	-- arg2: Original entry
+	-- arg3: Item to build
+	if what == "build" then
+		arg3.reciprocal_link = nil
+
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	elseif what == "enum_defs" then
+		arg1.reciprocal_link = true
+
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	elseif what == "enum_props" then
+		arg1:AddCheckbox{ text = "Two-way link, if one is blank?", value_name = "reciprocal_link" }
+		-- Polarity? Can be rotated?
+
+	-- Get Link Info --
+	-- arg1: Info to populate
+	elseif what == "get_link_info" then
+		arg1.from = { friendly_name = "Link from source warp", is_source = true }
+		arg1.to = "Link to target (warp or position)"
+
+	-- Get Tag --
+	elseif what == "get_tag" then
+		return "warp"
+
+	-- Get Thumb Filename --
+	elseif what == "get_thumb_filename" then
+		return "s3_objects/dot/thumb/warp.png"
+
+	-- New Tag --
+	elseif what == "new_tag" then
+		--
+		local function Pair (links, _, other, _, osub, link_to)
+			if links:GetTag(other) ~= "warp" then
+				return false, "Non-warp partner", true
+			elseif osub:GetName() ~= link_to then
+				return false, "Expects `" .. link_to .. "` sublink", true
+			end
+
+			return true
+		end
+
+		--
+		return {
+			sub_links = {
+				-- From --
+				from = function(warp, other, wsub, osub, links)
+					return Pair(links, warp, other, wsub, osub, "to")
+				end,
+
+				-- To --
+				to = function(warp, other, wsub, osub, links)
+					-- Is another warp being validly targeted?
+					local passed, why, is_cont = Pair(links, warp, other, wsub, osub, "from")
+
+					-- Otherwise, it may still be possible to target a position. If that is not what the
+					-- target is, then retain the previous errors; otherwise, provisionally succeed.
+					if not passed and links:GetTag(other) == "position" then
+						passed, why, is_cont = true
+					end
+
+					-- Finally, see if the link is even able to bind a target.
+					-- TODO: There are fairly obvious applications of multiple targets... however, it implies
+					-- some more editor support, e.g. load-time verification (ensuring constraints, say, after
+					-- manual editing) and perhaps "graying out" certain widgets (could use some of the dialog
+					-- functionality?)--e.g. an "Allow Multiple Targets" one--when not valid (this would then
+					-- require some detection for same).
+					if passed and links:HasLinks(warp, "to") then
+						passed, why, is_cont = false, "Already has a target"
+					end
+
+					return passed, why, is_cont
+				end
+			}
+		}
+
+	-- Prep Link --
+	elseif what == "prep_link" then
+		return LinkWarp
+
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Warp values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		local links, problem = arg1.links
+		local nfrom = links:CountLinks(arg3, "from")
+
+		if links:HasLinks(arg3, "to") or (arg2.reciprocal_link and nfrom == 1) then
+			return
+		elseif arg2.reciprocal_link then
+			if nfrom == 0 then
+				problem = "Missing back-link"
+			elseif nfrom > 1 then
+				problem = "Ambiguous back-link"
+			end
+		else
+			problem = "Missing target"
+		end
+
+		arg1[#arg1 + 1] = "Warp `" .. arg2.name .. "`: " .. problem
+	end
+end
+
+--
+--
+--
+
 local Body = { radius = 25 }
+
+--
+--
+--
 
 local TouchImage = directories.FromModule(..., "hud") .. "WarpTouch.png"
 
@@ -91,12 +205,36 @@ local function Getter (_, what)
 	end
 end
 
+local Warp = {}
+
 Warp.__rprops = { block_func_prep_P = Getter, body_P = Getter, on_rotate_block_P = Getter, touch_image_P = Getter }
+
+--
+--
+--
+
+--- Dot method: warp acted on as dot of interest.
+--
+-- If the warp has a valid target, dispatches various events (cf. _func_ in @{Warp:Use})
+-- to the actor with this warp and said target as arguments.
+function Warp:ActOn (actor)
+	if not self:Use(actor) then
+		-- Sound effect?
+	end
+end
+
+--
+--
+--
 
 --- Dot method: reset warp state.
 function Warp:Reset ()
 	self:DataStore_RemoveParts()
 end
+
+--
+--
+--
 
 local function Scale (warp, scale)
 	warp.xScale = .5 * scale
@@ -109,6 +247,12 @@ function Warp:Update (dt)
 
 	Scale(self, 1 - sin(self.rotation / 30) * .05)
 end
+
+--
+--
+--
+
+local WarpEvent = {}
 
 local function DispatchWarpEvent (user, name, from, to)
 	WarpEvent.name, WarpEvent.from, WarpEvent.to = name, from, to
@@ -246,6 +390,54 @@ function Warp:Use (user)
 	end
 end
 
+--
+--
+--
+
+component.AddToObject(Warp, data_store)
+
+--
+--
+--
+
+local WarpFill, WarpList, WarpRadius
+
+local function AddTarget (target, warp)
+	warp.m_to = target
+end
+
+local FirstTimeInit
+
+--- DOCME
+function M.make (info, params)
+	if not WarpList then
+		FirstTimeInit(params)
+	end
+	
+	local warp = display.newCircle(params.things_layer, 0, 0, WarpRadius)
+
+	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
+
+	Scale(warp, 1)
+
+	meta.Augment(warp, Warp)
+
+	Sounds:Load()
+
+	local psl = params:GetPubSubList()
+
+	psl:Subscribe(info.to, AddTarget, warp)
+	psl:Publish(warp, info.uid, "pos")
+
+	WarpList[#WarpList + 1] = warp
+
+	dots.New(info, warp)
+end
+
+--
+--
+--
+
 local MarkersLayer
 
 local TouchEvent = { name = "touching_dot" }
@@ -290,132 +482,16 @@ collision.AddHandler("warp", function(phase, warp, other)
 end)
 
 --
-local function LinkWarp (warp, other, sub, other_sub)
-	if sub == "to" or (sub == "from" and not warp.to) then
-		if sub == "to" and other.type ~= "warp" then
-			bind.AddId(warp, "to", other.uid, other_sub)
-		else
-			warp.to = other.uid
-		end
-	end
-end
-
--- Handler for warp-specific editor events, cf. s3_utils.dots.EditorEvent
-function M.editor (what, arg1, arg2, arg3)
-	-- Build --
-	-- arg1: Level
-	-- arg2: Original entry
-	-- arg3: Item to build
-	if what == "build" then
-		arg3.reciprocal_link = nil
-
-	-- Enumerate Defaults --
-	-- arg1: Defaults
-	elseif what == "enum_defs" then
-		arg1.reciprocal_link = true
-
-	-- Enumerate Properties --
-	-- arg1: Dialog
-	elseif what == "enum_props" then
-		arg1:AddCheckbox{ text = "Two-way link, if one is blank?", value_name = "reciprocal_link" }
-		-- Polarity? Can be rotated?
-
-	-- Get Link Info --
-	-- arg1: Info to populate
-	elseif what == "get_link_info" then
-		arg1.from = { friendly_name = "Link from source warp", is_source = true }
-		arg1.to = "Link to target (warp or position)"
-
-	-- Get Tag --
-	elseif what == "get_tag" then
-		return "warp"
-
-	-- Get Thumb Filename --
-	elseif what == "get_thumb_filename" then
-		return "s3_objects/dot/thumb/warp.png"
-
-	-- New Tag --
-	elseif what == "new_tag" then
-		--
-		local function Pair (links, _, other, _, osub, link_to)
-			if links:GetTag(other) ~= "warp" then
-				return false, "Non-warp partner", true
-			elseif osub:GetName() ~= link_to then
-				return false, "Expects `" .. link_to .. "` sublink", true
-			end
-
-			return true
-		end
-
-		--
-		return {
-			sub_links = {
-				-- From --
-				from = function(warp, other, wsub, osub, links)
-					return Pair(links, warp, other, wsub, osub, "to")
-				end,
-
-				-- To --
-				to = function(warp, other, wsub, osub, links)
-					-- Is another warp being validly targeted?
-					local passed, why, is_cont = Pair(links, warp, other, wsub, osub, "from")
-
-					-- Otherwise, it may still be possible to target a position. If that is not what the
-					-- target is, then retain the previous errors; otherwise, provisionally succeed.
-					if not passed and links:GetTag(other) == "position" then
-						passed, why, is_cont = true
-					end
-
-					-- Finally, see if the link is even able to bind a target.
-					-- TODO: There are fairly obvious applications of multiple targets... however, it implies
-					-- some more editor support, e.g. load-time verification (ensuring constraints, say, after
-					-- manual editing) and perhaps "graying out" certain widgets (could use some of the dialog
-					-- functionality?)--e.g. an "Allow Multiple Targets" one--when not valid (this would then
-					-- require some detection for same).
-					if passed and links:HasLinks(warp, "to") then
-						passed, why, is_cont = false, "Already has a target"
-					end
-
-					return passed, why, is_cont
-				end
-			}
-		}
-
-	-- Prep Link --
-	elseif what == "prep_link" then
-		return LinkWarp
-
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Warp values
-	-- arg3: Representative object
-	elseif what == "verify" then
-		local links, problem = arg1.links
-		local nfrom = links:CountLinks(arg3, "from")
-
-		if links:HasLinks(arg3, "to") or (arg2.reciprocal_link and nfrom == 1) then
-			return
-		elseif arg2.reciprocal_link then
-			if nfrom == 0 then
-				problem = "Missing back-link"
-			elseif nfrom > 1 then
-				problem = "Ambiguous back-link"
-			end
-		else
-			problem = "Missing target"
-		end
-
-		arg1[#arg1 + 1] = "Warp `" .. arg2.name .. "`: " .. problem
-	end
-end
-
-component.AddToObject(Warp, data_store)
+--
+--
 
 local function PreReset()
 	transition.cancel(Tag)
 end
 
-local WarpList
+--
+--
+--
 
 local function SetCanvasAlpha (event)
 	local alpha = event.alpha
@@ -425,9 +501,13 @@ local function SetCanvasAlpha (event)
 	end
 end
 
-local WarpFill = {
+--
+--
+--
+
+WarpFill = {
 	type = "composite",
-	paint1 = { type = "image" },
+	paint1 = { type = "image", filename = HereGFX .. "Warp.png" },
 	paint2 = { type = "image" }
 }
 
@@ -442,15 +522,11 @@ local function LeaveLevel ()
 	transition.cancel(Tag)
 end
 
-WarpFill.paint1.filename = HereGFX .. "Warp.png"
+--
+--
+--
 
-local function AddTarget (target, warp)
-	warp.m_to = target
-end
-
-local WarpRadius
-
-local function FirstTimeInit (params)
+function FirstTimeInit (params)
 	MarkersLayer = params.markers_layer
 
 	local w, h = tile_layout.GetSizes()
@@ -462,32 +538,6 @@ local function FirstTimeInit (params)
 	Runtime:addEventListener("leave_level", LeaveLevel)
 	Runtime:addEventListener("pre_reset", PreReset)
 	Runtime:addEventListener("set_canvas_alpha", SetCanvasAlpha)
-end
-
---- DOCME
-function M.make (info, params)
-	if not WarpList then
-		FirstTimeInit(params)
-	end
-	
-	local warp = display.newCircle(params.things_layer, 0, 0, WarpRadius)
-
-	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
-
-	Scale(warp, 1)
-
-	meta.Augment(warp, Warp)
-
-	Sounds:Load()
-
-	local psl = params:GetPubSubList()
-
-	psl:Subscribe(info.to, AddTarget, warp)
-	psl:Publish(warp, info.uid, "pos")
-
-	WarpList[#WarpList + 1] = warp
-
-	dots.New(info, warp)
 end
 
 return M

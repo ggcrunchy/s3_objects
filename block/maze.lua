@@ -56,6 +56,46 @@ local easing = easing
 local Runtime = Runtime
 local transition = transition
 
+-- Exports --
+local M = {}
+
+--
+--
+--
+
+-- Handler for maze-specific editor events, cf. s3_utils.blocks.EditorEvent
+function M.editor (what, arg1, arg2, arg3)
+	-- Build --
+	-- arg1: Level
+	-- arg2: Original entry
+	-- arg3: Item to build
+	if what == "build" then
+		-- STUFF
+
+	-- Enumerate Defaults --
+	-- arg1: Defaults
+	elseif what == "enum_defs" then
+		arg1.starts_on = false
+			-- Seeds?
+
+	-- Enumerate Properties --
+	-- arg1: Dialog
+	elseif what == "enum_props" then
+		arg1:AddCheckbox{ text = "Starts on?", value_name = "starts_on" }
+
+	-- Get Thumb Filename --
+	elseif what == "get_thumb_filename" then
+		return "s3_objects/block/thumb/maze.png"
+
+	-- Verify --
+	-- arg1: Verify block
+	-- arg2: Maze values
+	-- arg3: Representative object
+	elseif what == "verify" then
+		-- STUFF
+	end
+end
+
 --
 --
 --
@@ -216,39 +256,6 @@ local function FadeOut (block)
 	return duration + 100 -- cf. FadeIn
 end
 
--- Handler for maze-specific editor events, cf. s3_utils.blocks.EditorEvent
-local function OnEditorEvent (what, arg1, arg2, arg3)
-	-- Build --
-	-- arg1: Level
-	-- arg2: Original entry
-	-- arg3: Item to build
-	if what == "build" then
-		-- STUFF
-
-	-- Enumerate Defaults --
-	-- arg1: Defaults
-	elseif what == "enum_defs" then
-		arg1.starts_on = false
-			-- Seeds?
-
-	-- Enumerate Properties --
-	-- arg1: Dialog
-	elseif what == "enum_props" then
-		arg1:AddCheckbox{ text = "Starts on?", value_name = "starts_on" }
-
-	-- Get Thumb Filename --
-	elseif what == "get_thumb_filename" then
-		return "s3_objects/block/thumb/maze.png"
-
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Maze values
-	-- arg3: Representative object
-	elseif what == "verify" then
-		-- STUFF
-	end
-end
-
 local FadeParams = { onComplete = display.remove }
 
 local function CleanUpHint (block, mgroup)
@@ -386,7 +393,8 @@ end
 
 local FormingParams = { onComplete = StopForming }
 
-local function NewMaze (info, params)
+--- DOCME
+function M.make (info, params)
 	-- Instantiate the maze state and some logic to reset / initialize it. The core state
 	-- is a flat list of the open directions of each of the block's tiles, stored as {
 	-- up1, left1, down1, right1, up2, left2, down2, right2, ... }, where upX et al. are
@@ -464,4 +472,8 @@ local function NewMaze (info, params)
 	block:AttachEvent(Fire, info, params)
 end
 
-return { make = NewMaze, editor = OnEditorEvent }
+--
+--
+--
+
+return M

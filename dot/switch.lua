@@ -51,141 +51,6 @@ local M = {}
 --
 --
 
-local Switch = {}
-
--- Switch <-> events binding --
-local Events = multicall.NewDispatcher()
-
-local Sounds = audio.NewSoundGroup{ module = ..., path = "sfx", "Switch1.wav", "Switch2.mp3" }
-
---- Dot method: switch acted on as dot of interest.
-function Switch:ActOn ()
-	local any_successes, no_failures = false, true
-
-	-- Fire the event and stop showing its hint, and wait for it to finish.
-	local n, flag, waiting = 0, 1, self.m_waiting
-
-	events.BindNamedArgument("origin", self)
-	events.BindNamedArgument("should_show", false)
-
-	for _, event in Events:IterateFunctionsForObject(self) do
-		if band(waiting, flag) == 0 then		
-			local is_ready = events.DispatchOrHandle_Named("is_ready", event, true)
-
-			if is_ready then
-				event()
-
-				any_successes, waiting = true, waiting + flag
-			else
-				no_failures = false
-			end
-
-			n = n + 1
-
-			events.DispatchOrHandle_Named("show", event)
-		end
-
-		flag = 2 * flag
-	end
-
-	events.UnbindArguments()
-
-	n = Events:AddForObject(self, n)
-
-	self.m_waiting = waiting
-
-	--
-	if no_failures or any_successes then -- we might more robustly do this BEFORE making any actual calls / shows
-										 -- some sort of named event like "will_fail" might be checked?
-										 -- then we could also choose a policy too; complicating this is that
-										 -- a couple of these cases do calculations, so either these would be
-										 -- at best redundant or potentially affect correctness; in particular,
-										 -- non-switch users will not likely do all the legwork 
-		Sounds:RandomSound()
-
-		-- Change the switch image.
-		self[1].isVisible = not self[1].isVisible
-		self[2].isVisible = not self[2].isVisible
-
-	--
-	else
-		-- Fail sound
-	end
-end
-
-local Body = { radius = 25 }
-
-local function Getter (_, what)
-	return what == "body_P" and Body or "Flip Switch"
-end
-
-Switch.__rprops = { body_P = Getter, touch_text_P = Getter }
-
---- Dot method: reset switch state.
-function Switch:Reset ()
-	self[1].isVisible = true
-	self[2].isVisible = false
-
-	self.m_touched, self.m_waiting = false, 0
-end
-
---- Dot method: update switch state.
-function Switch:Update ()
-	local flag, touched, waiting = 1, self.m_touched, self.m_waiting
-
-	events.BindNamedArgument("origin", self)
-	events.BindNamedArgument("should_show", true)
-
-	for _, event in Events:IterateFunctionsForObject(self) do
-		if band(waiting, flag) ~= 0 and events.DispatchOrHandle_Named("is_done", event, true) then
-			waiting = waiting - flag
-
-			if touched then
-				events.DispatchOrHandle_Named("show", event)
-			end
-		end
-
-		flag = 2 * flag
-	end
-
-	events.UnbindArguments()
-
-	self.m_waiting = waiting
-end
-
-local TouchEvent = { name = "touching_dot" }
-
-collision.AddHandler("switch", function(phase, switch, other)
-	if collision.GetType(other) == "player" then
-		local is_touched = phase == "began"
-
-		TouchEvent.dot, TouchEvent.is_touching, switch.m_touched = switch, is_touched, is_touched
-
-		Runtime:dispatchEvent(TouchEvent)
-
-		TouchEvent.dot = nil
-
-		--
-		events.BindNamedArgument("origin", switch)
-		events.BindNamedArgument("should_show", is_touched)
-
-		local flag, waiting = 1, switch.m_waiting
-
-		for _, event in Events:IterateFunctionsForObject(switch) do
-			if band(waiting, flag) == 0 then
-				events.DispatchOrHandle_Named("show", event)
-			end
-
-			flag = 2 * flag
-		end
-
-		events.UnbindArguments()
-
-	elseif phase == "began" and component.ImplementedByObject(other, "flips_switch") then
-		switch:ActOn()
-	end
-end)
-
 local function LinkSwitch (switch, other, sub, other_sub)
 	if sub == "trip" then
 		bind.AddId(switch, "target", other.uid, other_sub)
@@ -299,6 +164,132 @@ function M.editor (what, arg1, arg2, arg3)
 	end
 end
 
+--
+--
+--
+
+local Body = { radius = 25 }
+
+--
+--
+--
+
+local Switch = {}
+
+local function Getter (_, what)
+	return what == "body_P" and Body or "Flip Switch"
+end
+
+Switch.__rprops = { body_P = Getter, touch_text_P = Getter }
+
+--
+--
+--
+
+-- Switch <-> events binding --
+local Events = multicall.NewDispatcher()
+
+local Sounds = audio.NewSoundGroup{ module = ..., path = "sfx", "Switch1.wav", "Switch2.mp3" }
+
+--- Dot method: switch acted on as dot of interest.
+function Switch:ActOn ()
+	local any_successes, no_failures = false, true
+
+	-- Fire the event and stop showing its hint, and wait for it to finish.
+	local n, flag, waiting = 0, 1, self.m_waiting
+
+	events.BindNamedArgument("origin", self)
+	events.BindNamedArgument("should_show", false)
+
+	for _, event in Events:IterateFunctionsForObject(self) do
+		if band(waiting, flag) == 0 then		
+			local is_ready = events.DispatchOrHandle_Named("is_ready", event, true)
+
+			if is_ready then
+				event()
+
+				any_successes, waiting = true, waiting + flag
+			else
+				no_failures = false
+			end
+
+			n = n + 1
+
+			events.DispatchOrHandle_Named("show", event)
+		end
+
+		flag = 2 * flag
+	end
+
+	events.UnbindArguments()
+
+	n = Events:AddForObject(self, n)
+
+	self.m_waiting = waiting
+
+	--
+	if no_failures or any_successes then -- we might more robustly do this BEFORE making any actual calls / shows
+										 -- some sort of named event like "will_fail" might be checked?
+										 -- then we could also choose a policy too; complicating this is that
+										 -- a couple of these cases do calculations, so either these would be
+										 -- at best redundant or potentially affect correctness; in particular,
+										 -- non-switch users will not likely do all the legwork 
+		Sounds:RandomSound()
+
+		-- Change the switch image.
+		self[1].isVisible = not self[1].isVisible
+		self[2].isVisible = not self[2].isVisible
+
+	--
+	else
+		-- Fail sound
+	end
+end
+
+--
+--
+--
+
+--- Dot method: reset switch state.
+function Switch:Reset ()
+	self[1].isVisible = true
+	self[2].isVisible = false
+
+	self.m_touched, self.m_waiting = false, 0
+end
+
+--
+--
+--
+
+--- Dot method: update switch state.
+function Switch:Update ()
+	local flag, touched, waiting = 1, self.m_touched, self.m_waiting
+
+	events.BindNamedArgument("origin", self)
+	events.BindNamedArgument("should_show", true)
+
+	for _, event in Events:IterateFunctionsForObject(self) do
+		if band(waiting, flag) ~= 0 and events.DispatchOrHandle_Named("is_done", event, true) then
+			waiting = waiting - flag
+
+			if touched then
+				events.DispatchOrHandle_Named("show", event)
+			end
+		end
+
+		flag = 2 * flag
+	end
+
+	events.UnbindArguments()
+
+	self.m_waiting = waiting
+end
+
+--
+--
+--
+
 local GFX = directories.FromModule(..., "gfx")
 
 function M.make (info, params)
@@ -325,5 +316,46 @@ function M.make (info, params)
 
 	dots.New(info, switch)
 end
+
+--
+--
+--
+
+local TouchEvent = { name = "touching_dot" }
+
+collision.AddHandler("switch", function(phase, switch, other)
+	if collision.GetType(other) == "player" then
+		local is_touched = phase == "began"
+
+		TouchEvent.dot, TouchEvent.is_touching, switch.m_touched = switch, is_touched, is_touched
+
+		Runtime:dispatchEvent(TouchEvent)
+
+		TouchEvent.dot = nil
+
+		--
+		events.BindNamedArgument("origin", switch)
+		events.BindNamedArgument("should_show", is_touched)
+
+		local flag, waiting = 1, switch.m_waiting
+
+		for _, event in Events:IterateFunctionsForObject(switch) do
+			if band(waiting, flag) == 0 then
+				events.DispatchOrHandle_Named("show", event)
+			end
+
+			flag = 2 * flag
+		end
+
+		events.UnbindArguments()
+
+	elseif phase == "began" and component.ImplementedByObject(other, "flips_switch") then
+		switch:ActOn()
+	end
+end)
+
+--
+--
+--
 
 return M

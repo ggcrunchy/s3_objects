@@ -42,4 +42,8 @@ graphics.defineEffect{
 	]]
 }
 
+--
+--
+--
+
 return "generator.block_maze.stipple"

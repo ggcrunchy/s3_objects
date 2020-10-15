@@ -65,6 +65,10 @@ function M.ActivateMask (bgroup, name, clear_after)
 	bgroup.m_clear_after = clear_after
 end
 
+--
+--
+--
+
 local Choices = {}
 
 local Deltas = { false, -1, false, 1 }
@@ -118,6 +122,10 @@ function M.Build (open, occupancy)
 	until #Work == 0
 end
 
+--
+--
+--
+
 --- DOCME
 function M.DeactivateMask (bgroup)
 	timer.pause(bgroup.m_mask_update)
@@ -127,10 +135,18 @@ function M.DeactivateMask (bgroup)
 	end
 end
 
+--
+--
+--
+
 --- DOCME
 function M.GetOutGroup (bgroup)
 	return bgroup.m_out
 end
+
+--
+--
+--
 
 local function HideOutGroups (bgroup)
 	local cache = bgroup.m_mask_tex.cache
@@ -154,6 +170,10 @@ function M.PrepareMask (bgroup, name)
 
 	bgroup.m_out = out
 end
+
+--
+--
+--
 
 --- Convert maze state into flags.
 --
@@ -201,6 +221,10 @@ function M.SetFlags (block, open)
 	end
 end
 
+--
+--
+--
+
 local function Finalize (event)
 	local bgroup = event.target
 	local preview_tex = bgroup.m_preview_tex
@@ -240,6 +264,10 @@ function M.SetupFromBlock (block)
 
 	timer.pause(group.m_mask_update)
 end
+
+--
+--
+--
 
 local List1, List2 = {}, {}
 
@@ -294,6 +322,10 @@ function M.Visit (block, occupancy, func, dt, arg, how)
 	return t - dt
 end
 
+--
+--
+--
+
 --- Wipe the maze state (and optionally its flags), marking borders.
 function M.Wipe (block, open, wipe_flags)
 	local i, col1, row1, col2, row2 = 0, block:GetInitialRect()
@@ -311,5 +343,9 @@ function M.Wipe (block, open, wipe_flags)
 		tile_flags.Wipe(col1, row1, col2, row2)
 	end
 end
+
+--
+--
+--
 
 return M
