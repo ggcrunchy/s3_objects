@@ -369,11 +369,11 @@ end
 local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
 
 local function IsDone (event)
-	event.result = not event.target:GetGroup().m_forming
+	event.result = not event.target:GetGroup().m_maze_forming
 end
 
 local function IsReady (event)
-	event.result = not event.target:GetGroup().m_forming
+	event.result = not event.target:GetGroup().m_maze_forming
 --[[
 	if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
 						-- _forward_ is also probably meaningless / failure
@@ -383,11 +383,11 @@ local function IsReady (event)
 end
 
 local function StopForming (bgroup)
-	if bgroup.m_forming then
+	if bgroup.m_maze_forming then
 		maze_ops.DeactivateMask(bgroup)
-		transition.cancel(bgroup.m_forming)
+		transition.cancel(bgroup.m_maze_forming)
 
-		bgroup.m_forming = nil
+		bgroup.m_maze_forming = nil
 	end
 end
 
@@ -437,7 +437,7 @@ function M.make (info, params)
 
 		local bgroup = block:GetGroup()
 
-		bgroup.m_forming = transition.to(bgroup, FormingParams)
+		bgroup.m_maze_forming = transition.to(bgroup, FormingParams)
 	end
 
 	local mgroup
