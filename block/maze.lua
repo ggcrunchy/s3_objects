@@ -450,13 +450,13 @@ function M.make (info, params)
 			elseif mgroup then
 				mgroup.isVisible = true
 			else
-				mgroup = MakeHint(block, open, occupancy, params.markers_layer)
+				mgroup = MakeHint(event.target, open, occupancy, params.markers_layer)
 			end
 
 		-- ...or hide.
 		elseif mgroup then
 			if added then
-				CleanUpHint(block, mgroup)
+				CleanUpHint(event.target, mgroup)
 
 				mgroup = nil
 			else
