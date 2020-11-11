@@ -412,6 +412,10 @@ function M.make (info, params)
 		end
 	end
 
+	--
+	--
+	--
+
 	maze_ops.SetupFromBlock(block)
 
 	local occupancy = embedded_predicate.Wrap(open)
@@ -440,6 +444,13 @@ function M.make (info, params)
 		bgroup.m_maze_forming = transition.to(bgroup, FormingParams)
 	end
 
+	block:addEventListener("is_done", IsDone)
+	block:addEventListener("is_ready", IsReady)
+
+	--
+	--
+	--
+
 	local mgroup
 
 	block:addEventListener("show", function(event)
@@ -465,8 +476,9 @@ function M.make (info, params)
 		end
 	end)
 
-	block:addEventListener("is_done", IsDone)
-	block:addEventListener("is_ready", IsReady)
+	--
+	--
+	--
 
 	block:Reset()
 	block:AttachEvent(Fire, info, params)
