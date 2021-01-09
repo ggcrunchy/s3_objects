@@ -63,37 +63,13 @@ local M = {}
 --
 --
 
--- Handler for maze-specific editor events, cf. s3_utils.blocks.EditorEvent
-function M.editor (what, arg1, arg2, arg3)
-	-- Build --
-	-- arg1: Level
-	-- arg2: Original entry
-	-- arg3: Item to build
-	if what == "build" then
-		-- STUFF
-
-	-- Enumerate Defaults --
-	-- arg1: Defaults
-	elseif what == "enum_defs" then
-		arg1.starts_on = false
-			-- Seeds?
-
-	-- Enumerate Properties --
-	-- arg1: Dialog
-	elseif what == "enum_props" then
-		arg1:AddCheckbox{ text = "Starts on?", value_name = "starts_on" }
-
-	-- Get Thumb Filename --
-	elseif what == "get_thumb_filename" then
-		return "s3_objects/block/thumb/maze.png"
-
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Maze values
-	-- arg3: Representative object
-	elseif what == "verify" then
-		-- STUFF
-	end
+--- DOCME
+function M.editor ()
+	return {
+		inputs = {
+			boolean = { starts_on = false }
+		}
+	}
 end
 
 --
@@ -451,7 +427,7 @@ function M.make (info, params)
 	--
 	--
 
-	local mgroup
+	local markers_layer, mgroup = params:GetLayer("markers")
 
 	block:addEventListener("show", function(event)
 		-- Show...
@@ -461,7 +437,7 @@ function M.make (info, params)
 			elseif mgroup then
 				mgroup.isVisible = true
 			else
-				mgroup = MakeHint(event.target, open, occupancy, params.markers_layer)
+				mgroup = MakeHint(event.target, open, occupancy, markers_layer)
 			end
 
 		-- ...or hide.

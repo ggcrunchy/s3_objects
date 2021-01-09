@@ -29,7 +29,6 @@ local sin = math.sin
 
 -- Modules --
 local audio = require("solar2d_utils.audio")
-local bind = require("solar2d_utils.bind")
 local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local data_store = require("s3_objects.mixin.data_store")
@@ -59,124 +58,18 @@ local M = {}
 --
 --
 
---
-local function LinkWarp (warp, other, sub, other_sub)
-	if sub == "to" or (sub == "from" and not warp.to) then
-		if sub == "to" and other.type ~= "warp" then
-			bind.AddId(warp, "to", other.uid, other_sub)
-		else
-			warp.to = other.uid
-		end
-	end
-end
-
--- Handler for warp-specific editor events, cf. s3_utils.dots.EditorEvent
-function M.editor (what, arg1, arg2, arg3)
-	-- Build --
-	-- arg1: Level
-	-- arg2: Original entry
-	-- arg3: Item to build
-	if what == "build" then
-		arg3.reciprocal_link = nil
-
-	-- Enumerate Defaults --
-	-- arg1: Defaults
-	elseif what == "enum_defs" then
-		arg1.reciprocal_link = true
-
-	-- Enumerate Properties --
-	-- arg1: Dialog
-	elseif what == "enum_props" then
-		arg1:AddCheckbox{ text = "Two-way link, if one is blank?", value_name = "reciprocal_link" }
-		-- Polarity? Can be rotated?
-
-	-- Get Link Info --
-	-- arg1: Info to populate
-	elseif what == "get_link_info" then
-		arg1.from = { friendly_name = "Link from source warp", is_source = true }
-		arg1.to = "Link to target (warp or position)"
-
-	-- Get Tag --
-	elseif what == "get_tag" then
-		return "warp"
-
-	-- Get Thumb Filename --
-	elseif what == "get_thumb_filename" then
-		return "s3_objects/dot/thumb/warp.png"
-
-	-- New Tag --
-	elseif what == "new_tag" then
-		--
-		local function Pair (links, _, other, _, osub, link_to)
-			if links:GetTag(other) ~= "warp" then
-				return false, "Non-warp partner", true
-			elseif osub:GetName() ~= link_to then
-				return false, "Expects `" .. link_to .. "` sublink", true
-			end
-
-			return true
-		end
-
-		--
-		return {
-			sub_links = {
-				-- From --
-				from = function(warp, other, wsub, osub, links)
-					return Pair(links, warp, other, wsub, osub, "to")
-				end,
-
-				-- To --
-				to = function(warp, other, wsub, osub, links)
-					-- Is another warp being validly targeted?
-					local passed, why, is_cont = Pair(links, warp, other, wsub, osub, "from")
-
-					-- Otherwise, it may still be possible to target a position. If that is not what the
-					-- target is, then retain the previous errors; otherwise, provisionally succeed.
-					if not passed and links:GetTag(other) == "position" then
-						passed, why, is_cont = true
-					end
-
-					-- Finally, see if the link is even able to bind a target.
-					-- TODO: There are fairly obvious applications of multiple targets... however, it implies
-					-- some more editor support, e.g. load-time verification (ensuring constraints, say, after
-					-- manual editing) and perhaps "graying out" certain widgets (could use some of the dialog
-					-- functionality?)--e.g. an "Allow Multiple Targets" one--when not valid (this would then
-					-- require some detection for same).
-					if passed and links:HasLinks(warp, "to") then
-						passed, why, is_cont = false, "Already has a target"
-					end
-
-					return passed, why, is_cont
-				end
-			}
-		}
-
-	-- Prep Link --
-	elseif what == "prep_link" then
-		return LinkWarp
-
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Warp values
-	-- arg3: Representative object
-	elseif what == "verify" then
-		local links, problem = arg1.links
-		local nfrom = links:CountLinks(arg3, "from")
-
-		if links:HasLinks(arg3, "to") or (arg2.reciprocal_link and nfrom == 1) then
-			return
-		elseif arg2.reciprocal_link then
-			if nfrom == 0 then
-				problem = "Missing back-link"
-			elseif nfrom > 1 then
-				problem = "Ambiguous back-link"
-			end
-		else
-			problem = "Missing target"
-		end
-
-		arg1[#arg1 + 1] = "Warp `" .. arg2.name .. "`: " .. problem
-	end
+--- DOCME
+function M.editor ()
+	return {
+		inputs = {
+			boolean = { reciprocal_link = true },
+			["dot.warp"] = { from = true },
+			position = { to = true },
+		},
+		interfaces = { "dot.warp", "position" },
+		self = "dot.warp"
+		-- TODO: can link, linker, verify
+	}
 end
 
 --
@@ -191,7 +84,7 @@ local Body = { radius = 25 }
 
 local TouchImage = directories.FromModule(..., "hud") .. "WarpTouch.png"
 
-local function Rotate (warp, angle)
+local function Rotate ()--warp, angle)
 	-- TODO: polarity, etc.
 end
 
@@ -414,7 +307,7 @@ function M.make (info, params)
 		FirstTimeInit(params)
 	end
 	
-	local warp = display.newCircle(params.things_layer, 0, 0, WarpRadius)
+	local warp = display.newCircle(params:GetLayer("things"), 0, 0, WarpRadius)
 
 	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
 
@@ -527,7 +420,7 @@ end
 --
 
 function FirstTimeInit (params)
-	MarkersLayer = params.markers_layer
+	MarkersLayer = params:GetLayer("markers")
 
 	local w, h = tile_layout.GetSizes()
 

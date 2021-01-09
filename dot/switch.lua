@@ -25,7 +25,6 @@
 
 -- Modules --
 local audio = require("solar2d_utils.audio")
-local bind = require("solar2d_utils.bind")
 local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local directories = require("s3_utils.directories")
@@ -51,117 +50,11 @@ local M = {}
 --
 --
 
-local function LinkSwitch (switch, other, sub, other_sub)
-	if sub == "trip" then
-		bind.AddId(switch, "target", other.uid, other_sub)
-	end
-end
-
--- Handler for switch-specific editor events, cf. s3_utils.dots.EditorEvent
-function M.editor (what, arg1, arg2, arg3)
-	--[[
-		TODO: should become something like:
-			return a table that gets stitched into a list...
-		return {
-			_init = function(name) -- or something that does GetState() for us, e.g. init_nodes()
-				local np = function_set.GetState(name)
-
-				np:AddExportNode("trip", "func")
-			end,
-			get_node_info = function(info)
-				info:SetExportHeading("EVENTS")
-					:SetFont("bold")
-					:SetColor("actions")
-				info:AddExportNode("trip", "Fire target actions")
-
-					or
-
-				info:SetHeading("EVENTS")
-					:SetFont("bold")
-					:SetColor("actions")
-				info:AddNode("trip", "Fire target actions")
-
-					or
-
-				{ name = "EVENTS", font = "bold", color = "actions" },
-					"trip", "Fire target actions"
-
-					or
-
-				info:AddString("EVENTS")
-					:SetFont("bold")
-					:SetColor("actions"),
-				info:AddNode("trip", "func", "Fire target actions"),
-				blocks = {
-					{
-						-- as above...
-					}, {
-						-- ...ditto
-					}
-				}
-				-- ^^^ This seems to be the winner (annoying implementation but useful properties)
-			end,
-			-- thumb filename?
-			verify = function(vblock, switch, id)
-				if not vblock.links:HasLinks(id, "trip") then
-					vblock[#vblock + 1] = "Switch ``" .. switch.name .. "`` has no event targets"
-				end
-			end
-		}
-	]]
-	-- Build --
-	-- arg1: Level
-	-- arg2: Original entry
-	-- arg3: Item to build
-	if what == "build" then
-		-- STUFF
-
-	-- Enumerate Defaults --
-	-- arg1: Defaults
-	elseif what == "enum_defs" then
-		-- STUFF
-
-	-- Enumerate Properties --
-	-- arg1: Dialog
-	elseif what == "enum_props" then
-		-- STUFF
-
-	-- Get Link Grouping --
-	elseif what == "get_link_grouping" then
-		return {
-			{ text = "EVENTS", font = "bold", color = "actions", is_source = true }, "trip"
-		}
-
-	-- Get Link Info --
-	-- arg1: Info to populate
-	elseif what == "get_link_info" then
-		arg1.trip = "Fire target action"
-
-	-- Get Tag --
-	elseif what == "get_tag" then
-		return "switch"
-
-	-- Get Thumb Filename --
-	elseif what == "get_thumb_filename" then
-		return "s3_objects/dot/thumb/switch.png"
-
-	-- New Tag --
-	elseif what == "new_tag" then
-		return "sources_and_targets", "trip", nil
-
-	-- Prep Link --
-	elseif what == "prep_link" then
-		return LinkSwitch
-
-	-- Verify --
-	-- arg1: Verify block
-	-- arg2: Switch values
-	-- arg3: Representative object
-	elseif what == "verify" then
-		if not arg1.links:HasLinks(arg3, "trip") then
-			arg1[#arg1 + 1] = "Switch `" .. arg2.name .. "` has no event targets"
-		end
-	end
+--- DOCME
+function M.editor ()
+	return {
+		actions = { trip = true } -- TODO: resolve trip / target difference
+	}
 end
 
 --
@@ -295,7 +188,7 @@ local GFX = directories.FromModule(..., "gfx")
 function M.make (info, params)
 	local switch = display.newGroup()
 
-	params.things_layer:insert(switch)
+	params:GetLayer("things"):insert(switch)
 
 	local _ = display.newImage(switch, GFX .. "Switch-1.png")
 	local image2 = display.newImage(switch, GFX .. "Switch-2.png")
