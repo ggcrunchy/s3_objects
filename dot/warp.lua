@@ -307,7 +307,7 @@ function M.make (info, params)
 		FirstTimeInit(params)
 	end
 	
-	local warp = display.newCircle(params:GetLayer("things"), 0, 0, WarpRadius)
+	local warp = display.newCircle(params:GetLayer("things1"), 0, 0, WarpRadius)
 
 	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
 

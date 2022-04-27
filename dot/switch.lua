@@ -188,7 +188,7 @@ local GFX = directories.FromModule(..., "gfx")
 function M.make (info, params)
 	local switch = display.newGroup()
 
-	params:GetLayer("things"):insert(switch)
+	params:GetLayer("things1"):insert(switch)
 
 	local _ = display.newImage(switch, GFX .. "Switch-1.png")
 	local image2 = display.newImage(switch, GFX .. "Switch-2.png")
