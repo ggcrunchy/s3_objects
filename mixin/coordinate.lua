@@ -25,7 +25,6 @@
 
 -- Standard library imports --
 local pairs = pairs
-local sqrt = math.sqrt
 
 -- Modules --
 local component = require("tektite_core.component")
@@ -39,60 +38,97 @@ local _lcs = {}
 
 local CoordinateMixin = {}
 
+--
+--
+--
+
+local function Component (vx, vy, wx, wy, normalized)
+  local dot = vx * wx + vy * wy
+
+  if normalized then
+    return dot
+  else
+    return dot / (wx^2 + wy^2)
+  end
+end
+
 --- DOCME
--- TODO: VERY unsure about this :P
 function CoordinateMixin:Coordinate_GetComponents (x, y)
 	local lcs = self[_lcs]
 
 	if lcs then
-		local cx, cy, lx, ly, rx, ry, ux, uy = lcs()
-		local dx, dy, r2, u2 = x - cx, y - cy, rx^2 + ry^2, ux^2 + uy^2
-		local s = (dx * rx + dy * ry) / r2
-		local t = (dx * ux + dy * uy) / u2
+    local cx, cy = lcs("origin")
+		local dx, dy = x - cx, y - cy
+    local rx, ry, ux, uy, normalized = lcs("axes")
+		local s = Component(dx, dy, rx, ry, normalized)
+		local t = Component(dx, dy, ux, uy, normalized)
 
-		return lx + s * sqrt(r2), ly + t * sqrt(u2)
+		return s, t
 	else
 		return x, y
 	end
 end
+
+--
+--
+--
 
 --- DOCME
 function CoordinateMixin:Coordinate_GlobalToLocal (x, y)
 	local lcs = self[_lcs]
 
 	if lcs then
-		local cx, cy, lx, ly, rx, ry, ux, uy = lcs()
-		local dx, dy, rlen2, ulen2 = x - lx, y - ly, rx^2 + ry^2, ux^2 + uy^2
+    local cx, cy = lcs("origin")
+		local dx, dy = x - cx, y - cy
+    local rx, ry, ux, uy, normalized = lcs("axes")
+		local s = Component(dx, dy, rx, ry, normalized)
+		local t = Component(dx, dy, ux, uy, normalized)
 
-		return cx + (dx * rx + dy * ry) / rlen2, cy + (dx * ux + dy * uy) / ulen2
+		return s * rx + t * ux, s * ry + t * uy
 	else
 		return x, y
 	end
 end
+
+--
+--
+--
 
 --- DOCME
 function CoordinateMixin:Coordinate_HasLocalSystem ()
 	return self[_lcs] ~= nil
 end
 
+--
+--
+--
+
 --- DOCME
 function CoordinateMixin:Coordinate_LocalToGlobal (x, y)
 	local lcs = self[_lcs]
 
 	if lcs then
-		local cx, cy, lx, ly, rx, ry, ux, uy = lcs()
-		local dx, dy = x - lx, y - ly
+    local cx, cy = lcs("origin")
+    local rx, ry, ux, uy = lcs("axes") -- TODO? account for axes not normalized?
 
-		return cx + dx * rx + dy * ux, cy + dx * ry + dy * uy
+		return cx + x * rx + y * ux, cy + x * ry + y * uy
 	else
 		return x, y
 	end
 end
 
+--
+--
+--
+
 --- DOCME
 function CoordinateMixin:Coordinate_SetLocalSystem (lcs)
 	self[_lcs] = lcs
 end
+
+--
+--
+--
 
 local Actions = { allow_add = "is_table" }
 
@@ -109,5 +145,9 @@ function Actions:remove ()
 		self[k] = nil
 	end
 end
+
+--
+--
+--
 
 return component.RegisterType{ name = "coordinate", actions = Actions }
