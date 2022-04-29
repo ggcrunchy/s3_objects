@@ -104,17 +104,23 @@ end
 --
 
 --- DOCME
-function CoordinateMixin:Coordinate_LocalToGlobal (x, y)
+function CoordinateMixin:Coordinate_LocalToGlobal (x, y, how)
 	local lcs = self[_lcs]
 
 	if lcs then
     local cx, cy = lcs("origin")
     local rx, ry, ux, uy = lcs("axes") -- TODO? account for axes not normalized?
 
-		return cx + x * rx + y * ux, cy + x * ry + y * uy
-	else
-		return x, y
-	end
+    if how == "use_ref" then
+      local x0, y0 = lcs("ref")
+
+      x, y = x - (x0 or 0), y - (y0 or 0)
+    end
+
+		x, y = cx + x * rx + y * ux, cy + x * ry + y * uy
+  end
+
+  return x, y
 end
 
 --
