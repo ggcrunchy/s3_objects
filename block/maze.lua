@@ -293,7 +293,7 @@ local function MakeHint (block, open, occupancy, layer)
 	maze_ops.Wipe(block, open)
 	maze_ops.Build(open, occupancy)
 
-	local prev = tile_flags.UseGroup(open) -- arbitrary nonce
+	local prev = tile_flags.UseSet(open) -- arbitrary cookie
 
 	maze_ops.SetFlags(block, open)
 	tile_flags.Resolve()
@@ -303,7 +303,7 @@ local function MakeHint (block, open, occupancy, layer)
 	local preview_tex = bgroup.m_preview_tex or AddPreviewTexture(bgroup, block:GetInitialRect())
 	local duration = maze_ops.Visit(block, occupancy, UpdatePreview, PreviewDelta, preview_tex, "offset")
 
-	tile_flags.UseGroup(prev)
+	tile_flags.UseSet(prev)
 
 	preview_tex:invalidate()
 
