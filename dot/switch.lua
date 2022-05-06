@@ -214,21 +214,13 @@ end
 --
 --
 
-local TouchEvent = { name = "touching_dot" }
-
 collision.AddHandler("switch", function(phase, switch, other)
 	if collision.GetType(other) == "player" then
-		local is_touched = phase == "began"
-
-		TouchEvent.dot, TouchEvent.is_touching, switch.m_touched = switch, is_touched, is_touched
-
-		Runtime:dispatchEvent(TouchEvent)
-
-		TouchEvent.dot = nil
+		switch.m_touched = dots.Touch(switch, phase)
 
 		--
 		events.BindNamedArgument("origin", switch)
-		events.BindNamedArgument("should_show", is_touched)
+		events.BindNamedArgument("should_show", switch.m_touched)
 
 		local flag, waiting = 1, switch.m_waiting
 

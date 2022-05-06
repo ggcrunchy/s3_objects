@@ -333,8 +333,6 @@ end
 
 local MarkersLayer
 
-local TouchEvent = { name = "touching_dot" }
-
 local TouchedWarpEvent = { name = "touched_warp" }
 
 local ArrowFadeParams = { alpha = 0, transition = easing.outCirc, onComplete = display.remove }
@@ -345,11 +343,7 @@ collision.AddHandler("warp", function(phase, warp, other)
 
 	-- Player touched warp: signal it as the dot of interest.
 	if other_type == "player" then
-		TouchEvent.dot, TouchEvent.is_touching = warp, phase == "began"
-
-		Runtime:dispatchEvent(TouchEvent)
-
-		TouchEvent.dot = nil
+    dots.Touch(warp, phase)
 
 		-- Show or hide a hint between this warp and its target.
 		local target = warp.m_to
