@@ -335,7 +335,7 @@ local MarkersLayer
 
 local TouchedWarpEvent = { name = "touched_warp" }
 
-local ArrowFadeParams = { alpha = 0, transition = easing.outCirc, onComplete = display.remove }
+local ArrowFadeParams = { alpha = 0, tag = Tag, transition = easing.outCirc, onComplete = display.remove }
 
 -- Add warp-OBJECT collision handler.
 collision.AddHandler("warp", function(phase, warp, other)
