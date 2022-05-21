@@ -33,7 +33,6 @@ local collision = require("solar2d_utils.collision")
 local component = require("tektite_core.component")
 local data_store = require("s3_objects.mixin.data_store")
 local directories = require("s3_utils.directories")
-local distort = require("s3_utils.snippets.operations.distort")
 local dots = require("s3_utils.dots")
 local events = require("solar2d_utils.events")
 local numeric = require("s3_utils.numeric")
@@ -309,7 +308,8 @@ function M.make (info, params)
 	
 	local warp = display.newCircle(params:GetLayer("things1"), 0, 0, WarpRadius)
 
-	distort.BindCanvasEffect(warp, WarpFill, warp_effect)
+  warp.fill = WarpFill
+  warp.fill.effect = warp_effect
 
 	Scale(warp, 1)
 
@@ -420,11 +420,17 @@ function FirstTimeInit (params)
 
 	WarpList, WarpRadius = {}, 1.15 * (w + h) / 2
 
-	distort.AttachCanvasToPaint(WarpFill.paint2, params.canvas)
+  local paint, canvas = WarpFill.paint2, params.canvas
+
+  paint.filename, paint.baseDir = canvas.filename, canvas.baseDir
 
 	Runtime:addEventListener("leave_level", LeaveLevel)
 	Runtime:addEventListener("pre_reset", PreReset)
 	Runtime:addEventListener("set_canvas_alpha", SetCanvasAlpha)
 end
+
+--
+--
+--
 
 return M
