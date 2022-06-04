@@ -314,8 +314,7 @@ local function MakeHint (block, open, occupancy, layer)
 
 	--
 	local mask_tex = bgroup.m_mask_tex
-	local mhint = display.newRect(mgroup, bgroup.m_cx, bgroup.m_cy, mask_tex.width, mask_tex.height)
-	local border = display.newRect(mgroup, mhint.x, mhint.y, mhint.width, mhint.height)
+	local mhint = display.newRoundedRect(mgroup, bgroup.m_cx, bgroup.m_cy, mask_tex.width, mask_tex.height, 12)
 	local total = 2 * duration + HoldTime -- rise, hold, fall
 
 	mhint.fill = bgroup.m_preview_fill
@@ -324,16 +323,15 @@ local function MakeHint (block, open, occupancy, layer)
 	mhint.fill.effect.hold = HoldTime
 	mhint.fill.effect.total = total
 
-	border:setFillColor(0, 0)
-	border:setStrokeColor(0, 0, 1)
-	mhint:setFillColor(0, 1, 0, .35)
+  mhint:setStrokeColor(0, 0, 1)
+	mhint:setFillColor(.2, .3, 1, .35)
 
-	border.strokeWidth = 2
+  mhint.strokeWidth = 2
 
 	--
 	PreviewParams.t = total
 
-	transition.to(mhint.fill.effect, PreviewParams)
+	transition.loop(mhint.fill.effect, PreviewParams)
 
 	return mgroup
 end

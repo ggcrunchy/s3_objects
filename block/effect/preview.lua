@@ -80,9 +80,9 @@ includer.AugmentKernels({
 		color *= WHEN_LE(.5, time_opacity.y);
 
 		// Dither the remaining bits somewhat and supply the color.
-		P_COLOR float h1 = fract(32. * (uv.x + uv.y)), h2 = fract(32. * (uv.x - uv.y));
+		P_COLOR float h1 = fract(dot(uv, vec2(16.))), h2 = fract(dot(uv, vec2(16., -16.)));
 
-		color *= (1. - WHEN_LE(.5, h1) * WHEN_LE(.5, h2));
+		color *= (1. - smoothstep(.25, .5, h1 - t_rise * .0875) * smoothstep(.25, .5, h2 - t_fall * .0875));
 
 		return color;
 	}
