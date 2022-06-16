@@ -381,8 +381,6 @@ function M.make (info, params)
 
 		if added then
 			UpdateTiles(self)
-
-			added = false
 		end
 	end
 
@@ -432,21 +430,15 @@ function M.make (info, params)
 		if event.should_show then
 			if added then
 				return -- or show some "close" hint?
-			elseif mgroup then
-				mgroup.isVisible = true
 			else
 				mgroup = MakeHint(event.target, open, occupancy, markers_layer)
 			end
 
 		-- ...or hide.
 		elseif mgroup then
-			if added then
-				CleanUpHint(event.target, mgroup)
+      CleanUpHint(event.target, mgroup)
 
-				mgroup = nil
-			else
-				mgroup.isVisible = false
-			end
+      mgroup = nil
 		end
 	end)
 
