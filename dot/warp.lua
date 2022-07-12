@@ -30,8 +30,6 @@ local sin = math.sin
 -- Modules --
 local audio = require("solar2d_utils.audio")
 local collision = require("solar2d_utils.collision")
-local component = require("tektite_core.component")
-local data_store = require("s3_objects.mixin.data_store")
 local directories = require("s3_utils.directories")
 local dots = require("s3_utils.dots")
 local events = require("solar2d_utils.events")
@@ -110,18 +108,9 @@ Warp.__rprops = { block_func_prep_P = Getter, body_P = Getter, on_rotate_block_P
 -- If the warp has a valid target, dispatches various events (cf. _func_ in @{Warp:Use})
 -- to the actor with this warp and said target as arguments.
 function Warp:ActOn (actor)
-	if not self:Use(actor) then
+	if not self:Use(actor, "VisibleParts") then
 		-- Sound effect?
 	end
-end
-
---
---
---
-
---- Dot method: reset warp state.
-function Warp:Reset ()
-	self:DataStore_RemoveParts()
 end
 
 --
@@ -195,12 +184,16 @@ local function WarpOut (object, on_complete)
 	DoTransitionThenComplete(object, MaskOut, on_complete)
 end
 
-local function DoAll (items, func, on_first)
-	func(items[1], on_first) -- transitions more or less simultaneous, so only one needs to do the on-complete logic
+local function DoAll (user, iter, func, on_first)
+  if iter then
+    for _, object in user[iter](user) do
+      func(object, on_first) -- transitions more or less simultaneous, so only one needs to do the on-complete logic
 
-	for i = 2, #items do
-		func(items[i])
-	end
+      on_first = nil
+    end
+  else
+    func(user, on_first)
+  end
 end
 
 local MoveParams = { tag = Tag, transition = easing.inOutQuad }
@@ -209,84 +202,71 @@ local Sounds = audio.NewSoundGroup{ module = ..., path = "sfx", warp = "Warp.mp3
 
 local DistanceToTime = numeric.MakeLengthQuantizer{ unit = 200, bias = 5, rescale = 100 }
 
---- Trigger a warp, sending through anything loaded by @{DataArrayMixin:DataStore_Append}.
+--- Trigger a warp, sending a user through.
 --
--- The cargo is emptied after use.
---
--- This is a no-op if the warp is missing a target.
+-- This is a no-op if the warp is missing a user or target.
 -- @callable func As the warp progresses, this is called as
 --   func(what, warp, target)
--- for the following values of _what_: **"move_prepare"** (if the cargo is empty, only this
--- is performed), **"move\_began\_moving"**, **"move\_done\_moving"**, **"move_done"**.
+-- for the following values of _what_: **"move_prepare"**,
+-- **"move\_began\_moving"**, **"move\_done\_moving"**, **"move_done"**.
 --
--- The target's type will be either **"position"** or **"warp"**. At a minimum, any _target_
--- will have local **x** and **y** coordinates.
+-- The target's type will be either **"position"** or **"warp"**. At a
+-- minimum, any _target_ will have local **x** and **y** coordinates.
 --
 -- If absent, this is a no-op.
--- @treturn boolean The warp had cargo and a target?
-function Warp:Use (user)
+-- @treturn boolean The warp had a target?
+function Warp:Use (user, iter)
 	local target = self.m_to
 
-	if target then
+	if user and target then
 		DispatchWarpEvent(user, "move_prepare", self, target)
 
-		local items = self:DataStore_RemoveParts()
+    -- Warp-in onComplete handler, which concludes the warp and does cleanup
+    local function WarpIn_OC (object)
+      if display.isValid(object) then
+        DispatchWarpEvent(user, "move_done", self, target)
+        ClearMask(object)
+      end
+    end
 
-		if items then
-			-- Warp-in onComplete handler, which concludes the warp and does cleanup
-			local function WarpIn_OC (object)
-				if display.isValid(object) then
-					DispatchWarpEvent(user, "move_done", self, target)
+    -- Move onComplete handler, which segues into the warp-in stage of warping
+    local function MoveParams_OC (object)
+      if display.isValid(object) then
+        DoAll(user, iter, WarpIn, WarpIn_OC)
+        DispatchWarpEvent(user, "move_done_moving", self, target)
 
-					object:setMask(nil)
-				end
-			end
+        Sounds:PlaySound("warp")
+      end
+    end
 
-			-- Move onComplete handler, which segues into the warp-in stage of warping
-			local function MoveParams_OC (object)
-				if display.isValid(object) then
-					DoAll(items, WarpIn, WarpIn_OC)
-					DispatchWarpEvent(user, "move_done_moving", self, target)
+    -- Warp-out onComplete handler, which segues into the move stage of warping
+    -- TODO: What if the warp is moving?
+    local tx, ty = target.x, target.y
 
-					Sounds:PlaySound("warp")
-				end
-			end
+    local function WarpOut_OC (object)
+      if display.isValid(object) then
+        DispatchWarpEvent(user, "move_began_moving", self, target)
 
-			-- Warp-out onComplete handler, which segues into the move stage of warping
-			-- TODO: What if the warp is moving?
-			local tx, ty = target.x, target.y
+        Sounds:PlaySound("whiz")
 
-			local function WarpOut_OC (object)
-				if display.isValid(object) then
-					DispatchWarpEvent(user, "move_began_moving", self, target)
+        local dx, dy = object.x - tx, object.y - ty
 
-					Sounds:PlaySound("whiz")
+        MoveParams.x = tx
+        MoveParams.y = ty
+        MoveParams.time = DistanceToTime(dx, dy)
+        MoveParams.onComplete = MoveParams_OC
 
-					local dx, dy = object.x - tx, object.y - ty
+        transition.to(object, MoveParams)
+      end
+    end
 
-					MoveParams.x = tx
-					MoveParams.y = ty
-					MoveParams.time = DistanceToTime(dx, dy)
-					MoveParams.onComplete = MoveParams_OC
+    DoAll(user, iter, WarpOut, WarpOut_OC)
 
-					transition.to(object, MoveParams)
-				end
-			end
+    Sounds:PlaySound("warp")
 
-			DoAll(items, WarpOut, WarpOut_OC)
-
-			Sounds:PlaySound("warp")
-
-			return true
-		end
-	end
+    return true
+  end
 end
-
---
---
---
-
-component.AddToObject(Warp, data_store)
 
 --
 --
