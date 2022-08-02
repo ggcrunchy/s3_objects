@@ -76,6 +76,130 @@ end
 --
 --
 
+local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCubic }
+
+--
+--
+--
+
+local HalfPreviewDelta = 1 / 64
+
+local function UpdatePreview (dir, t, _, x, y, tex)
+	local ix, iy = x * 2 + 1, y * 2 + 1
+
+	if dir == "start" then
+		tex:setPixel(ix, iy, 0, 1, 0)
+	else
+		local dx, dy = 0, 0
+
+		if dir == "up" or dir == "down" then
+			dy = dir == "up" and -1 or 1
+		else
+			dx = dir == "left" and -1 or 1
+		end
+
+		tex:setPixel(ix - dx, iy - dy, t - HalfPreviewDelta, 1, 0)
+		tex:setPixel(ix, iy, t, 1, 0)
+
+		return true
+	end
+end
+
+local PreviewDelta = 2 * HalfPreviewDelta
+
+local function AddPreviewTexture (bgroup, col1, row1, col2, row2)
+	local tex = bitmap.newTexture{ width = (col2 - col1) * 2 + 1, height = (row2 - row1) * 2 + 1 }
+
+	bgroup.m_preview_fill, bgroup.m_preview_tex = {
+		type = "image", format = "rgb",
+		filename = tex.filename, baseDir = tex.baseDir
+	}, tex
+
+	return tex
+end
+
+local function PreparePreview (bgroup, block, occupancy)
+	local preview_tex = bgroup.m_preview_tex or AddPreviewTexture(bgroup, block:GetInitialRect())
+	local duration = maze_ops.Visit(block, occupancy, UpdatePreview, PreviewDelta, preview_tex, "offset")
+
+	preview_tex:invalidate()
+
+  return duration
+end
+
+local HoldTime = .05
+
+local function MakeHint (block, open, occupancy, layer)
+	-- Prepare a new maze.
+	maze_ops.Wipe(block, open)
+	maze_ops.Build(open, occupancy)
+
+	local prev = tile_flags.UseSet(open) -- arbitrary cookie
+
+	maze_ops.SetFlags(block, open)
+	tile_flags.Resolve()
+
+	-- Make a low-res texture to represent it.
+	local bgroup = block:GetGroup()
+	local duration = PreparePreview(bgroup, block, occupancy)
+
+	tile_flags.UseSet(prev)
+
+	--
+	local mgroup = display.newGroup()
+
+	layer:insert(mgroup)
+
+	--
+	local mask_tex = bgroup.m_mask_tex
+	local mhint = display.newRoundedRect(mgroup, bgroup.m_cx, bgroup.m_cy, mask_tex.width, mask_tex.height, 12)
+	local total = 2 * duration + HoldTime -- rise, hold, fall
+
+	mhint.fill = bgroup.m_preview_fill
+	mhint.fill.effect = preview_effect
+	mhint.fill.effect.rise = duration
+	mhint.fill.effect.hold = HoldTime
+	mhint.fill.effect.total = total
+
+  mhint:setStrokeColor(0, 0, 1)
+	mhint:setFillColor(.2, .3, 1, .35)
+
+  mhint.strokeWidth = 2
+
+	--
+	PreviewParams.t = total
+
+	transition.loop(mhint.fill.effect, PreviewParams)
+
+	return mgroup
+end
+
+--
+--
+--
+
+local FadeParams = { onComplete = display.remove }
+
+local function CleanUpHint (block, mgroup)
+	if display.isValid(mgroup) then
+		FadeParams.alpha = .2
+
+		transition.to(mgroup, FadeParams)
+	end
+
+	local tex = block:GetGroup().m_preview_tex
+
+	for row = 1, tex.height do
+		for col = 1, tex.width do
+			tex:setPixel(col, row, 0, 0, 0)
+		end
+	end
+end
+
+--
+--
+--
+
 local Rotation = { right = 0, down = 90, left = 180, up = 270 }
 
 local FalloffDistance = .25
@@ -167,6 +291,10 @@ local function FadeIn (block, occupancy)
 	return duration + 1.25 * UnfurlDelay -- add a buffer for patches and slight timing issues
 end
 
+--
+--
+--
+
 local function GetDot (out, image, index)
 	local dot = out[index]
 
@@ -232,131 +360,27 @@ local function FadeOut (block)
 	return duration + 100 -- cf. FadeIn
 end
 
-local FadeParams = { onComplete = display.remove }
-
-local function CleanUpHint (block, mgroup)
-	if display.isValid(mgroup) then
-		FadeParams.alpha = .2
-
-		transition.to(mgroup, FadeParams)
-	end
-
-	local tex = block:GetGroup().m_preview_tex
-
-	for row = 1, tex.height do
-		for col = 1, tex.width do
-			tex:setPixel(col, row, 0, 0, 0)
-		end
-	end
-end
-
-local HalfPreviewDelta = 1 / 64
-
-local function UpdatePreview (dir, t, _, x, y, tex)
-	local ix, iy = x * 2 + 1, y * 2 + 1
-
-	if dir == "start" then
-		tex:setPixel(ix, iy, 0, 1, 0)
-	else
-		local dx, dy = 0, 0
-
-		if dir == "up" or dir == "down" then
-			dy = dir == "up" and -1 or 1
-		else
-			dx = dir == "left" and -1 or 1
-		end
-
-		tex:setPixel(ix - dx, iy - dy, t - HalfPreviewDelta, 1, 0)
-		tex:setPixel(ix, iy, t, 1, 0)
-
-		return true
-	end
-end
-
-local HoldTime, PreviewDelta = .05, 2 * HalfPreviewDelta
-
-local PreviewParams = { time = 2500, iterations = 0, transition = easing.inOutCubic }
-
-local function AddPreviewTexture (bgroup, col1, row1, col2, row2)
-	local tex = bitmap.newTexture{ width = (col2 - col1) * 2 + 1, height = (row2 - row1) * 2 + 1 }
-
-	bgroup.m_preview_fill, bgroup.m_preview_tex = {
-		type = "image", format = "rgb",
-		filename = tex.filename, baseDir = tex.baseDir
-	}, tex
-
-	return tex
-end
-
-local function MakeHint (block, open, occupancy, layer)
-	-- Prepare a new maze.
-	maze_ops.Wipe(block, open)
-	maze_ops.Build(open, occupancy)
-
-	local prev = tile_flags.UseSet(open) -- arbitrary cookie
-
-	maze_ops.SetFlags(block, open)
-	tile_flags.Resolve()
-
-	-- Make a low-res texture to represent it.
-	local bgroup = block:GetGroup()
-	local preview_tex = bgroup.m_preview_tex or AddPreviewTexture(bgroup, block:GetInitialRect())
-	local duration = maze_ops.Visit(block, occupancy, UpdatePreview, PreviewDelta, preview_tex, "offset")
-
-	tile_flags.UseSet(prev)
-
-	preview_tex:invalidate()
-
-	--
-	local mgroup = display.newGroup()
-
-	layer:insert(mgroup)
-
-	--
-	local mask_tex = bgroup.m_mask_tex
-	local mhint = display.newRoundedRect(mgroup, bgroup.m_cx, bgroup.m_cy, mask_tex.width, mask_tex.height, 12)
-	local total = 2 * duration + HoldTime -- rise, hold, fall
-
-	mhint.fill = bgroup.m_preview_fill
-	mhint.fill.effect = preview_effect
-	mhint.fill.effect.rise = duration
-	mhint.fill.effect.hold = HoldTime
-	mhint.fill.effect.total = total
-
-  mhint:setStrokeColor(0, 0, 1)
-	mhint:setFillColor(.2, .3, 1, .35)
-
-  mhint.strokeWidth = 2
-
-	--
-	PreviewParams.t = total
-
-	transition.loop(mhint.fill.effect, PreviewParams)
-
-	return mgroup
-end
+--
+--
+--
 
 local function UpdateTiles (block)
 	tile_maps.SetTilesFromFlags(block:GetGroup(), tilesets.NewTile, block:GetInitialRect())
 end
 
+--
+--
+--
+
 local TilesChangedEvent = { name = "tiles_changed", how = "maze" }
 
-local function IsDone (event)
-	event.result = not event.target:GetGroup().m_maze_forming
-end
+--
+--
+--
 
-local function IsReady (event)
-	event.result = not event.target:GetGroup().m_maze_forming
---[[
-	if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
-						-- _forward_ is also probably meaningless / failure
-		return "failed"
-	end
-]]
-end
+local FormingParams = {}
 
-local function StopForming (bgroup)
+function FormingParams.onComplete (bgroup)
 	if bgroup.m_maze_forming then
 		maze_ops.DeactivateMask(bgroup)
 		transition.cancel(bgroup.m_maze_forming)
@@ -365,16 +389,42 @@ local function StopForming (bgroup)
 	end
 end
 
-local FormingParams = { onComplete = StopForming }
+--
+--
+--
+
+local function IsDone (block, event)
+	event.result = not block:GetGroup().m_maze_forming
+end
+
+local function IsReady (block, event)
+	event.result = not block:GetGroup().m_maze_forming
+--[[
+	if #open == 0 then -- ??? (more?) might be synonym for `not forming` or perhaps tighter test... review!
+						-- _forward_ is also probably meaningless / failure
+		return "failed"
+	end
+]]
+end
+
+--
+--
+--
 
 --- DOCME
 function M.make (info, params)
+  local block = blocks.New(info, params)
+
+  --
+  --
+  --
+
 	-- Instantiate the maze state and some logic to reset / initialize it. The core state
 	-- is a flat list of the open directions of each of the block's tiles, stored as {
 	-- up1, left1, down1, right1, up2, left2, down2, right2, ... }, where upX et al. are
 	-- booleans (true if open) indicating the state of tile X's directions. The list of
 	-- already explored tiles is maintained under the negative integer keys.
-	local open, block, added = {}, blocks.New(info, params)
+  local open, added = {}
 
 	function block:Reset ()
 		maze_ops.Wipe(self, open, added)
@@ -382,15 +432,51 @@ function M.make (info, params)
 		if added then
 			UpdateTiles(self)
 		end
+
+    added = nil -- TODO: or info.added value?
 	end
 
 	--
 	--
 	--
 
-	maze_ops.SetupFromBlock(block)
-
 	local occupancy = embedded_predicate.Wrap(open)
+
+	local markers_layer, mgroup = params:GetLayer("markers")
+
+	function block:show (event)
+		-- Show...
+		if event.should_show then
+			if added then
+				return -- or show some "close" hint?
+			else
+				mgroup = MakeHint(self, open, occupancy, markers_layer)
+			end
+
+		-- ...or hide.
+		elseif mgroup then
+      CleanUpHint(self, mgroup)
+
+      mgroup = nil
+		end
+	end
+
+  --
+  --
+  --
+
+  block.is_done = IsDone
+  block.is_ready = IsReady
+
+	block:addEventListener("is_done")
+	block:addEventListener("is_ready")
+  block:addEventListener("show")
+
+	--
+	--
+	--
+
+	maze_ops.SetupFromBlock(block)
 
 	local function Fire ()
 		added = not added
@@ -415,36 +501,6 @@ function M.make (info, params)
 
 		bgroup.m_maze_forming = transition.to(bgroup, FormingParams)
 	end
-
-	block:addEventListener("is_done", IsDone)
-	block:addEventListener("is_ready", IsReady)
-
-	--
-	--
-	--
-
-	local markers_layer, mgroup = params:GetLayer("markers")
-
-	block:addEventListener("show", function(event)
-		-- Show...
-		if event.should_show then
-			if added then
-				return -- or show some "close" hint?
-			else
-				mgroup = MakeHint(event.target, open, occupancy, markers_layer)
-			end
-
-		-- ...or hide.
-		elseif mgroup then
-      CleanUpHint(event.target, mgroup)
-
-      mgroup = nil
-		end
-	end)
-
-	--
-	--
-	--
 
 	block:Reset()
 	block:AttachEvent(Fire, info, params)
