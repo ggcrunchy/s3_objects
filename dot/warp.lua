@@ -81,15 +81,9 @@ local Body = { radius = 25 }
 
 local TouchImage = directories.FromModule(..., "hud") .. "WarpTouch.png"
 
-local function Rotate ()--warp, angle)
-	-- TODO: polarity, etc.
-end
-
 local function Getter (_, what)
 	if what == "body_P" then
 		return Body
-	elseif what == "on_rotate_block_P" then
-		return Rotate
 	else
 		return TouchImage
 	end
@@ -97,7 +91,7 @@ end
 
 local Warp = {}
 
-Warp.__rprops = { block_func_prep_P = Getter, body_P = Getter, on_rotate_block_P = Getter, touch_image_P = Getter }
+Warp.__rprops = { body_P = Getter, touch_image_P = Getter }
 
 --
 --
