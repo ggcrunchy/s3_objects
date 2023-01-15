@@ -120,7 +120,6 @@ function Switch:ActOn ()
 
 	self.m_waiting = waiting
 
-	--
 	if no_failures or any_successes then -- we might more robustly do this BEFORE making any actual calls / shows
 										 -- some sort of named event like "will_fail" might be checked?
 										 -- then we could also choose a policy too; complicating this is that
@@ -133,7 +132,6 @@ function Switch:ActOn ()
 		self[1].isVisible = not self[1].isVisible
 		self[2].isVisible = not self[2].isVisible
 
-	--
 	else
 		-- Fail sound
 	end

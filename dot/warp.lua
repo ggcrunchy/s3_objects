@@ -38,6 +38,9 @@ local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
 local tile_layout = require("s3_utils.tile_layout")
 
+-- Plugins --
+local soloud = require("plugin.soloud")
+
 -- Effects --
 local warp_effect = require("s3_objects.dot.effect.warp")
 
