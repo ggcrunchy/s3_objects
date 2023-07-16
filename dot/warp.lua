@@ -23,10 +23,6 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local ipairs = ipairs
-local sin = math.sin
-
 -- Modules --
 local audio = require("solar2d_utils.audio")
 local collision = require("solar2d_utils.collision")
@@ -37,9 +33,6 @@ local numeric = require("s3_utils.numeric")
 local markers = require("s3_utils.object.markers")
 local meta = require("tektite_core.table.meta")
 local tile_layout = require("s3_utils.tile_layout")
-
--- Plugins --
-local soloud = require("plugin.soloud")
 
 -- Effects --
 local warp_effect = require("s3_objects.dot.effect.warp")
@@ -108,22 +101,6 @@ function Warp:ActOn (actor)
 	if not self:Use(actor, "VisibleParts") then
 		-- Sound effect?
 	end
-end
-
---
---
---
-
-local function Scale (warp, scale)
-	warp.xScale = .5 * scale
-	warp.yScale = .5 * scale
-end
-
---- Dot method: update warp state.
-function Warp:Update (dt)
-	self.rotation = self.rotation - 150 * dt
-
-	Scale(self, 1 - sin(self.rotation / 30) * .05)
 end
 
 --
@@ -237,7 +214,6 @@ function Warp:Use (user, iter)
     end
 
     -- Warp-out onComplete handler, which segues into the move stage of warping
-    -- TODO: What if the warp is moving?
     local tx, ty = target.x, target.y
 
     local function WarpOut_OC (object)
@@ -269,7 +245,7 @@ end
 --
 --
 
-local WarpFill, WarpList, WarpRadius
+local WarpRadius
 
 local function AddTarget (target, warp)
 	warp.m_to = target
@@ -279,16 +255,16 @@ local FirstTimeInit
 
 --- DOCME
 function M.make (info, params)
-	if not WarpList then
+	if not WarpRadius then
 		FirstTimeInit(params)
 	end
 	
 	local warp = display.newCircle(params:GetLayer("things1"), 0, 0, WarpRadius)
 
-  warp.fill = WarpFill
   warp.fill.effect = warp_effect
-
-	Scale(warp, 1)
+  
+  warp:setFillColor(.263, .592, .898)
+  warp:scale(1.15, .85)
 
 	meta.Augment(warp, Warp)
 
@@ -298,8 +274,6 @@ function M.make (info, params)
 
 	psl:Subscribe(info.to, AddTarget, warp)
 	psl:Publish(warp, info.uid, "pos")
-
-	WarpList[#WarpList + 1] = warp
 
 	dots.New(info, warp)
 end
@@ -313,6 +287,10 @@ local MarkersLayer
 local TouchedWarpEvent = { name = "touched_warp" }
 
 local ArrowFadeParams = { alpha = 0, tag = Tag, transition = easing.outCirc, onComplete = display.remove }
+
+--
+--
+--
 
 -- Add warp-OBJECT collision handler.
 collision.AddHandler("warp", function(phase, warp, other)
@@ -357,33 +335,17 @@ end
 --
 --
 
-local function SetCanvasAlpha (event)
-	local alpha = event.alpha
-
-	for _, warp in ipairs(WarpList) do
-		warp.fill.effect.alpha = alpha
-	end
-end
-
 --
 --
 --
-
-WarpFill = {
-	type = "composite",
-	paint1 = { type = "image", filename = HereGFX .. "Warp.png" },
-	paint2 = { type = "image" }
-}
 
 local function LeaveLevel ()
-	MarkersLayer, WarpList = nil
-	WarpFill.paint2.filename, WarpFill.paint2.baseDir = nil
+	PreReset()
+
+	MarkersLayer = nil
 
 	Runtime:removeEventListener("leave_level", LeaveLevel)
 	Runtime:removeEventListener("pre_reset", PreReset)
-	Runtime:removeEventListener("set_canvas_alpha", SetCanvasAlpha)
-
-	transition.cancel(Tag)
 end
 
 --
@@ -393,17 +355,20 @@ end
 function FirstTimeInit (params)
 	MarkersLayer = params:GetLayer("markers")
 
+  --
+  --
+  --
+
 	local w, h = tile_layout.GetSizes()
 
-	WarpList, WarpRadius = {}, 1.15 * (w + h) / 2
+	WarpRadius = .45 * (w + h) / 2
 
-  local paint, canvas = WarpFill.paint2, params.canvas
-
-  paint.filename, paint.baseDir = canvas.filename, canvas.baseDir
+  --
+  --
+  --
 
 	Runtime:addEventListener("leave_level", LeaveLevel)
 	Runtime:addEventListener("pre_reset", PreReset)
-	Runtime:addEventListener("set_canvas_alpha", SetCanvasAlpha)
 end
 
 --
