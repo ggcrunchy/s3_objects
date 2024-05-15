@@ -70,21 +70,25 @@ includer.AugmentKernels({
     return vec2(length(p), atan_approx(p.y, p.x));
   }
 
-  // License: MIT OR CC-BY-NC-4.0, author: mercury, found: https://mercury.sexy/hg_sdf/
+  // License: MIT OR CC-BY-NC-4.0, author: mercury, found: https://mercury.sexy/hg_sdf/ (adapted)
   P_POSITION float mod1 (inout P_POSITION float p, P_POSITION float size)
   {
-    P_POSITION float halfsize = size * 0.5;
-    P_POSITION float c = floor((p + halfsize) / size);
+    P_POSITION float c = floor(p / size + .5);
 
-    p = mod(p + halfsize, size) - halfsize;
+    p -= c * size;
       
     return c;
   }
 
-  // License: Unknown, author: Unknown, found: don't remember
-  P_POSITION float hash (P_POSITION float co)
+  // hash11(), from https://www.shadertoy.com/view/4djSRW (MIT)
+  P_POSITION float hash (P_POSITION float p)
   {
-    return fract(sin(co * 12.9898) * 13758.5453);
+    p = fract(p * .1031);
+    
+    p *= p + 33.33;
+    p *= p + p;
+    
+    return fract(p);
   }
 
   P_POSITION vec3 glow (P_UV vec2 pp, P_COLOR float h)
@@ -106,19 +110,17 @@ includer.AugmentKernels({
   P_COLOR vec3 contribution (P_UV vec2 ipp, P_COLOR float i)
   {
       ipp.x -= ringDistance * .25 * i;
-        
+   
       P_COLOR float rn = mod1(ipp.x, ringDistance); 
       P_COLOR float h = hash(rn + 123.0 * i);
 
-      return glow(ipp, h) * step(rn, noOfRings); 
+      return glow(ipp, h) * step(rn, noOfRings);
   }
 
 	P_COLOR vec4 FragmentKernel (P_UV vec2 uv)
 	{
     P_UV vec2 pp = toPolar(2. * uv - 1.);
     P_COLOR vec3 col = contribution(pp, 0.) + contribution(pp, 1.) + contribution(pp, 2.) + contribution(pp, 3.);
-
-    col += (0.01 * vec3(0.25, 0.25, 0.25)) / length(pp);
 
     P_COLOR vec3 foreground = sqrt(col);
     P_COLOR float a = smoothstep(.8, .2, dot(foreground, vec3(.299, .587, .114)));
