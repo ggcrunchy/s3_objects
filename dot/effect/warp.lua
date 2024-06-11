@@ -121,13 +121,12 @@ includer.AugmentKernels({
 	{
     P_UV vec2 pp = toPolar(2. * uv - 1.);
     P_COLOR vec3 col = contribution(pp, 0.) + contribution(pp, 1.) + contribution(pp, 2.) + contribution(pp, 3.);
-
     P_COLOR vec3 foreground = sqrt(col);
-    P_COLOR float a = smoothstep(.8, .2, dot(foreground, vec3(.299, .587, .114)));
+    P_COLOR float a = smoothstep(1.025, .2, dot(foreground, vec3(.299, .587, .114)));
 
-    foreground = pow(foreground * a, vec3(.37));
+    foreground = pow(foreground, vec3(.37));
 
-		return CoronaColorScale(vec4(clamp(foreground, 0., 1.), smoothstep(.7, .925, a)));
+		return CoronaColorScale(vec4(foreground, a));
 	}
 ]]
 

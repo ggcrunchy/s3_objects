@@ -253,12 +253,16 @@ end
 
 local FirstTimeInit
 
+local MarkersLayer
+
 --- DOCME
 function M.make (info, params)
+	MarkersLayer = MarkersLayer or params:GetLayer("markers")
+  
 	if not WarpRadius then
 		FirstTimeInit(params)
 	end
-	
+
 	local warp = display.newCircle(params:GetLayer("things1"), 0, 0, WarpRadius)
 
   warp.fill.effect = warp_effect
@@ -281,8 +285,6 @@ end
 --
 --
 --
-
-local MarkersLayer
 
 local TouchedWarpEvent = { name = "touched_warp" }
 
@@ -353,12 +355,6 @@ end
 --
 
 function FirstTimeInit (params)
-	MarkersLayer = params:GetLayer("markers")
-
-  --
-  --
-  --
-
 	local w, h = tile_layout.GetSizes()
 
 	WarpRadius = .45 * (w + h) / 2
